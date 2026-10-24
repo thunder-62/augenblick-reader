@@ -16,4 +16,4 @@ Beim Öffnen der App sollen letzter Artikel und letzte Seite wiederhergestellt w
 
 - Funktioniert ohne Netz und ohne Server-Roundtrip; passt zu M4 (Offline).
 - Wird der Browser-Speicher gelöscht, beginnt die App in der Übersicht – nichts geht kaputt.
-- Für das Nutzungsprotokoll im Admin-Bereich (SPEC §10, M2) und für mehrere Geräte pro Server (SPEC §12a) muss der Zustand später zusätzlich an den Server gemeldet werden. Notiert in `docs/ideen.md`.
+- Gelesen-Häkchen und Lesestelle bleiben auf dem Tablet. Für das Interessen-Lernen meldet das Tablet nur Themen-Signale (ADR 009), kein Leseprotokoll.

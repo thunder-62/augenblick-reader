@@ -19,4 +19,4 @@ SPEC §3 gibt den Stack vor und lässt einige Punkte offen (Preact oder Vanilla 
 ## Folgen
 
 - Wer später doch Preact möchte, kann die beiden Bildschirme einzeln umstellen; Seitenumbruch, Tipp-Logik und Zustand sind framework-unabhängig.
-- Der Rubriken-Mix ist per `AUGENBLICK_SECTIONS` einstellbar, bis der Admin-Bereich (M2) ihn übernimmt.
+- Der Rubriken-Mix ist per `AUGENBLICK_SECTIONS` voreingestellt und im Technik-Bereich änderbar (ADR 007).

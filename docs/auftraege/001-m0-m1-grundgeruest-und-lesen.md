@@ -55,8 +55,8 @@ KI-Kurzfassungen (M3), Einstellungen der Nutzerin, Kalibrierung und Technik-Bere
 
 **Gerät und Darstellung (beim Test mit der Nutzerin)**
 
-4. **CSS-Auflösung und Millimeter des Tab S11:** E2E-Viewport (1280×800) und die Umrechnung für Tippziele (6,3 CSS-px/mm) sind geschätzt. Bitte am Gerät messen: `window.innerWidth/innerHeight` im Vollbild und die Höhe einer Taste mit dem Lineal (soll 20 mm sein). Werte in `playwright.config.ts` und `shared/src/geometry.ts` eintragen.
-5. **Standardwerte bis zur Kalibrierung (M2):** gewählt sind 30 px Schrift und das dunkle Schema. Änderbar über `AUGENBLICK_FONT_SIZE_PX` und `AUGENBLICK_THEME` in `/etc/augenblick/augenblick.env`.
+4. ~~**CSS-Auflösung und Millimeter des Tab S11**~~ – *entfällt (Betreuer, 24.10.2026): Die Schriftgröße stellt die Leserin in der Einführung selbst ein; die Tippziele behalten den vorsichtigen Schätzwert.*
+5. **Anfangswerte bis zur Einführung:** 30 px Schrift und das dunkle Schema (`AUGENBLICK_FONT_SIZE_PX`, `AUGENBLICK_THEME`). Seit M2 stellt die Leserin beides in der Einführung selbst ein.
 6. **Karten pro Übersichtsseite:** Die Spec nennt 3 Karten je Seite. Bei 30 px Schrift, Zeilenabstand 2,0 und höchstens 45 Zeichen je Zeile passt im vorläufigen Viewport meist nur **eine** Karte; die Übersicht hat dann bis zu 12 Seiten (ADR 005). Ist das in Ordnung, oder soll die Kurzfassung in der Karte enger gesetzt bzw. kürzer werden?
 7. **Eine Ausgabe pro Tag:** Was morgens in der Ausgabe steht, bleibt; tagesüber kommen nur Artikel auf freie Plätze (ADR 003). Wünscht die Nutzerin eher eine zweite Ausgabe am Nachmittag?
 8. **Ende des letzten Artikels:** Dort gibt es keinen „Nächsten Artikel“; „Weiter“ ist inaktiv, zurück geht es über „Übersicht“. Passt das, oder soll dort „Zur Übersicht ▸“ stehen?

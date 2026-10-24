@@ -1,6 +1,6 @@
 # 005 – Layout im Querformat und Maße der Tippziele
 
-**Status:** vorläufig – am Gerät prüfen · **Datum:** 24.10.2026
+**Status:** angenommen · **Datum:** 24.10.2026 (Ergänzung zur Messung am Gerät siehe unten)
 
 ## Kontext
 
@@ -8,7 +8,7 @@ SPEC §8.1–8.3 verlangt Tippziele ≥ 15 mm (Ziel 20 mm), ≥ 6 mm Abstand, �
 
 ## Entscheidung
 
-- **Maße** stehen als Konstanten in `shared/src/geometry.ts`. Vorläufig gilt 6,3 CSS-px/mm (aus der Recherche: 15–20 mm ≈ 95–125 CSS-px). Rechnerisch hätte das Tab S11 (11″, 2560×1600, Pixelverhältnis 2) eher ~5,4 CSS-px/mm; der höhere Wert ist die sichere Seite (Tasten werden eher größer). **Mit Lineal am Gerät messen und eintragen.**
+- **Maße** stehen als Konstanten in `shared/src/geometry.ts`. Es gilt 6,3 CSS-px/mm (aus der Recherche: 15–20 mm ≈ 95–125 CSS-px). Rechnerisch hätte das Tab S11 (11″, 2560×1600, Pixelverhältnis 2) eher ~5,4 CSS-px/mm; der höhere Wert ist die sichere Seite (Tasten werden eher größer). **Eine Messung am Gerät entfällt** (Entscheidung des Betreuers): Die Schriftgröße stellt die Leserin in der Einführung selbst ein.
 - Tasten sind 20 mm hoch; alle Tippziele halten 15 mm Abstand zum Rand, Text darf näher an den Rand.
 - **Artikel:** „◂ Übersicht“ sitzt oben links in einer schmalen Randspalte, der Text beginnt rechts daneben ganz oben. So steht die Taste im Kopfbereich, kostet aber keine eigene Zeile. Unten die feste Leiste „◂ Zurück · Seite x von y · Weiter ▸“.
 - **Zeilenlänge:** `maxCharsPerLine` meint echte Zeichen. Die App misst die mittlere Zeichenbreite eines deutschen Mustertextes in der aktuellen Schrift (inkl. Wortabstand), statt die CSS-Einheit `ch` (Breite der Ziffer 0) zu nehmen, die rund 20 % zu lange Zeilen ergab.
