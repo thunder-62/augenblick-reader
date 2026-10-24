@@ -293,13 +293,16 @@ button {
   line-height: 1.35;
   margin: 0.1em 0 0.2em;
 }
-.card .summary-ai {
-  /* KI-Kurzfassung als solche erkennbar (SPEC §6): senkrechter Strich links, kein anderer Text. */
-  border-left: 0.15em solid var(--muted);
-  padding-left: 0.5em;
-}
 .card .summary {
   max-width: calc(var(--maxch) * var(--chw));
+}
+/* Funkelstern vor KI-Kurzfassungen (SPEC §6): gleiche Farbe wie der Text, ca. 0,8 × Schriftgröße. */
+.spark {
+  width: 0.8em;
+  height: 0.8em;
+  fill: currentColor;
+  vertical-align: -0.05em;
+  margin-right: 0.3em;
 }
 .notice {
   margin: 0 var(--extra);
@@ -370,4 +373,114 @@ button {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* --- Übersicht: Leiste mit „Einstellungen“ --------------------------------------- */
+
+.bar.bar-overview {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+}
+.btn .icon-gear,
+.btn .icon-plus,
+.btn .icon-minus,
+.btn .icon-check {
+  width: 0.95em;
+  height: 0.95em;
+}
+.btn .icon-check {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+}
+
+/* --- Einstellungen und Einführung (SPEC §8.7, §8.8) ------------------------------- */
+
+.flowpage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  max-width: none;
+  /* Tippziele im Inhalt halten 15 mm Abstand zum rechten Rand. */
+  padding-right: var(--extra);
+}
+.flowpage > * {
+  flex: none;
+  margin: 0;
+}
+.flowtitle {
+  /* Die ersten Tippziele darunter halten 15 mm Abstand zum oberen Rand. */
+  min-height: var(--extra);
+  font-size: 1.2em;
+  line-height: 1.3;
+  font-weight: 700;
+}
+.flowhint {
+  line-height: 1.4;
+  max-width: calc(var(--maxch) * var(--chw));
+}
+.spark-info .spark {
+  width: 1em;
+  height: 1em;
+}
+.flowpage .cards {
+  flex: 1 1 auto;
+  margin: 0;
+  min-height: 0;
+}
+/* Vorschau mit eigenen Werten: Größe, Abstände und Farben der Auswahl, unabhängig vom Rest. */
+.sample {
+  flex: 1 1 auto;
+  /* Mindestens eine Zeile – sonst zeigt die Vorschau nichts (und die Prüfung meldet Überlauf). */
+  min-height: calc(var(--fs) * var(--lh) + 0.6em);
+  overflow: hidden;
+  font-family: var(--ff);
+  font-size: var(--fs);
+  line-height: var(--lh);
+  word-spacing: var(--ws);
+  letter-spacing: var(--ls);
+  background: var(--bg);
+  color: var(--text);
+  border: var(--stroke) solid var(--border);
+  border-radius: 0.35em;
+  padding: 0.3em 0.6em;
+  max-width: calc(var(--maxch) * var(--chw) + 1.2em);
+}
+.sample p {
+  margin: 0;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap);
+}
+.btn.selected {
+  outline: var(--stroke) solid var(--text);
+  outline-offset: 4px;
+  font-weight: 700;
+}
+.btn-skip {
+  font-weight: 400;
+  font-size: 0.85em;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+}
+.menu-item .icon {
+  width: 0.9em;
+  height: 0.9em;
+  fill: currentColor;
+  flex: none;
+}
+.menu-item .title {
+  font-weight: 700;
+}
+.practice-overview .page {
+  max-width: none;
+}
+.cards.practice {
+  flex: 1 1 auto;
+  min-height: 0;
 }

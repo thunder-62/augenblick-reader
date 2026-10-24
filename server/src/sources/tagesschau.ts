@@ -21,6 +21,7 @@ export type TagesschauItem = {
   details?: string;
   detailsweb?: string;
   shareURL?: string;
+  firstSentence?: string;
   content?: ContentElement[];
 };
 
@@ -126,6 +127,9 @@ export class TagesschauAdapter implements SourceAdapter {
       title: data.title ?? item.title,
       publishedAt: toIso(data.date) ?? item.publishedAt,
       html: contentToHtml(data.content ?? []),
+      ...((data.firstSentence ?? (item.payload as TagesschauItem | undefined)?.firstSentence)
+        ? { teaser: data.firstSentence ?? (item.payload as TagesschauItem).firstSentence }
+        : {}),
     };
   }
 }

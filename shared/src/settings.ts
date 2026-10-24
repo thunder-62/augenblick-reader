@@ -27,6 +27,8 @@ export const DEFAULT_SETTINGS: Settings = {
   lineFocus: false,
   fingerFollow: false,
   locale: 'de',
+  salutation: 'sie',
+  interestLearning: null,
   sections: DEFAULT_SECTIONS,
 };
 
@@ -124,6 +126,11 @@ export function sanitizeSettings(input: unknown, base: Settings = DEFAULT_SETTIN
     fingerFollow: bool(i.fingerFollow, base.fingerFollow),
     // Version 1 liefert nur Deutsch (SPEC §11).
     locale: i.locale === 'de' ? 'de' : base.locale,
+    salutation: i.salutation === 'du' || i.salutation === 'sie' ? i.salutation : base.salutation,
+    interestLearning:
+      typeof i.interestLearning === 'boolean' || i.interestLearning === null
+        ? i.interestLearning
+        : base.interestLearning,
     sections: sanitizeSections(i.sections, base.sections),
   };
 }

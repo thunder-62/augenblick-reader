@@ -7,11 +7,11 @@ import cron from 'node-cron';
 import { loadConfig, loadEnvFile } from './core/config.ts';
 import { openDb } from './core/db.ts';
 import { log } from './core/log.ts';
-import { AnthropicSummaryProvider } from './core/anthropic.ts';
+import { OpenRouterSummaryProvider } from './core/openrouter.ts';
 import { runPipeline, summarizeEdition } from './core/pipeline.ts';
 import { loadPrompt } from './core/summary.ts';
 import { FETCH_SCHEDULES } from './core/schedule.ts';
-import { getSettings, getSourcesConfig, pruneUsage } from './core/store.ts';
+import { getSettings, getSourcesConfig, interestRanker } from './core/store.ts';
 import { TIME_ZONE } from './core/time.ts';
 import { VERSION } from './core/version.ts';
 import { createAdapters } from './sources/index.ts';
@@ -21,16 +21,20 @@ const config = loadConfig();
 const db = openDb(config.dbPath);
 // Feed-URL und Rubriken-Mix können im Admin-Bereich geändert werden und gelten ab dem nächsten Lauf.
 const adapters = createAdapters(config, () => getSourcesConfig(db, config).br24FeedUrl);
-// KI-Kurzfassungen nur mit API-Schlüssel; sonst bleiben die ersten Sätze (SPEC §6).
-const summaryProvider = config.anthropicApiKey
-  ? new AnthropicSummaryProvider({
-      apiKey: config.anthropicApiKey,
-      model: config.summaryModel,
+// KI-Kurzfassungen nur mit OpenRouter-Schlüssel; sonst Anreißer bzw. erste Sätze (SPEC §6).
+const summaryProvider = config.openrouterApiKey
+  ? new OpenRouterSummaryProvider({
+      apiKey: config.openrouterApiKey,
+      model: config.openrouterModel,
+      fallbackModel: config.openrouterFallbackModel,
       prompt: loadPrompt(config.promptsDir, 'de'),
     })
   : null;
-if (!summaryProvider)
-  log.warn('Kein ANTHROPIC_API_KEY – Kurzfassungen sind die ersten Sätze der Artikel.');
+if (!summaryProvider) {
+  log.warn(
+    'Kein OPENROUTER_API_KEY – Kurzfassungen sind die Anreißer bzw. ersten Sätze der Artikel.',
+  );
+}
 let running = false;
 
 async function run(): Promise<void> {
@@ -40,8 +44,10 @@ async function run(): Promise<void> {
   }
   running = true;
   try {
+    const settings = getSettings(db, config.settings);
     await runPipeline(db, adapters, {
-      sections: getSettings(db, config.settings).sections,
+      sections: settings.sections,
+      ranker: interestRanker(db, settings, new Date()),
       maxArticlesPerRun: config.maxArticlesPerRun,
       retentionDays: config.retentionDays,
     });
@@ -52,7 +58,6 @@ async function run(): Promise<void> {
       });
       log.info('Kurzfassungen', r);
     }
-    pruneUsage(db, new Date(), config.usageRetentionDays);
   } catch (err) {
     log.error('Lauf fehlgeschlagen', err);
   } finally {

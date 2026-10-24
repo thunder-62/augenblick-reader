@@ -10,11 +10,14 @@ import { splitSentences } from './sentences.ts';
 export const MAX_SUMMARY_WORDS = 45;
 
 export type SummaryInput = { title: string; text: string; lang: string };
+/** Rohantwort eines Anbieters; `text` enthält das JSON mit Kurzfassung und Themen. */
 export type SummaryResult = {
   text: string;
   model: string;
   inputTokens: number;
   outputTokens: number;
+  /** Kosten in US-Dollar, soweit der Anbieter sie meldet. */
+  costUsd?: number;
 };
 
 /** Provider-Abstraktion (SPEC §6); Standard ist die Anthropic Claude API. */
@@ -51,6 +54,37 @@ const GERMAN_WORDS = new Set([
   'nach', 'wird', 'werden', 'wurde', 'hat', 'haben', 'sind', 'bei', 'aus', 'sie', 'er', 'vor', 'über',
   'soll', 'sollen', 'kann', 'können', 'noch', 'nur', 'oder', 'aber', 'wie', 'um', 'mehr', 'seit', 'bis',
 ]);
+
+/** Liest `{"kurzfassung": "…", "themen": […]}`; zur Not ist die ganze Antwort die Kurzfassung. */
+export function parseSummaryResponse(raw: string): { summary: string; topics: string[] } {
+  const json = /\{[\s\S]*\}/.exec(raw)?.[0];
+  if (json) {
+    try {
+      const o = JSON.parse(json) as Record<string, unknown>;
+      const summary = typeof o.kurzfassung === 'string' ? o.kurzfassung : '';
+      const topics = Array.isArray(o.themen)
+        ? o.themen.filter((t): t is string => typeof t === 'string')
+        : [];
+      return { summary, topics: cleanTopics(topics) };
+    } catch {
+      // kein gültiges JSON – unten als Klartext behandeln
+    }
+  }
+  return { summary: raw, topics: [] };
+}
+
+/** Höchstens 3 kurze Schlagworte aus Buchstaben (ein bis zwei Wörter). */
+export function cleanTopics(topics: string[]): string[] {
+  const out: string[] = [];
+  for (const t of topics) {
+    const w = t.replace(/\s+/g, ' ').trim();
+    if (!/^[\p{L}][\p{L}-]*( [\p{L}][\p{L}-]*)?$/u.test(w) || w.length > 30) continue;
+    const n = w.charAt(0).toLocaleUpperCase('de-DE') + w.slice(1);
+    if (!out.some((o) => o.toLowerCase() === n.toLowerCase())) out.push(n);
+    if (out.length === 3) break;
+  }
+  return out;
+}
 
 export type Validation = { ok: true; text: string } | { ok: false; reason: string };
 
@@ -90,24 +124,16 @@ export function validateSummary(raw: string, source: string): Validation {
   return { ok: true, text };
 }
 
+type Usage = { calls: number; inputTokens: number; outputTokens: number; costUsd: number };
+
 export type SummaryOutcome =
-  | {
-      ok: true;
-      text: string;
-      model: string;
-      calls: number;
-      inputTokens: number;
-      outputTokens: number;
-    }
-  | {
+  | ({ ok: true; text: string; topics: string[]; model: string } & Usage)
+  | ({
       ok: false;
       reason: string;
       /** Fehler liegt nicht am Artikel (siehe ProviderUnavailableError). */
       unavailable?: boolean;
-      calls: number;
-      inputTokens: number;
-      outputTokens: number;
-    };
+    } & Usage);
 
 /** Ein Versuch, bei ungültiger Ausgabe ein Neuversuch mit Hinweis (SPEC §6), sonst Fehlschlag. */
 export async function createSummary(
@@ -115,34 +141,33 @@ export async function createSummary(
   input: SummaryInput,
   mayCall: () => boolean,
 ): Promise<SummaryOutcome> {
-  let calls = 0;
-  let inputTokens = 0;
-  let outputTokens = 0;
+  const usage: Usage = { calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
   let hint: string | undefined;
   let reason = 'Tageslimit erreicht';
   for (let attempt = 0; attempt < 2; attempt++) {
     if (!mayCall()) break;
-    calls++;
+    usage.calls++;
     let result: SummaryResult;
     try {
       result = await provider.summarize(input, hint);
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       return {
         ok: false,
-        reason: err instanceof Error ? err.message : String(err),
+        reason: message,
         unavailable: err instanceof ProviderUnavailableError,
-        calls,
-        inputTokens,
-        outputTokens,
+        ...usage,
       };
     }
-    inputTokens += result.inputTokens;
-    outputTokens += result.outputTokens;
-    const v = validateSummary(result.text, `${input.title} ${input.text}`);
+    usage.inputTokens += result.inputTokens;
+    usage.outputTokens += result.outputTokens;
+    usage.costUsd += result.costUsd ?? 0;
+    const parsed = parseSummaryResponse(result.text);
+    const v = validateSummary(parsed.summary, `${input.title} ${input.text}`);
     if (v.ok)
-      return { ok: true, text: v.text, model: result.model, calls, inputTokens, outputTokens };
+      return { ok: true, text: v.text, topics: parsed.topics, model: result.model, ...usage };
     reason = v.reason;
     hint = v.reason;
   }
-  return { ok: false, reason, calls, inputTokens, outputTokens };
+  return { ok: false, reason, ...usage };
 }

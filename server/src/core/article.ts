@@ -1,8 +1,9 @@
 import type { Article, Block, Summary } from '@augenblick/shared';
 import { MAX_SUMMARY_WORDS } from './summary.ts';
-import { countWords, readingMinutes } from './text.ts';
+import { countWords, normalizeWhitespace, readingMinutes } from './text.ts';
 
 export const FALLBACK_SUMMARY_MODEL = 'fallback-erste-saetze';
+export const TEASER_SUMMARY_MODEL = 'anreisser-der-quelle';
 
 /** Was ein Quellen-Adapter nach dem Bereinigen liefert. */
 export type CleanArticle = {
@@ -13,6 +14,8 @@ export type CleanArticle = {
   title: string;
   publishedAt: string;
   blocks: Block[];
+  /** Anreißer der Quelle (RSS-Beschreibung, erster Satz der tagesschau) für die Kurzfassung ohne KI. */
+  teaser?: string;
 };
 
 export function makeArticleId(source: string, originalId: string): string {
@@ -32,33 +35,42 @@ export function blocksWordCount(blocks: Block[]): number {
   return n;
 }
 
+/** Höchstens 45 Wörter; ein längerer Text wird nach 45 Wörtern mit „…“ gekürzt. */
+export function limitWords(text: string): string {
+  if (countWords(text) <= MAX_SUMMARY_WORDS) return text;
+  return `${text
+    .split(/\s+/)
+    .slice(0, MAX_SUMMARY_WORDS)
+    .join(' ')
+    .replace(/[,;:–-]+$/, '')} …`;
+}
+
 /**
- * Fallback-Kurzfassung (SPEC §6): die ersten Sätze des Artikels, höchstens zwei und zusammen
- * höchstens 45 Wörter. Ist schon der erste Satz länger, wird er nach 45 Wörtern mit „…“ gekürzt.
+ * Kurzfassung ohne KI (SPEC §6): der Anreißer der Quelle, sonst die ersten zwei Sätze des Artikels
+ * (bzw. nur der erste, wenn beide zusammen zu lang wären) – immer höchstens 45 Wörter.
  */
-export function fallbackSummary(blocks: Block[], now: string): Summary | undefined {
+export function fallbackSummary(
+  blocks: Block[],
+  now: string,
+  teaser?: string,
+): Summary | undefined {
+  const t = teaser ? normalizeWhitespace(teaser) : '';
+  if (countWords(t) >= 5)
+    return { text: limitWords(t), model: TEASER_SUMMARY_MODEL, createdAt: now };
   const sentences = blocks.flatMap((b) => (b.type === 'paragraph' ? b.sentences : []));
   const first = sentences[0];
   if (!first) return undefined;
-  const firstWords = first.split(/\s+/);
-  let text: string;
-  if (countWords(first) > MAX_SUMMARY_WORDS) {
-    text = `${firstWords
-      .slice(0, MAX_SUMMARY_WORDS)
-      .join(' ')
-      .replace(/[,;:–-]+$/, '')} …`;
-  } else {
-    const second = sentences[1];
-    text =
-      second && countWords(`${first} ${second}`) <= MAX_SUMMARY_WORDS
-        ? `${first} ${second}`
-        : first;
-  }
+  const second = sentences[1];
+  const text =
+    second && countWords(`${first} ${second}`) <= MAX_SUMMARY_WORDS
+      ? `${first} ${second}`
+      : limitWords(first);
   return { text, model: FALLBACK_SUMMARY_MODEL, createdAt: now };
 }
 
+/** KI-Kurzfassungen bekommen den Funkelstern; Anreißer und erste Sätze nicht. */
 export const isAiSummary = (s: Summary | undefined): boolean =>
-  Boolean(s && s.model !== FALLBACK_SUMMARY_MODEL);
+  Boolean(s && s.model !== FALLBACK_SUMMARY_MODEL && s.model !== TEASER_SUMMARY_MODEL);
 
 /** Mindestumfang, damit ein Artikel in die Ausgabe darf. */
 export const MIN_WORDS = 40;
@@ -66,7 +78,7 @@ export const MIN_WORDS = 40;
 export function buildArticle(source: string, clean: CleanArticle, now: string): Article {
   const wordCount = blocksWordCount(clean.blocks);
   const hasText = clean.blocks.some((b) => b.type === 'paragraph');
-  const summary = fallbackSummary(clean.blocks, now);
+  const summary = fallbackSummary(clean.blocks, now, clean.teaser);
   return {
     id: makeArticleId(source, clean.originalId),
     source,

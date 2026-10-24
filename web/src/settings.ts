@@ -13,11 +13,10 @@ const FONTS: Record<Settings['fontFamily'], string> = {
   mono: "'DejaVu Sans Mono', 'Liberation Mono', monospace",
 };
 
-/** Überträgt die Einstellungen als CSS-Variablen; Farben kommen aus shared/theme.ts (CI prüft den Kontrast). */
-export function applySettings(s: Settings): void {
-  const root = document.documentElement;
+/** CSS-Variablen der Lese-Werte; Farben kommen aus shared/theme.ts (CI prüft den Kontrast). */
+export function settingsVars(s: Settings): Record<string, string> {
   const colors = THEMES[s.theme] ?? THEMES[DEFAULT_SETTINGS.theme];
-  const vars: Record<string, string> = {
+  return {
     '--fs': `${s.fontSizePx}px`,
     '--lh': String(s.lineHeight),
     '--ws': `${s.wordSpacingEm}em`,
@@ -34,7 +33,13 @@ export function applySettings(s: Settings): void {
     '--border-inactive': colors.borderInactive,
     '--inactive': colors.inactive,
   };
-  for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
+}
+
+/** Überträgt die Einstellungen auf die ganze Seite. */
+export function applySettings(s: Settings): void {
+  const root = document.documentElement;
+  const colors = THEMES[s.theme] ?? THEMES[DEFAULT_SETTINGS.theme];
+  for (const [k, v] of Object.entries(settingsVars(s))) root.style.setProperty(k, v);
   root.dataset.theme = s.theme;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', colors.bg);
 }

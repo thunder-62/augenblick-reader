@@ -20,12 +20,14 @@ import {
   type Db,
 } from './db.ts';
 import { log } from './log.ts';
-import { selectEdition } from './selection.ts';
+import { selectEdition, type InterestRanker } from './selection.ts';
 import { articleText, createSummary, type SummaryProvider } from './summary.ts';
 import { berlinDay } from './time.ts';
 
 export type PipelineOptions = {
   sections: SectionQuota[];
+  /** Interessen der Nutzerin (nur mit Einverständnis), SPEC §5.3. */
+  ranker?: InterestRanker | null;
   maxArticlesPerRun: number;
   retentionDays: number;
   now?: () => Date;
@@ -89,6 +91,7 @@ export function buildEdition(
   db: Db,
   now: Date,
   sections: SectionQuota[],
+  ranker: InterestRanker | null = null,
 ): { day: string; articles: number } | null {
   const day = berlinDay(now);
   const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
@@ -96,7 +99,7 @@ export function buildEdition(
   const existing = (getEditionIds(db, day) ?? [])
     .map((id) => getArticle(db, id))
     .filter((a): a is Article => a !== null && a.status === 'ready');
-  const ids = selectEdition(candidates, existing, sections);
+  const ids = selectEdition(candidates, existing, sections, undefined, ranker);
   if (!ids.length) return null;
   const before = getEditionIds(db, day);
   if (!before || before.join() !== ids.join()) saveEdition(db, day, ids, now.toISOString());
@@ -115,7 +118,7 @@ export async function runPipeline(
       : { source: adapters[i]?.id ?? '?', listed: 0, added: 0, failed: 0, error: String(r.reason) },
   );
   const now = (opts.now ?? (() => new Date()))();
-  const edition = buildEdition(db, now, opts.sections);
+  const edition = buildEdition(db, now, opts.sections, opts.ranker ?? null);
   const removed = cleanup(db, now, opts.retentionDays);
   log.info('Lauf beendet', { sources, edition, removed });
   return { sources, edition };
@@ -164,6 +167,7 @@ export async function summarizeEdition(db: Db, opts: SummaryOptions): Promise<Su
       failures: outcome.ok ? 0 : 1,
       inputTokens: outcome.inputTokens,
       outputTokens: outcome.outputTokens,
+      costUsd: outcome.costUsd,
     });
     if (!outcome.ok && outcome.unavailable) {
       // Liegt nicht am Artikel: kein Versuch zählt, Abbruch bis zum nächsten Lauf.
@@ -172,11 +176,12 @@ export async function summarizeEdition(db: Db, opts: SummaryOptions): Promise<Su
       break;
     }
     if (outcome.ok) {
-      saveSummary(db, article.id, {
-        text: outcome.text,
-        model: outcome.model,
-        createdAt: now.toISOString(),
-      });
+      saveSummary(
+        db,
+        article.id,
+        { text: outcome.text, model: outcome.model, createdAt: now.toISOString() },
+        outcome.topics,
+      );
       report.created++;
     } else {
       saveSummary(db, article.id, null);

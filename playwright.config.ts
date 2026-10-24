@@ -1,8 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * E2E-Tests im Querformat-Tablet-Viewport.
- * VORLÄUFIG 1280×800 CSS-px – die echte CSS-Auflösung des Galaxy Tab S11 ist am Gerät zu prüfen (SPEC §14).
+ * E2E-Tests im Querformat-Tablet-Viewport 1280×800 CSS-px. Die Schriftgröße stellt die Leserin in der
+ * Einführung selbst ein; eine Messung am Gerät ist laut Betreuer nicht nötig.
  */
 const PORT = 8137;
 

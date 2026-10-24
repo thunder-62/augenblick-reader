@@ -7,6 +7,7 @@ import { Readability } from '@mozilla/readability';
 import { XMLParser } from 'fast-xml-parser';
 import { parseHTML } from 'linkedom';
 import { getText, type FetchLike } from '../core/http.ts';
+import { normalizeWhitespace } from '../core/text.ts';
 import { toIso } from '../core/time.ts';
 import type { RawArticle, RawItem, SourceAdapter } from './types.ts';
 
@@ -25,6 +26,13 @@ function asText(v: unknown): string {
   if (v && typeof v === 'object' && '#text' in v)
     return asText((v as { '#text': unknown })['#text']);
   return '';
+}
+
+/** RSS-Beschreibung (oft HTML) als Klartext. */
+export function htmlToText(html: string): string {
+  return normalizeWhitespace(
+    parseHTML(`<!doctype html><html><body>${html}</body></html>`).document.body.textContent ?? '',
+  );
 }
 
 export function br24Section(categories: string[]): string {
@@ -51,6 +59,7 @@ export function parseFeed(xml: string): RawItem[] {
       title,
       publishedAt: toIso(asText(it.pubDate)) ?? new Date().toISOString(),
       section: br24Section(categories),
+      ...(it.description ? { payload: { teaser: htmlToText(asText(it.description)) } } : {}),
     });
   }
   return items;
@@ -100,6 +109,9 @@ export class Br24Adapter implements SourceAdapter {
       title: item.title,
       publishedAt: item.publishedAt,
       html,
+      ...((item.payload as { teaser?: string } | undefined)?.teaser
+        ? { teaser: (item.payload as { teaser: string }).teaser }
+        : {}),
     };
   }
 }

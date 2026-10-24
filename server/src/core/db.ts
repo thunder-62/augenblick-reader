@@ -72,6 +72,26 @@ const MIGRATIONS: string[] = [
      input_tokens INTEGER NOT NULL DEFAULT 0,
      output_tokens INTEGER NOT NULL DEFAULT 0
    );`,
+  // Neue Spec: Einstellungen gehören der Nutzerin (Verlauf statt PIN), Interessen lernen statt
+  // Nutzungsprotokoll, Themen-Schlagworte je Artikel, KI-Kosten über OpenRouter.
+  `DROP TABLE usage_log;
+   CREATE TABLE settings_history (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     device TEXT NOT NULL,
+     saved_at TEXT NOT NULL,
+     source TEXT NOT NULL,
+     json TEXT NOT NULL
+   );
+   CREATE INDEX settings_history_device ON settings_history(device, id);
+   CREATE TABLE topic_weights (
+     device TEXT NOT NULL,
+     topic TEXT NOT NULL,
+     weight REAL NOT NULL,
+     updated_at TEXT NOT NULL,
+     PRIMARY KEY (device, topic)
+   );
+   ALTER TABLE articles ADD COLUMN topics_json TEXT;
+   ALTER TABLE ai_usage ADD COLUMN cost_usd REAL NOT NULL DEFAULT 0;`,
 ];
 
 export function openDb(file: string): Db {
@@ -109,6 +129,7 @@ type ArticleRow = {
   word_count: number;
   reading_minutes: number;
   status: Article['status'];
+  topics_json: string | null;
 };
 
 function rowToArticle(r: ArticleRow): Article {
@@ -126,6 +147,7 @@ function rowToArticle(r: ArticleRow): Article {
     wordCount: r.word_count,
     readingMinutes: r.reading_minutes,
     status: r.status,
+    ...(r.topics_json ? { topics: JSON.parse(r.topics_json) as string[] } : {}),
   };
 }
 
@@ -145,15 +167,15 @@ export function toCard(a: Article): ArticleCard {
 export function upsertArticle(db: Db, a: Article): void {
   db.prepare(
     `INSERT INTO articles (id, source, source_url, lang, section, title, published_at, fetched_at,
-       blocks_json, summary_json, word_count, reading_minutes, status)
+       blocks_json, summary_json, word_count, reading_minutes, status, topics_json)
      VALUES (@id, @source, @sourceUrl, @lang, @section, @title, @publishedAt, @fetchedAt,
-       @blocks, @summary, @wordCount, @readingMinutes, @status)
+       @blocks, @summary, @wordCount, @readingMinutes, @status, @topics)
      ON CONFLICT(id) DO UPDATE SET
        source_url = excluded.source_url, lang = excluded.lang, section = excluded.section,
        title = excluded.title, published_at = excluded.published_at, fetched_at = excluded.fetched_at,
        blocks_json = excluded.blocks_json, summary_json = excluded.summary_json,
        word_count = excluded.word_count, reading_minutes = excluded.reading_minutes,
-       status = excluded.status`,
+       status = excluded.status, topics_json = excluded.topics_json`,
   ).run({
     id: a.id,
     source: a.source,
@@ -168,6 +190,7 @@ export function upsertArticle(db: Db, a: Article): void {
     wordCount: a.wordCount,
     readingMinutes: a.readingMinutes,
     status: a.status,
+    topics: a.topics ? JSON.stringify(a.topics) : null,
   });
 }
 
@@ -279,12 +302,13 @@ export function summaryAttempts(db: Db, id: string): number {
   return row?.n ?? 0;
 }
 
-/** Speichert eine KI-Kurzfassung bzw. zählt einen fehlgeschlagenen Versuch. */
-export function saveSummary(db: Db, id: string, summary: Summary | null): void {
+/** Speichert KI-Kurzfassung und Themen bzw. zählt einen fehlgeschlagenen Versuch. */
+export function saveSummary(db: Db, id: string, summary: Summary | null, topics?: string[]): void {
   if (summary) {
     db.prepare(
-      'UPDATE articles SET summary_json = ?, summary_attempts = summary_attempts + 1 WHERE id = ?',
-    ).run(JSON.stringify(summary), id);
+      `UPDATE articles SET summary_json = ?, topics_json = COALESCE(?, topics_json),
+         summary_attempts = summary_attempts + 1 WHERE id = ?`,
+    ).run(JSON.stringify(summary), topics ? JSON.stringify(topics) : null, id);
   } else {
     db.prepare('UPDATE articles SET summary_attempts = summary_attempts + 1 WHERE id = ?').run(id);
   }
@@ -293,29 +317,46 @@ export function saveSummary(db: Db, id: string, summary: Summary | null): void {
 export function recordAiUsage(
   db: Db,
   day: string,
-  u: { calls: number; failures: number; inputTokens: number; outputTokens: number },
+  u: {
+    calls: number;
+    failures: number;
+    inputTokens: number;
+    outputTokens: number;
+    costUsd?: number;
+  },
 ): void {
   db.prepare(
-    `INSERT INTO ai_usage (day, calls, failures, input_tokens, output_tokens) VALUES (@day, @calls, @failures, @input, @output)
+    `INSERT INTO ai_usage (day, calls, failures, input_tokens, output_tokens, cost_usd)
+     VALUES (@day, @calls, @failures, @input, @output, @cost)
      ON CONFLICT(day) DO UPDATE SET calls = calls + @calls, failures = failures + @failures,
-       input_tokens = input_tokens + @input, output_tokens = output_tokens + @output`,
+       input_tokens = input_tokens + @input, output_tokens = output_tokens + @output,
+       cost_usd = cost_usd + @cost`,
   ).run({
     day,
     calls: u.calls,
     failures: u.failures,
     input: u.inputTokens,
     output: u.outputTokens,
+    cost: u.costUsd ?? 0,
   });
 }
 
 export function aiUsage(db: Db, day: string): AiUsage {
   const row = db.prepare('SELECT * FROM ai_usage WHERE day = ?').get(day) as
-    { calls: number; failures: number; input_tokens: number; output_tokens: number } | undefined;
+    | {
+        calls: number;
+        failures: number;
+        input_tokens: number;
+        output_tokens: number;
+        cost_usd: number;
+      }
+    | undefined;
   return {
     day,
     calls: row?.calls ?? 0,
     failures: row?.failures ?? 0,
     inputTokens: row?.input_tokens ?? 0,
     outputTokens: row?.output_tokens ?? 0,
+    costUsd: row?.cost_usd ?? 0,
   };
 }

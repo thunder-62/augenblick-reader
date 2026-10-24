@@ -20,6 +20,8 @@ export type RawArticle = {
   publishedAt: string;
   /** Artikelkörper als HTML; die Pipeline bereinigt ihn zu Block[]. */
   html: string;
+  /** Anreißer der Quelle als Klartext, falls vorhanden. */
+  teaser?: string;
 };
 
 export interface SourceAdapter {

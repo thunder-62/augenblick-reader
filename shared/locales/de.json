@@ -6,7 +6,12 @@
     "overview": "Übersicht",
     "back": "Zurück",
     "next": "Weiter",
-    "nextArticle": "Nächster Artikel"
+    "nextArticle": "Nächster Artikel",
+    "settings": "Einstellungen",
+    "skip": "Überspringen",
+    "nextStep": "Nächster Schritt",
+    "letsGo": "Los geht’s",
+    "save": "Speichern"
   },
   "pager": {
     "pageOf": "Seite {page} von {total}"
@@ -17,7 +22,8 @@
       "other": "ca. {count} Minuten"
     },
     "read": "gelesen",
-    "summaryLabel": "Kurzfassung"
+    "summaryLabel": "Kurzfassung",
+    "aiSummary": "Zusammenfassung von einer KI"
   },
   "article": {
     "source": "Quelle: {source}",
@@ -47,36 +53,169 @@
     "vermischtes": "Vermischtes",
     "nachrichten": "Nachrichten"
   },
-  "admin": {
-    "title": "Augenblick – Verwaltung",
+  "settings": {
+    "title": "Einstellungen",
+    "sparkInfo": {
+      "sie": "Dieses Zeichen vor einer Zusammenfassung bedeutet: Ein Computerprogramm (KI) hat sie geschrieben. Den ganzen Artikel öffnen Sie mit einem Tipp.",
+      "du": "Dieses Zeichen vor einer Zusammenfassung bedeutet: Ein Computerprogramm (KI) hat sie geschrieben. Den ganzen Artikel öffnest du mit einem Tipp."
+    },
+    "menu": {
+      "font": "Schrift einstellen",
+      "colors": "Farben",
+      "lineHeight": "Zeilenabstand",
+      "interests": "Was ich gern lese",
+      "intro": "Einführung noch einmal",
+      "introContinue": "Einführung fortsetzen",
+      "reset": "Wie am Anfang",
+      "spark": "Was bedeutet dieses Zeichen?"
+    },
+    "sample": "Am Samstag öffnet der Wochenmarkt schon um sieben Uhr. Es gibt frische Äpfel, Brot und Blumen. Viele kommen gern früh, weil es dann noch ruhig ist.",
+    "font": {
+      "hint": {
+        "sie": "Tippen Sie auf „Größer“ oder „Kleiner“, bis Sie den Text bequem lesen können.",
+        "du": "Tippe auf „Größer“ oder „Kleiner“, bis du den Text bequem lesen kannst."
+      },
+      "smaller": "Kleiner",
+      "larger": "Größer",
+      "step": "Stufe {step} von {total}",
+      "oneUp": "Eine Stufe größer",
+      "comfortable": "Das ist angenehm"
+    },
+    "colors": {
+      "hint": {
+        "sie": "Wählen Sie die Farben, mit denen Sie besser lesen.",
+        "du": "Wähle die Farben, mit denen du besser liest."
+      },
+      "light": "Hell",
+      "dark": "Dunkel",
+      "other": "Andere Farben zeigen",
+      "better": "So lese ich besser"
+    },
+    "lineHeight": {
+      "hint": {
+        "sie": "Mehr Abstand zwischen den Zeilen hilft, in der Zeile zu bleiben. Wählen Sie, was Ihnen guttut.",
+        "du": "Mehr Abstand zwischen den Zeilen hilft, in der Zeile zu bleiben. Wähle, was dir guttut."
+      },
+      "less": "Weniger",
+      "more": "Mehr"
+    }
+  },
+  "confirm": {
+    "question": "Soll das ab jetzt immer so bleiben?",
+    "yes": "Ja, so lassen",
+    "no": "Nein, wie vorher",
+    "reset": "So war es nach dem letzten Einstellen der Schrift.",
+    "forget": "Augenblick vergisst alle Themen, die es sich gemerkt hat.",
+    "stop": "Augenblick merkt sich keine Themen mehr und vergisst die bisherigen.",
+    "start": "Augenblick merkt sich, welche Themen gern gelesen werden, und zeigt sie weiter vorn.",
+    "adjust": "Die Themen werden so geändert, wie eben gewählt."
+  },
+  "interests": {
+    "consent": {
+      "sie": "Augenblick merkt sich, welche Themen Sie gern lesen, und zeigt sie weiter vorn. Einverstanden?",
+      "du": "Augenblick merkt sich, welche Themen du gern liest, und zeigt sie weiter vorn. Einverstanden?"
+    },
+    "yes": "Ja",
+    "no": "Nein, lieber nicht",
+    "empty": {
+      "sie": "Augenblick hat sich noch keine Themen gemerkt. Lesen Sie einfach wie gewohnt.",
+      "du": "Augenblick hat sich noch keine Themen gemerkt. Lies einfach wie gewohnt."
+    },
+    "often": {
+      "sie": "Das lesen Sie oft.",
+      "du": "Das liest du oft."
+    },
+    "sometimes": {
+      "sie": "Das lesen Sie manchmal.",
+      "du": "Das liest du manchmal."
+    },
+    "rarely": {
+      "sie": "Davon lieber weniger.",
+      "du": "Davon lieber weniger."
+    },
+    "more": "Mehr davon",
+    "less": "Weniger davon",
+    "topicOf": "Thema {n} von {total}",
+    "end": "Das waren alle Themen.",
+    "forget": "Alles vergessen",
+    "stop": "Nicht mehr merken"
+  },
+  "intro": {
+    "progress": "Schritt {step} von {total}",
+    "done": "Gut, das war es schon.",
+    "welcome": {
+      "title": "Willkommen bei Augenblick",
+      "text": {
+        "sie": "Augenblick ist Ihre Zeitung auf dem Tablet. Gemeinsam stellen wir die Schrift ein und üben das Blättern. Jeden Schritt können Sie überspringen.",
+        "du": "Augenblick ist deine Zeitung auf dem Tablet. Gemeinsam stellen wir die Schrift ein und üben das Blättern. Jeden Schritt kannst du überspringen."
+      }
+    },
+    "colors": {
+      "hint": {
+        "sie": "Schauen Sie sich beide Farben an. Tippen Sie dann auf „So lese ich besser“.",
+        "du": "Schau dir beide Farben an. Tippe dann auf „So lese ich besser“."
+      }
+    },
+    "paging": {
+      "title": "Blättern üben",
+      "task": {
+        "sie": "Tippen Sie unten rechts auf „Weiter“.",
+        "du": "Tippe unten rechts auf „Weiter“."
+      },
+      "page1": "Das ist die erste Seite. Eine Zeitung hat viele Seiten. Mit der Taste „Weiter“ kommt die nächste.",
+      "page2": "Das ist die zweite Seite. Mit „Zurück“ geht es wieder eine Seite zurück."
+    },
+    "open": {
+      "title": "Artikel öffnen und zurück",
+      "task1": {
+        "sie": "Tippen Sie auf einen Artikel.",
+        "du": "Tippe auf einen Artikel."
+      },
+      "task2": {
+        "sie": "Tippen Sie jetzt links oben auf „Übersicht“.",
+        "du": "Tippe jetzt links oben auf „Übersicht“."
+      },
+      "card1": {
+        "title": "Ein ruhiger Sonntag im Park",
+        "text": "Am Sonntag war es im Stadtpark ruhig und warm. Viele Menschen gingen spazieren oder saßen auf den Bänken. Ein Mann fütterte die Enten am Teich."
+      },
+      "card2": {
+        "title": "Neue Blumen am Rathaus",
+        "text": "Vor dem Rathaus blühen jetzt rote und gelbe Blumen. Die Gärtner der Stadt haben sie in der vergangenen Woche gepflanzt. Im Herbst kommen Tulpenzwiebeln dazu."
+      }
+    },
+    "finish": {
+      "title": "Fertig",
+      "values": {
+        "sie": "Ihre Schrift: Stufe {step} von {total}. Ihre Farben: {colors}.",
+        "du": "Deine Schrift: Stufe {step} von {total}. Deine Farben: {colors}."
+      },
+      "again": {
+        "sie": "Die Einführung finden Sie jederzeit unter „Einstellungen“.",
+        "du": "Die Einführung findest du jederzeit unter „Einstellungen“."
+      },
+      "light": "hell",
+      "dark": "dunkel"
+    }
+  },
+  "technik": {
+    "title": "Augenblick – Technik",
+    "intro": "Hier ist nur Technik. Was das Lesen betrifft, entscheidet die Leserin selbst in ihren Einstellungen auf dem Tablet.",
     "tabs": {
       "status": "Status",
-      "settings": "Einstellungen",
-      "calibration": "Kalibrierung",
+      "reading": "Leseeinstellungen",
       "sources": "Quellen und Rubriken",
-      "usage": "Nutzung",
-      "cheatsheet": "Spickzettel",
-      "logout": "Abmelden"
-    },
-    "login": {
-      "title": "Anmelden",
-      "pin": "PIN",
-      "submit": "Anmelden",
-      "wrong": "Die PIN stimmt nicht.",
-      "locked": "Zu viele Versuche. Bitte in 15 Minuten erneut versuchen.",
-      "noPin": "Es ist keine PIN eingerichtet. Bitte AUGENBLICK_ADMIN_PIN (mindestens 4 Ziffern) in der Konfiguration setzen und den Dienst neu starten.",
-      "network": "Der Admin-Bereich ist nur über Tailscale erreichbar."
+      "interests": "Interessen",
+      "setup": "Einrichten",
+      "cheatsheet": "Spickzettel"
     },
     "common": {
       "save": "Speichern",
       "saved": "Gespeichert.",
       "error": "Das hat nicht geklappt: {message}",
       "never": "noch nie",
-      "yes": "ja",
-      "no": "nein",
       "loading": "Lädt …",
-      "defaults": "Standardwerte einsetzen",
-      "unsaved": "Noch nicht gespeichert."
+      "refresh": "Aktualisieren"
     },
     "status": {
       "version": "Version",
@@ -93,79 +232,53 @@
       "articlesValue": "{total} insgesamt, {ready} lesbar, {failed} nicht verwendbar",
       "storage": "Speicher",
       "storageValue": "Datenbank {db}, frei {free}",
-      "calibrated": "Kalibriert",
-      "refresh": "Aktualisieren",
-      "summaryHint": "Kurzfassungen: Auf den Karten der Übersicht steht unter dem Titel eine Kurzfassung. Ist sie von einer KI erstellt, hat sie einen senkrechten Strich am linken Rand; ohne Strich sind es die ersten Sätze des Artikels selbst.",
-      "ai": "KI-Kurzfassungen",
-      "aiProvider": "Anbieter",
-      "aiOff": "aus – kein API-Schlüssel, Kurzfassungen sind die ersten Sätze",
-      "aiToday": "Verbrauch heute",
-      "aiTodayValue": "{calls} von {limit} Aufrufen, {failures} ohne Ergebnis, {input} Eingabe- und {output} Ausgabe-Tokens",
+      "calibrated": "Schrift zuletzt eingestellt",
+      "intro": "Einführung",
+      "introValue": {
+        "neu": "noch nicht begonnen",
+        "pausiert": "pausiert bei Schritt {step}",
+        "fertig": "abgeschlossen"
+      },
+      "ai": "KI-Zusammenfassungen",
+      "aiProvider": "Anbieter und Modell",
+      "aiOff": "aus – kein OPENROUTER_API_KEY, Zusammenfassungen sind Anreißer bzw. erste Sätze",
+      "aiFallback": "Ausweich-Modell: {model}",
+      "aiToday": "Heute",
+      "aiTodayValue": "{calls} von {limit} Aufrufen, {failures} ohne Ergebnis, {input} Eingabe- und {output} Ausgabe-Tokens, Kosten {cost}",
       "aiEdition": "In der Ausgabe",
-      "aiEditionValue": "{ai} von {total} Karten mit KI-Kurzfassung"
+      "aiEditionValue": "{ai} von {total} Karten mit KI-Zusammenfassung (✦)"
     },
-    "settings": {
-      "intro": "Änderungen erscheinen sofort in der Vorschau. Auf dem Tablet wirken sie nach dem Speichern, sobald die App wieder geöffnet wird, spätestens nach 15 Minuten.",
-      "reading": "Lesen",
-      "fontSizePx": "Schriftgröße (px)",
-      "lineHeight": "Zeilenabstand",
-      "wordSpacingEm": "Wortabstand (em)",
-      "letterSpacingEm": "Buchstabenabstand (em)",
-      "fontFamily": "Schrift",
-      "fontAtkinson": "Atkinson Hyperlegible",
-      "fontMono": "Gleichmäßige Breite (Monospace)",
-      "theme": "Farbschema",
-      "themeDark": "Dunkel (hell auf Schwarz)",
-      "themeLight": "Hell (dunkel auf Creme)",
-      "maxCharsPerLine": "Zeichen pro Zeile höchstens",
-      "later": "Kommt später",
-      "tts": "Vorlesen (ab M5)",
-      "ttsEnabled": "Vorlesen an",
-      "ttsRate": "Tempo",
-      "ttsVoice": "Stimme",
-      "experiments": "Experimente (ab M6)",
-      "tickerMode": "Laufschrift",
-      "lineFocus": "Zeilenfokus",
-      "fingerFollow": "Fingerführung",
-      "language": "Sprache",
-      "locale": "Deutsch",
-      "preview": "Vorschau",
-      "previewArticle": "Vorschau mit Artikel"
-    },
-    "calibration": {
-      "intro": "Am besten auf dem Tablet ausführen, im gewohnten Leseabstand (Ständer) und bei gewohntem Licht. Die Nutzerin liest, Sie tippen.",
-      "start": "Kalibrierung starten",
-      "step1": "Schritt 1 von 3: Schriftgröße",
-      "step1Hint": "Beginnen Sie klein. Tippen Sie „Angenehm“ bei der ersten Größe, die sie flüssig liest.",
-      "sample": "Am Samstag öffnet der Wochenmarkt schon um sieben Uhr. Es gibt frische Äpfel, Brot und Blumen.",
-      "smaller": "Kleiner",
-      "larger": "Größer",
-      "comfortable": "Angenehm",
-      "oneUp": "Eine Stufe größer speichern",
-      "sizeOf": "Stufe {step} von {total} · {px} px",
-      "step2": "Schritt 2 von 3: Farbschema",
-      "step2Hint": "Zeigen Sie beide Schemata. Wenn Sie mögen, messen Sie die Lesezeit für denselben Absatz.",
-      "paragraph": "In vielen Orten beginnt jetzt die Apfelernte. Die Obstbauern sind zufrieden, denn nach einem milden Frühjahr hängen viele Früchte an den Bäumen. Auf den Märkten gibt es nun wieder alte Sorten aus der Region.",
-      "showLight": "Hell zeigen",
-      "showDark": "Dunkel zeigen",
-      "timerStart": "Lesezeit messen",
-      "timerStop": "Fertig gelesen",
-      "time": "{seconds} s",
-      "takeLight": "Hell nehmen",
-      "takeDark": "Dunkel nehmen",
-      "step3": "Schritt 3 von 3: Vorschau",
-      "step3Hint": "So sieht eine echte Artikelseite aus: {px} px, Schema {theme}.",
-      "back": "Zurück",
-      "save": "Speichern",
-      "done": "Gespeichert. Die Lese-App übernimmt die Werte, sobald sie wieder geöffnet wird.",
-      "close": "Schließen",
-      "last": "Zuletzt kalibriert: {date}"
+    "reading": {
+      "current": "Aktuelle Werte",
+      "preview": "So sieht die Übersicht gerade aus",
+      "history": "Verlauf",
+      "when": "Gespeichert",
+      "source": "Von",
+      "values": "Werte",
+      "restore": "Wiederherstellen",
+      "restoreConfirm": "Diese Fassung wiederherstellen? Die Leserin sieht sie beim nächsten Öffnen der App.",
+      "restored": "Wiederhergestellt.",
+      "empty": "Noch keine gespeicherte Fassung – es gelten die Anfangswerte.",
+      "baseline": "„Wie am Anfang“ bedeutet derzeit: {values}",
+      "sources": {
+        "nutzerin": "Leserin",
+        "einfuehrung": "Einführung",
+        "kalibrierung": "Schrift eingestellt",
+        "wie-am-anfang": "Wie am Anfang",
+        "technik": "Technik-Bereich"
+      },
+      "valuesText": "Schrift {font} px, {theme}, Zeilenabstand {lineHeight}, Lernen: {learning}",
+      "dark": "dunkel",
+      "light": "hell",
+      "learningOn": "ja",
+      "learningOff": "nein",
+      "learningUnset": "nicht gefragt"
     },
     "sources": {
       "br24": "BR24-Feed (Region)",
-      "br24Hint": "Adresse eines BR24-RSS-Feeds, z. B. für Franken. Gilt ab dem nächsten Abruf.",
+      "br24Hint": "Adresse eines BR24-RSS-Feeds, z. B. für Mittelfranken. Gilt ab dem nächsten Abruf.",
       "sections": "Rubriken-Mix",
-      "sectionsHint": "Je Zeile: Name, Rubriken (durch Komma getrennt) und Anzahl. Höchstens 12 Artikel pro Tag; freie Plätze füllt Augenblick mit den neuesten übrigen Artikeln. Bekannte Rubriken: region, inland, ausland, wirtschaft, sport, wissen, vermischtes, kultur, nachrichten.",
+      "sectionsHint": "Je Zeile: Name, Rubriken (durch Komma getrennt) und Anzahl. Höchstens 12 Artikel pro Tag; freie Plätze füllt Augenblick mit übrigen Artikeln. Bekannte Rubriken: region, inland, ausland, wirtschaft, sport, wissen, vermischtes, kultur, nachrichten.",
       "name": "Name",
       "sectionList": "Rubriken",
       "count": "Anzahl",
@@ -173,22 +286,33 @@
       "remove": "Entfernen",
       "sum": "Summe: {sum} von 12"
     },
-    "usage": {
-      "intro": "Nur auf dem Pi gespeichert und nirgendwohin weitergegeben. Dient nur dazu, Augenblick für die Nutzerin zu verbessern.",
-      "enabled": "Nutzungsprotokoll an",
-      "day": "Tag",
-      "articles": "Artikel",
-      "pages": "Seiten",
-      "minutes": "Minuten",
-      "empty": "Noch keine Einträge.",
-      "delete": "Protokoll löschen",
-      "confirmDelete": "Das ganze Nutzungsprotokoll löschen?",
-      "deleted": "Gelöscht."
+    "interests": {
+      "intro": "Nur die gelernten Themen-Gewichte, kein Protokoll einzelner Artikel. Ändern kann sie nur die Leserin („Einstellungen → Was ich gern lese“).",
+      "enabled": "Einverständnis",
+      "on": "ja",
+      "off": "nein",
+      "unset": "noch nicht gefragt",
+      "topic": "Thema",
+      "weight": "Gewicht",
+      "empty": "Noch keine Themen gelernt."
+    },
+    "setup": {
+      "salutation": "Anrede",
+      "salutationHint": "So spricht Augenblick die Leserin an.",
+      "sie": "Sie",
+      "du": "du",
+      "intro": "Einführung",
+      "introHint": "Beim nächsten Öffnen der App beginnt die Einführung von vorn.",
+      "introReset": "Einführung neu starten",
+      "introDone": "Die Einführung beginnt beim nächsten Öffnen."
     },
     "cheatsheet": {
       "print": "Drucken",
       "hint": "Großdruck für den Tisch neben dem Tablet. Auf A4 drucken.",
-      "title": "So lesen Sie Ihre Zeitung",
+      "title": {
+        "sie": "So lesen Sie Ihre Zeitung",
+        "du": "So liest du deine Zeitung"
+      },
       "card": "Auf einen Artikel tippen",
       "cardText": "Der Artikel öffnet sich.",
       "next": "Weiter",
@@ -197,6 +321,10 @@
       "backText": "Die vorige Seite.",
       "overview": "Übersicht",
       "overviewText": "Zurück zu allen Artikeln.",
+      "settings": "Einstellungen",
+      "settingsText": "Schrift, Farben, Zeilenabstand. Erst bei „Ja, so lassen“ bleibt es so.",
+      "spark": "Dieses Zeichen",
+      "sparkText": "Ein Computerprogramm hat die Zusammenfassung geschrieben.",
       "calm": "Nichts kann kaputtgehen. Im Zweifel einfach auf „Übersicht“ tippen."
     }
   }

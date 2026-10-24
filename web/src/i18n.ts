@@ -5,9 +5,10 @@ const LOCALES: Record<string, unknown> = { de };
 
 export let i18n = createTranslator(flattenMessages(de), 'de');
 
-export function setLocale(locale: string): void {
+/** Sprache und Anrede (du/Sie, SPEC §8.7). */
+export function setLocale(locale: string, salutation = 'sie'): void {
   const messages = LOCALES[locale] ?? de;
-  i18n = createTranslator(flattenMessages(messages), LOCALES[locale] ? locale : 'de');
+  i18n = createTranslator(flattenMessages(messages), LOCALES[locale] ? locale : 'de', salutation);
   document.documentElement.lang = i18n.locale;
 }
 

@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { DEFAULT_ADMIN_NETWORKS } from './auth.ts';
+import { DEFAULT_TECHNIK_NETWORKS } from './network.ts';
 import {
   DEFAULT_SECTIONS,
   DEFAULT_SETTINGS,
@@ -26,15 +26,12 @@ export type Config = {
   retentionDays: number;
   /** Anfangswerte der Einstellungen; danach gelten die im Admin-Bereich gespeicherten. */
   settings: Settings;
-  /** PIN für den Admin-Bereich; ohne PIN ist der Admin-Bereich gesperrt. */
-  adminPin: string | null;
-  /** Netze, aus denen der Admin-Bereich erreichbar ist (CIDR). */
-  adminNetworks: string[];
-  /** Nutzungsprotokoll nach so vielen Tagen löschen. */
-  usageRetentionDays: number;
-  /** API-Schlüssel für Kurzfassungen; ohne Schlüssel gelten die ersten Sätze (SPEC §6). */
-  anthropicApiKey: string | null;
-  summaryModel: string;
+  /** Netze, aus denen der Technik-Bereich erreichbar ist (CIDR). */
+  technikNetworks: string[];
+  /** OpenRouter (SPEC §6); ohne Schlüssel: Anreißer bzw. erste Sätze. */
+  openrouterApiKey: string | null;
+  openrouterModel: string;
+  openrouterFallbackModel: string | null;
   /** Höchstens so viele KI-Aufrufe pro Tag (Kostenbremse). */
   summaryDailyLimit: number;
   promptsDir: string;
@@ -82,13 +79,13 @@ export function parseSections(value: string | undefined): SectionQuota[] {
   return out;
 }
 
-/** Mindestens 4 Ziffern; Platzhalter aus .env.example gelten nicht. */
-export function parsePin(value: string | undefined): string | null {
-  const pin = value?.trim() ?? '';
-  return /^\d{4,12}$/.test(pin) ? pin : null;
-}
+/**
+ * Standardmodell: das im Klick-Prototyp erprobte kostenlose Modell. Für den Dauerbetrieb lieber ein
+ * günstiges bezahltes Modell eintragen (OPENROUTER_MODEL), siehe ADR 008.
+ */
+export const DEFAULT_OPENROUTER_MODEL = 'qwen/qwen3-next-80b-a3b-instruct:free';
 
-/** Platzhalter aus .env.example („sk-ant-…“ ohne Inhalt) zählen nicht als Schlüssel. */
+/** Platzhalter aus .env.example zählen nicht als Schlüssel. */
 export function parseApiKey(value: string | undefined): string | null {
   const key = value?.trim() ?? '';
   return key.length >= 20 && !key.includes('…') && !/bitte|hier|xxx/i.test(key) ? key : null;
@@ -138,13 +135,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     maxArticlesPerRun: num(env.AUGENBLICK_MAX_ARTICLES_PER_RUN, 20),
     fetchOnStart: bool(env.AUGENBLICK_FETCH_ON_START, true),
     retentionDays: num(env.AUGENBLICK_RETENTION_DAYS, 7),
-    adminPin: parsePin(env.AUGENBLICK_ADMIN_PIN),
-    adminNetworks: env.AUGENBLICK_ADMIN_NETWORKS?.trim()
-      ? env.AUGENBLICK_ADMIN_NETWORKS.split(',').map((s) => s.trim())
-      : DEFAULT_ADMIN_NETWORKS,
-    usageRetentionDays: num(env.AUGENBLICK_USAGE_RETENTION_DAYS, 180),
-    anthropicApiKey: parseApiKey(env.ANTHROPIC_API_KEY),
-    summaryModel: env.AUGENBLICK_SUMMARY_MODEL?.trim() || 'claude-opus-5-5',
+    technikNetworks: env.AUGENBLICK_TECHNIK_NETWORKS?.trim()
+      ? env.AUGENBLICK_TECHNIK_NETWORKS.split(',').map((s) => s.trim())
+      : DEFAULT_TECHNIK_NETWORKS,
+    openrouterApiKey: parseApiKey(env.OPENROUTER_API_KEY),
+    openrouterModel: env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODEL,
+    openrouterFallbackModel: env.OPENROUTER_FALLBACK_MODEL?.trim() || null,
     summaryDailyLimit: Math.max(0, num(env.AUGENBLICK_SUMMARY_DAILY_LIMIT, 40)),
     promptsDir: findPromptsDir(env.AUGENBLICK_PROMPTS_DIR),
     settings: {

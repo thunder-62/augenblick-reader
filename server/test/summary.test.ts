@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import Anthropic from '@anthropic-ai/sdk';
 import { DEFAULT_SECTIONS, type Block } from '@augenblick/shared';
-import { fallbackSummary, FALLBACK_SUMMARY_MODEL } from '../src/core/article.ts';
-import { AnthropicSummaryProvider } from '../src/core/anthropic.ts';
+import {
+  fallbackSummary,
+  FALLBACK_SUMMARY_MODEL,
+  isAiSummary,
+  TEASER_SUMMARY_MODEL,
+} from '../src/core/article.ts';
+import { OPENROUTER_URL, OpenRouterSummaryProvider } from '../src/core/openrouter.ts';
 import { aiUsage, getArticle, latestEdition, openDb } from '../src/core/db.ts';
 import { runPipeline, summarizeEdition } from '../src/core/pipeline.ts';
 import {
+  cleanTopics,
   createSummary,
   loadPrompt,
+  parseSummaryResponse,
   ProviderUnavailableError,
   MAX_SUMMARY_WORDS,
   validateSummary,
@@ -57,6 +63,25 @@ describe('validateSummary', () => {
 describe('Fallback-Kurzfassung', () => {
   const para = (...sentences: string[]): Block => ({ type: 'paragraph', sentences });
 
+  it('nimmt zuerst den Anreißer der Quelle (ohne Funkelstern)', () => {
+    const s = fallbackSummary(
+      [para('Erster Satz hier.')],
+      'x',
+      '  Der Anreißer der Quelle in fünf Wörtern.  ',
+    );
+    expect(s).toMatchObject({
+      text: 'Der Anreißer der Quelle in fünf Wörtern.',
+      model: TEASER_SUMMARY_MODEL,
+    });
+    expect(isAiSummary(s)).toBe(false);
+  });
+
+  it('ein zu kurzer Anreißer zählt nicht', () => {
+    expect(fallbackSummary([para('Erster Satz hier.')], 'x', 'Mehr dazu')?.text).toBe(
+      'Erster Satz hier.',
+    );
+  });
+
   it('nimmt die ersten zwei Sätze, wenn sie zusammen höchstens 45 Wörter haben', () => {
     expect(
       fallbackSummary([para('Erster Satz hier.', 'Zweiter Satz da.', 'Dritter.')], 'x')?.text,
@@ -85,18 +110,26 @@ class FakeProvider implements SummaryProvider {
     this.calls.push({ input, hint });
     const a = this.answers[Math.min(this.calls.length - 1, this.answers.length - 1)];
     if (a instanceof Error) throw a;
-    return { text: a ?? '', model: this.model, inputTokens: 100, outputTokens: 20 };
+    return { text: a ?? '', model: this.model, inputTokens: 100, outputTokens: 20, costUsd: 0.001 };
   }
 }
 
 const GOOD = 'Lindenau hat einen neuen Wochenmarkt mit Glasdach. Dort gibt es Obst und Gemüse.';
+const json = (text: string, topics: string[] = []) =>
+  JSON.stringify({ kurzfassung: text, themen: topics });
 const input: SummaryInput = { title: 'Markt', text: SOURCE, lang: 'de' };
 
 describe('createSummary', () => {
-  it('übernimmt eine gültige Antwort', async () => {
-    const p = new FakeProvider([GOOD]);
+  it('übernimmt eine gültige Antwort mit Themen', async () => {
+    const p = new FakeProvider([json(GOOD, ['Markt', 'Einkaufen'])]);
     const r = await createSummary(p, input, () => true);
-    expect(r).toMatchObject({ ok: true, text: GOOD, calls: 1, inputTokens: 100 });
+    expect(r).toMatchObject({
+      ok: true,
+      text: GOOD,
+      topics: ['Markt', 'Einkaufen'],
+      calls: 1,
+      inputTokens: 100,
+    });
   });
 
   it('versucht es bei ungültiger Antwort genau einmal neu, mit Grund', async () => {
@@ -129,7 +162,8 @@ describe('createSummary', () => {
 describe('Prompt', () => {
   it('liegt versioniert unter server/prompts und enthält die Vorgaben aus SPEC §6', () => {
     const prompt = loadPrompt('server/prompts', 'de');
-    expect(prompt.version).toBe('1');
+    expect(prompt.version).toBe('2');
+    expect(prompt.text).toContain('"themen"');
     expect(prompt.text).not.toContain('<!--');
     expect(prompt.text).toContain('höchstens 45 Wörter');
     expect(prompt.text).toMatch(/Keine Wertung/i);
@@ -138,81 +172,106 @@ describe('Prompt', () => {
   });
 });
 
-describe('AnthropicSummaryProvider', () => {
-  type Params = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming;
-  const message = (
-    over: Partial<Anthropic.Beta.Messages.BetaMessage>,
-  ): Anthropic.Beta.Messages.BetaMessage =>
-    ({
-      id: 'msg_test',
-      type: 'message',
-      role: 'assistant',
-      model: 'claude-opus-5-5',
-      content: [{ type: 'text', text: GOOD, citations: null }],
-      stop_reason: 'end_turn',
-      usage: { input_tokens: 812, output_tokens: 64 },
-      ...over,
-    }) as unknown as Anthropic.Beta.Messages.BetaMessage;
-
-  it('schickt Prompt, Artikel und Einstellungen und liest Text und Verbrauch', async () => {
-    const seen: Params[] = [];
-    const provider = new AnthropicSummaryProvider({
-      model: 'claude-opus-5-5',
-      prompt: { text: 'SYSTEM', version: '7' },
-      create: async (p) => (seen.push(p), message({})),
+describe('Antwort lesen: Kurzfassung und Themen', () => {
+  it('liest das JSON-Objekt, auch mit Text drumherum', () => {
+    expect(
+      parseSummaryResponse(
+        'Hier: {"kurzfassung": "Ein Satz.", "themen": ["garten", "Natur", "Garten"]}',
+      ),
+    ).toEqual({
+      summary: 'Ein Satz.',
+      topics: ['Garten', 'Natur'],
     });
-    const r = await provider.summarize(input, 'zu lang');
-    expect(r).toEqual({
-      text: GOOD,
-      model: 'claude-opus-5-5 (Prompt v7)',
+  });
+
+  it('ohne JSON ist die ganze Antwort die Kurzfassung', () => {
+    expect(parseSummaryResponse('Nur Text.')).toEqual({ summary: 'Nur Text.', topics: [] });
+  });
+
+  it('Schlagworte: höchstens drei, ein bis zwei Wörter, keine Sonderzeichen', () => {
+    expect(
+      cleanTopics(['Garten', 'Öffentlicher Nahverkehr', 'a b c', '<script>', 'Wetter', 'Sport']),
+    ).toEqual(['Garten', 'Öffentlicher Nahverkehr', 'Wetter']);
+  });
+});
+
+describe('OpenRouterSummaryProvider', () => {
+  const PROMPT = { text: 'SYSTEM', version: '2' };
+  type Call = { url: string; init: RequestInit; body: Record<string, unknown> };
+  const reply = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  const ok = (model = 'test/modell') =>
+    reply(200, {
+      model,
+      choices: [
+        {
+          message: { content: `{"kurzfassung": "${GOOD}", "themen": ["Markt"]}` },
+          finish_reason: 'stop',
+        },
+      ],
+      usage: { prompt_tokens: 812, completion_tokens: 64, cost: 0.0004 },
+    });
+  function provider(responses: Response[], fallbackModel: string | null = null) {
+    const calls: Call[] = [];
+    const p = new OpenRouterSummaryProvider({
+      apiKey: 'sk-or-test-0123456789abcdef',
+      model: 'test/modell',
+      fallbackModel,
+      prompt: PROMPT,
+      fetch: async (url, init = {}) => {
+        calls.push({ url, init, body: JSON.parse(String(init.body)) });
+        return responses.shift() ?? reply(500, {});
+      },
+    });
+    return { p, calls };
+  }
+
+  it('schickt Prompt, Artikel, Kennzeichnung und liest Text, Verbrauch und Kosten', async () => {
+    const { p, calls } = provider([ok()]);
+    const r = await p.summarize(input, 'zu lang');
+    expect(r).toMatchObject({
+      model: 'test/modell (Prompt v2)',
       inputTokens: 812,
       outputTokens: 64,
+      costUsd: 0.0004,
     });
-    const p = seen[0]!;
-    expect(p.model).toBe('claude-opus-5-5');
-    expect(p.system).toBe('SYSTEM');
-    expect(p.output_config).toEqual({ effort: 'low' });
-    expect(p.fallbacks).toBe('default');
-    expect(p.betas).toEqual(['server-side-fallback-2026-07-01']);
-    const content = String(p.messages[0]?.content);
-    expect(content).toContain(`<artikel>\n${SOURCE}\n</artikel>`);
-    expect(content).toContain('zu lang');
+    expect(parseSummaryResponse(r.text).topics).toEqual(['Markt']);
+    const c = calls[0]!;
+    expect(c.url).toBe(OPENROUTER_URL);
+    const h = c.init.headers as Record<string, string>;
+    expect(h.authorization).toBe('Bearer sk-or-test-0123456789abcdef');
+    expect(h['x-title']).toBe('Augenblick');
+    expect(h['http-referer']).toContain('augenblick-reader');
+    expect(c.body.model).toBe('test/modell');
+    const messages = c.body.messages as { role: string; content: string }[];
+    expect(messages[0]).toEqual({ role: 'system', content: 'SYSTEM' });
+    expect(messages[1]?.content).toContain(`<artikel>\n${SOURCE}\n</artikel>`);
+    expect(messages[1]?.content).toContain('zu lang');
   });
 
-  it('Schlüssel-, Netz- und Serverfehler gelten als „nicht verfügbar“, nicht als Fehler des Artikels', async () => {
-    const make = (err: Error) =>
-      new AnthropicSummaryProvider({
-        model: 'm',
-        prompt: { text: 'S', version: '1' },
-        create: async () => Promise.reject(err),
-      });
-    const auth = new Anthropic.AuthenticationError(
-      401,
-      undefined,
-      'invalid x-api-key',
-      new Headers(),
-    );
-    await expect(make(auth).summarize(input)).rejects.toBeInstanceOf(ProviderUnavailableError);
-    await expect(
-      make(new Anthropic.APIConnectionError({ message: 'weg' })).summarize(input),
-    ).rejects.toBeInstanceOf(ProviderUnavailableError);
-    const bad = new Anthropic.BadRequestError(400, undefined, 'kaputt', new Headers());
-    await expect(make(bad).summarize(input)).rejects.not.toBeInstanceOf(ProviderUnavailableError);
+  it('Schlüssel, Guthaben, Modell, Limit und Server gelten als „nicht verfügbar“', async () => {
+    for (const status of [401, 402, 404, 429, 503]) {
+      const { p } = provider([reply(status, { error: { message: 'x' } })]);
+      await expect(p.summarize(input)).rejects.toBeInstanceOf(ProviderUnavailableError);
+    }
+    const { p } = provider([reply(400, { error: { message: 'kaputt' } })]);
+    await expect(p.summarize(input)).rejects.not.toBeInstanceOf(ProviderUnavailableError);
   });
 
-  it('meldet Ablehnung und abgeschnittene Antworten als Fehler', async () => {
-    const refused = new AnthropicSummaryProvider({
-      model: 'm',
-      prompt: { text: 'S', version: '1' },
-      create: async () => message({ stop_reason: 'refusal', content: [] }),
-    });
-    await expect(refused.summarize(input)).rejects.toThrow(/refusal/);
-    const cut = new AnthropicSummaryProvider({
-      model: 'm',
-      prompt: { text: 'S', version: '1' },
-      create: async () => message({ stop_reason: 'max_tokens' }),
-    });
-    await expect(cut.summarize(input)).rejects.toThrow(/max_tokens/);
+  it('weicht auf das Ausweich-Modell aus, wenn das Hauptmodell nicht verfügbar ist', async () => {
+    const { p, calls } = provider([reply(429, {}), ok('test/ausweich')], 'test/ausweich');
+    const r = await p.summarize(input);
+    expect(calls.map((c) => c.body.model)).toEqual(['test/modell', 'test/ausweich']);
+    expect(r.model).toContain('test/ausweich');
+  });
+
+  it('abgeschnittene oder leere Antworten sind Fehler', async () => {
+    const cut = provider([
+      reply(200, { choices: [{ message: { content: '{' }, finish_reason: 'length' }] }),
+    ]);
+    await expect(cut.p.summarize(input)).rejects.toThrow(/abgeschnitten/);
+    const empty = provider([reply(200, { choices: [{ message: { content: '' } }] })]);
+    await expect(empty.p.summarize(input)).rejects.toThrow(/Leer/);
   });
 });
 
@@ -243,13 +302,14 @@ describe('summarizeEdition', () => {
   it('erstellt KI-Kurzfassungen für die Ausgabe, einmal pro Artikel', async () => {
     const db = await setup();
     const provider = new FakeProvider([
-      'Auf dem Markt in der Stadt gibt es etwas Neues für die Menschen.',
+      json('Auf dem Markt in der Stadt gibt es etwas Neues für die Menschen.', ['Markt']),
     ]);
     const r = await summarizeEdition(db, { provider, dailyLimit: 40, now: () => NOW });
     expect(r.created).toBe(8);
     const cards = latestEdition(db).articles;
     expect(cards.every((c) => c.summaryAi)).toBe(true);
     expect(getArticle(db, 'demo-markt')?.summary?.model).toBe('fake-model');
+    expect(getArticle(db, 'demo-markt')?.topics).toEqual(['Markt']);
     expect(aiUsage(db, '2026-10-24')).toMatchObject({
       calls: 8,
       failures: 0,
@@ -265,7 +325,7 @@ describe('summarizeEdition', () => {
   it('hält das Tageslimit ein, der Rest behält die ersten Sätze', async () => {
     const db = await setup();
     const provider = new FakeProvider([
-      'Auf dem Markt in der Stadt gibt es etwas Neues für die Menschen.',
+      json('Auf dem Markt in der Stadt gibt es etwas Neues für die Menschen.', ['Markt']),
     ]);
     const r = await summarizeEdition(db, { provider, dailyLimit: 3, now: () => NOW });
     expect(r.calls).toBe(3);
@@ -282,7 +342,7 @@ describe('summarizeEdition', () => {
     }
     // Schlüssel korrigiert: alle Artikel bekommen ihre Kurzfassung.
     const fixed = new FakeProvider([
-      'Auf dem Markt in der Stadt gibt es etwas Neues für die Menschen.',
+      json('Auf dem Markt in der Stadt gibt es etwas Neues für die Menschen.', ['Markt']),
     ]);
     expect(
       (await summarizeEdition(db, { provider: fixed, dailyLimit: 100, now: () => NOW })).created,

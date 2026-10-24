@@ -8,7 +8,7 @@ Ein ruhiger, sehr gut lesbarer Zeitungs-Reader für Menschen mit Makuladegenerat
 - Sanftes Vorlesen ab einem angetippten Wort – Begleitung, kein Ersatz fürs eigene Lesen
 - Leseeinstellungen ändert die Leserin selbst, mit Rückfrage vor dem dauerhaften Speichern; um die Technik kümmert sich ein Angehöriger
 
-**Status:** M0–M3 umgesetzt (Grundgerüst, tagesschau und BR24, Übersicht und Artikelansicht, Admin-Bereich mit Kalibrierung, KI-Kurzfassungen). Als Nächstes testet der Betreuer mit der Nutzerin am Gerät.
+**Status:** M0–M3 umgesetzt (Grundgerüst, tagesschau und BR24, Übersicht und Artikel, Einstellungen der Leserin mit Einführung, Technik-Bereich, KI-Zusammenfassungen über OpenRouter, Interessen lernen). Als Nächstes testet der Betreuer mit der Nutzerin am Gerät.
 
 - Spezifikation: [`SPEC.md`](SPEC.md)
 - Recherche und Belege: [`docs/recherche.md`](docs/recherche.md)
@@ -31,8 +31,10 @@ npm run dev
 - **API** auf <http://127.0.0.1:8080> (`/api/edition`, `/api/articles/:id`, `/api/settings`, `/health`)
 - **Worker**: holt beim Start einmal ab, danach 5:00–22:00 alle 30 Minuten (tagesschau, BR24)
 - **Web-App** (Vite) auf <http://localhost:5173> – im Browser im Querformat öffnen, z. B. mit den Entwicklerwerkzeugen auf 1280×800
-- **Admin-Bereich** auf <http://localhost:5173/admin> – vorher in `.env` `AUGENBLICK_ADMIN_PIN` (mind. 4 Ziffern) setzen
-- **KI-Kurzfassungen** nur mit `ANTHROPIC_API_KEY` in `.env`; ohne Schlüssel zeigen die Karten die ersten Sätze des Artikels
+- **Technik-Bereich** auf <http://localhost:5173/technik> (ohne PIN, nur Heimnetz/Tailscale)
+- **KI-Zusammenfassungen** nur mit `OPENROUTER_API_KEY` in `.env`; ohne Schlüssel zeigen die Karten den Anreißer der Quelle bzw. die ersten Sätze
+
+Beim ersten Öffnen erscheint die **Einführung** (Schrift, Farben, Blättern üben). Wer sie überspringen will: im Technik-Bereich ist sie jederzeit neu startbar, und jeder Schritt hat „Überspringen“.
 
 Ohne Internetzugang bleibt die Übersicht leer („wird gerade zusammengestellt“). Dann helfen die selbst geschriebenen Beispieltexte:
 
@@ -53,7 +55,7 @@ Weitere Befehle:
 | `npm run package` | Release-Paket `release/augenblick-<version>.tar.gz` |
 | `npm start` | gebauten Server starten (liefert auch die Web-App aus) |
 
-Die E2E-Tests laufen im Querformat-Viewport **1280×800 CSS-px – vorläufig, am Gerät zu prüfen** (tatsächliche CSS-Auflösung des Galaxy Tab S11 messen und in `playwright.config.ts` eintragen). Ebenso vorläufig ist die Umrechnung Millimeter → CSS-Pixel für die Tippziele in `shared/src/geometry.ts` (mit Lineal am Gerät prüfen).
+Die E2E-Tests laufen im Querformat-Viewport 1280×800 CSS-px. Die Schriftgröße stellt die Leserin in der Einführung selbst ein; die Umrechnung Millimeter → CSS-Pixel für die Tippziele in `shared/src/geometry.ts` ist ein vorsichtiger Schätzwert (eher zu große Tasten).
 
 Auf dem Raspberry Pi: `sudo ./deploy/install.sh` (Details in [`deploy/README.md`](deploy/README.md)). Releases entstehen automatisch, wenn ein Tag `v*` gepusht wird.
 

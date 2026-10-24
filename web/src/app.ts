@@ -9,13 +9,16 @@ import {
   type Edition,
   type Settings,
 } from '@augenblick/shared';
-import { fetchArticle, fetchEdition, fetchSettings } from './api.ts';
+import { fetchArticle, fetchEdition, fetchIntro, fetchSettings } from './api.ts';
 import { button, fitsIn, h, icons, measureBox, setButton } from './dom.ts';
 import { setLocale, t, tOr, tp } from './i18n.ts';
 import { packPages, pageForAnchor, paginate, type Page, type PageItem } from './paginate.ts';
 import { applySettings, calibrateCharWidth, layoutKey } from './settings.ts';
+import type { FlowHost } from './flow.ts';
+import { IntroFlow } from './intro.ts';
+import { endReading, setSignalsEnabled, trackPage } from './signals.ts';
 import { loadState, markRead, readIds, saveState as storeState } from './state.ts';
-import { endReading, trackPage } from './usage.ts';
+import { SettingsFlow } from './user-settings.ts';
 import { onTap } from './tap.ts';
 import { keepAwake } from './wakelock.ts';
 
@@ -37,21 +40,25 @@ export type Preview = { settings: unknown; articleId?: string };
 
 type View =
   | { kind: 'loading' }
+  /** Einstellungen oder Einführung: eigene Bildschirme, kein Neuaufbau durch die App. */
+  | { kind: 'flow' }
   | { kind: 'overview'; page: number }
   | { kind: 'article'; article: Article | null; id: string; page: number; pages: Page[] };
 
-export class App {
-  private settings: Settings = DEFAULT_SETTINGS;
+export class App implements FlowHost {
+  settings: Settings = DEFAULT_SETTINGS;
   private serverSettings: Settings = DEFAULT_SETTINGS;
   private edition: Edition | null = null;
   private editionFailed = false;
   private view: View = { kind: 'loading' };
   private overviewPages: ArticleCard[][] = [];
   private screen: HTMLElement | null = null;
+  private sample: string[] | null = null;
+  private intro: IntroFlow = new IntroFlow(this, { state: 'fertig', step: 1 });
 
   /**
-   * `preview`: Vorschau im Admin-Bereich – Einstellungen kommen vom Admin-Bereich, nichts wird
-   * gespeichert oder protokolliert.
+   * `preview`: Vorschau im Technik-Bereich – Einstellungen kommen aus der Adresse, nichts wird
+   * gespeichert oder gelernt.
    */
   constructor(
     private readonly root: HTMLElement,
@@ -67,23 +74,20 @@ export class App {
     await this.loadEdition();
 
     if (this.preview) {
-      window.addEventListener('message', (e: MessageEvent<unknown>) => {
-        if (e.origin !== location.origin) return;
-        const data = e.data as { type?: string; settings?: unknown };
-        if (data?.type !== 'augenblick-preview') return;
-        if (this.preview) this.preview.settings = data.settings;
-        void this.refreshSettings(true);
-      });
-      // Dem Admin-Bereich melden, dass die Vorschau bereit ist – er schickt dann den aktuellen Entwurf.
-      if (window.parent !== window)
-        window.parent.postMessage({ type: 'augenblick-preview-ready' }, location.origin);
       if (this.preview.articleId) await this.openArticle(this.preview.articleId, -1);
       else this.showOverview(0);
       return;
     }
+    void this.loadSample();
 
+    // Beim ersten Start die Einführung (SPEC §8.8); pausiert geht sie über „Einstellungen“ weiter.
+    this.intro = new IntroFlow(
+      this,
+      await fetchIntro().catch(() => ({ state: 'fertig' as const, step: 1 })),
+    );
     const saved = loadState();
-    if (saved.view === 'article' && saved.articleId)
+    if (this.intro.intro.state === 'neu') this.startIntro();
+    else if (saved.view === 'article' && saved.articleId)
       await this.openArticle(saved.articleId, saved.anchor ?? -1);
     else this.showOverview(saved.overviewPage ?? 0);
 
@@ -104,25 +108,31 @@ export class App {
 
   // --- Daten ---------------------------------------------------------------
 
-  private async loadSettings(cachedOnly = false): Promise<void> {
-    if (!cachedOnly) {
-      try {
-        this.serverSettings = await fetchSettings();
-      } catch {
-        // Standardwerte bleiben; nächster Versuch beim regelmäßigen Abruf.
-      }
+  private async loadSettings(): Promise<void> {
+    try {
+      this.serverSettings = await fetchSettings();
+    } catch {
+      // Standardwerte bleiben; nächster Versuch beim regelmäßigen Abruf.
     }
-    this.settings = this.preview
-      ? sanitizeSettings(this.preview.settings, this.serverSettings)
-      : this.serverSettings;
-    setLocale(this.settings.locale);
-    applySettings(this.settings);
+    this.use(
+      this.preview
+        ? sanitizeSettings(this.preview.settings, this.serverSettings)
+        : this.serverSettings,
+    );
   }
 
-  private async refreshSettings(cachedOnly = false): Promise<void> {
-    const before = layoutKey(this.settings) + this.settings.theme;
-    await this.loadSettings(cachedOnly);
-    if (layoutKey(this.settings) + this.settings.theme !== before) {
+  private use(settings: Settings): void {
+    this.settings = settings;
+    setLocale(settings.locale, settings.salutation);
+    applySettings(settings);
+    // Lesesignale nur mit Einverständnis (SPEC §5.3), in der Vorschau nie.
+    setSignalsEnabled(!this.preview && settings.interestLearning === true);
+  }
+
+  private async refreshSettings(): Promise<void> {
+    const before = layoutKey(this.settings) + this.settings.theme + this.settings.salutation;
+    await this.loadSettings();
+    if (layoutKey(this.settings) + this.settings.theme + this.settings.salutation !== before) {
       await document.fonts?.ready;
       calibrateCharWidth();
       this.rerender();
@@ -164,10 +174,46 @@ export class App {
     }
   }
 
-  private mount(screen: HTMLElement): void {
+  // --- FlowHost: für Einstellungen und Einführung ---------------------------------
+
+  mount(screen: HTMLElement): void {
     this.screen?.remove();
     this.screen = screen;
     this.root.append(screen);
+    if (screen.classList.contains('flow')) {
+      this.view = { kind: 'flow' };
+      keepAwake(false);
+      endReading();
+    }
+  }
+
+  async applySaved(settings: Settings): Promise<void> {
+    this.serverSettings = settings;
+    this.use(settings);
+    await document.fonts?.ready;
+    calibrateCharWidth();
+  }
+
+  sampleSentences(): string[] {
+    return this.sample?.length ? this.sample : [t('settings.sample')];
+  }
+
+  /** Sätze eines echten Artikels für die Vorschau in den Einstellungen (SPEC §8.4, Schritt 3). */
+  private async loadSample(): Promise<void> {
+    const first = this.edition?.articles[0];
+    if (!first) return;
+    const article = await fetchArticle(first.id).catch(() => null);
+    this.sample =
+      article?.blocks.flatMap((b) => (b.type === 'paragraph' ? b.sentences : [])).slice(0, 6) ??
+      null;
+  }
+
+  private startIntro(): void {
+    this.intro.start();
+  }
+
+  private showSettings(): void {
+    new SettingsFlow(this, this.intro).showMenu();
   }
 
   private renderMessage(text: string): void {
@@ -177,7 +223,7 @@ export class App {
   // --- Übersicht -----------------------------------------------------------
 
   /** `focusId`: Seite mit diesem Artikel zeigen (Rückkehr aus dem Artikel). */
-  private showOverview(page: number, focusId?: string): void {
+  showOverview(page = 0, focusId?: string): void {
     keepAwake(false);
     endReading();
     const cards = this.edition?.articles ?? [];
@@ -191,6 +237,9 @@ export class App {
     const back = button(t('nav.back'), 'left', 'btn-back');
     const next = button(t('nav.next'), 'right', 'btn-next');
     const info = h('p', { class: 'pageinfo', 'aria-live': 'polite' });
+    // Beschriftete Taste „Einstellungen“ (SPEC §8.7) – zählt zu den höchstens 6 Tippzielen.
+    const settingsBtn = this.preview ? null : button(t('nav.settings'), 'gear', 'btn-settings');
+    if (settingsBtn) onTap(settingsBtn, () => this.showSettings());
     const screen = h(
       'main',
       { class: 'screen overview' },
@@ -201,7 +250,7 @@ export class App {
         h('span', { class: 'brand' }, t('app.name')),
       ),
       list,
-      h('nav', { class: 'bar' }, back, info, next),
+      h('nav', { class: 'bar bar-overview' }, back, settingsBtn ?? h('span'), info, next),
     );
     this.mount(screen);
 
@@ -287,7 +336,14 @@ export class App {
       ),
       h('span', { class: 'title' }, c.title),
       summary
-        ? h('span', { class: c.summaryAi ? 'summary summary-ai' : 'summary' }, App.glue(summary))
+        ? h(
+            'span',
+            { class: 'summary' },
+            // Funkelstern vor KI-Kurzfassungen, ohne Beschriftung (SPEC §6).
+            c.summaryAi ? icons.spark() : null,
+            c.summaryAi ? h('span', { class: 'sr-only' }, t('card.aiSummary')) : null,
+            App.glue(summary),
+          )
         : null,
       h('span', { class: 'time' }, tp('card.readingTime', c.readingMinutes)),
     );

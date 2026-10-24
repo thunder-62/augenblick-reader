@@ -124,7 +124,7 @@ Fertig. Augenblick läuft unter http://$(hostname):${PORT:-8080}/
   Status:   systemctl status augenblick-api augenblick-worker
   Logs:     journalctl -u augenblick-worker -f
   Update:   sudo augenblick-update   (läuft sonst jede Nacht um 03:00)
-  Admin:    http://<tailscale-name>:${PORT:-8080}/admin – vorher AUGENBLICK_ADMIN_PIN in $ENV_FILE setzen
+  Technik:  http://$(hostname):${PORT:-8080}/technik (nur im Heimnetz bzw. über Tailscale)
 
 Tailscale (Fernwartung, später HTTPS): siehe deploy/README.md
 MSG

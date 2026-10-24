@@ -26,6 +26,17 @@ describe('i18n', () => {
     expect(t.tp('card.readingTime', 4)).toBe('ca. 4 Minuten');
   });
 
+  it('Anrede: jede Sie-Fassung hat eine Du-Fassung (SPEC §8.7)', () => {
+    const sie = Object.keys(messages).filter((k) => k.endsWith('.sie'));
+    expect(sie.length).toBeGreaterThan(5);
+    for (const k of sie) expect(k.replace(/\.sie$/, '.du') in messages, k).toBe(true);
+    const du = createTranslator(messages, 'de', 'du');
+    expect(du.t('settings.font.hint')).toMatch(/^Tippe/);
+    expect(t.t('settings.font.hint')).toMatch(/^Tippen Sie/);
+    // Texte ohne Anrede gelten für beide.
+    expect(du.t('nav.settings')).toBe('Einstellungen');
+  });
+
   it('meldet fehlende Schlüssel', () => {
     expect(() => t.t('gibt.es.nicht')).toThrow();
   });
@@ -39,7 +50,7 @@ describe('i18n', () => {
     }
     expect(used.size).toBeGreaterThan(5);
     for (const key of used) {
-      const exists = key in messages || `${key}.other` in messages;
+      const exists = key in messages || `${key}.other` in messages || `${key}.sie` in messages;
       expect(exists, key).toBe(true);
     }
   });

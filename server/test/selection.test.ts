@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SECTIONS } from '@augenblick/shared';
 import { dedupe, isSameStory, signature } from '../src/core/dedupe.ts';
-import { selectEdition } from '../src/core/selection.ts';
+import { selectEdition, type InterestRanker } from '../src/core/selection.ts';
 import { makeArticle } from './helpers.ts';
 
 const lead = (s: string) => `${s} Danach folgen weitere selbst geschriebene Sätze zum Thema.`;
@@ -100,5 +100,52 @@ describe('selectEdition', () => {
       text: lead('Brücke Beispielstadt Verkehr freigegeben.'),
     });
     expect(selectEdition([dup], existing, DEFAULT_SECTIONS)).toEqual([existing[0]!.id]);
+  });
+});
+
+describe('selectEdition mit Interessen (SPEC §5.3)', () => {
+  const art = (section: string, topic: string, i: number) =>
+    makeArticle({
+      section,
+      topics: [topic],
+      title: `${topic} Meldung ${i} über Gegenstand${topic}${i} und Besonderheit${i}${section}`,
+      text: lead(`Satz über Ding${topic}${i} am Ort${i}${section} mit Merkmal${topic}${i}.`),
+    });
+  const ranker = (fav: string): InterestRanker => ({
+    score: (a) => (a.topics?.includes(fav) ? 5 : 0),
+    favorite: (a) => Boolean(a.topics?.includes(fav)),
+  });
+
+  it('die ersten zwei Plätze bleiben redaktionell, danach Lieblingsthemen vorn', () => {
+    const candidates = [
+      ...Array.from({ length: 4 }, (_, i) => art('region', 'Verkehr', i)),
+      ...Array.from({ length: 4 }, (_, i) => art('inland', i < 2 ? 'Garten' : 'Politik', i)),
+      ...Array.from({ length: 4 }, (_, i) => art('sport', 'Fußball', i)),
+    ];
+    const ids = selectEdition(candidates, [], DEFAULT_SECTIONS, 12, ranker('Garten'));
+    const plain = selectEdition(candidates, [], DEFAULT_SECTIONS, 12, null);
+    expect(ids.slice(0, 2)).toEqual(plain.slice(0, 2));
+    const topicAt = (i: number) => candidates.find((a) => a.id === ids[i])?.topics?.[0];
+    expect([topicAt(2), topicAt(3)]).toEqual(['Garten', 'Garten']);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('kein Filtern: mindestens 3 Plätze für andere Themen', () => {
+    const candidates = [
+      ...Array.from({ length: 10 }, (_, i) => art('region', 'Garten', i)),
+      ...Array.from({ length: 6 }, (_, i) => art('wissen', 'Technik', i)),
+    ];
+    const ids = selectEdition(
+      candidates,
+      [],
+      [{ key: 'alles', sections: ['region', 'wissen'], count: 12 }],
+      12,
+      ranker('Garten'),
+    );
+    const others = ids.filter(
+      (id) => candidates.find((a) => a.id === id)?.topics?.[0] !== 'Garten',
+    );
+    expect(ids).toHaveLength(12);
+    expect(others.length).toBeGreaterThanOrEqual(3);
   });
 });

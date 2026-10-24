@@ -34,15 +34,13 @@ sudo nano /etc/augenblick/augenblick.env
 sudo systemctl restart augenblick-api augenblick-worker
 ```
 
-Wichtig ist vor allem `AUGENBLICK_ADMIN_PIN` (mindestens 4 Ziffern) – ohne PIN bleibt der Admin-Bereich gesperrt. Die Datei ist nur für root und den Dienstbenutzer lesbar; sie gehört nie ins Repo.
+Für KI-Zusammenfassungen `OPENROUTER_API_KEY` eintragen (Schlüssel von openrouter.ai), optional `OPENROUTER_MODEL`, `OPENROUTER_FALLBACK_MODEL` und `AUGENBLICK_SUMMARY_DAILY_LIMIT`. Ohne Schlüssel zeigen die Karten den Anreißer der Quelle bzw. die ersten Sätze. Die Datei ist nur für root und den Dienstbenutzer lesbar; sie gehört nie ins Repo.
 
-Für KI-Kurzfassungen `ANTHROPIC_API_KEY` eintragen (Schlüssel aus der Anthropic Console); optional `AUGENBLICK_SUMMARY_MODEL` und `AUGENBLICK_SUMMARY_DAILY_LIMIT`. Ohne Schlüssel zeigen die Karten die ersten Sätze. Verbrauch und Fehler stehen im Admin-Status; Fehler beim Abruf auch in `journalctl -u augenblick-worker`.
+## Leseeinstellungen und Technik-Bereich
 
-## Admin-Bereich
+Die **Leseeinstellungen** ändert die Leserin selbst auf dem Tablet (Taste „Einstellungen“ in der Übersicht, mit Rückfrage vor dem Speichern). Beim ersten Öffnen führt eine **Einführung** durch Schrift, Farben, Blättern und Artikel öffnen.
 
-`http://<tailscale-name>:8080/admin` – nur aus dem Tailnet (und vom Pi selbst) erreichbar, zusätzlich mit PIN. Dort: Einstellungen mit Live-Vorschau, Kalibrierung (am Tablet ausführen; das Tablet muss dafür im Tailnet sein), BR24-Feed und Rubriken-Mix, Status, Nutzungsprotokoll und der Spickzettel zum Ausdrucken. Andere Netze lassen sich mit `AUGENBLICK_ADMIN_NETWORKS` freigeben (siehe ADR 007).
-
-Am Tablet: Chrome öffnen, `http://<name-des-pi>:8080/` aufrufen. Bis HTTPS (M4) läuft, funktionieren Wake Lock und Installation als App nur eingeschränkt.
+Der **Technik-Bereich** liegt unter `http://<name-des-pi>:8080/technik` – ohne PIN, aber nur aus dem Heimnetz bzw. über Tailscale erreichbar (`AUGENBLICK_TECHNIK_NETWORKS`), und auf dem Tablet nicht verlinkt. Dort: Status (Quellen, KI-Verbrauch und -Kosten, Speicher, Version), Leseeinstellungen ansehen und bei einem Versehen auf eine frühere Fassung zurücksetzen, BR24-Feed und Rubriken-Mix, gelernte Interessen (nur Themen-Gewichte), Anrede (Sie/du), Einführung neu starten, Spickzettel zum Ausdrucken.
 
 ## Updates
 
@@ -68,9 +66,9 @@ Sofort neu abholen: `sudo systemctl restart augenblick-worker` (der Worker holt 
 
 `install.sh` schaltet den Watchdog ein (`dtparam=watchdog=on` in `/boot/firmware/config.txt`, `RuntimeWatchdogSec=15` für systemd). Hängt das System, startet der Pi von selbst neu. Wirksam nach dem nächsten Neustart.
 
-## Tailscale (Fernwartung)
+## Tailscale (optional)
 
-Tailscale verbindet den Pi und die Geräte des Betreuers, ohne Ports im Router zu öffnen. HTTPS über Tailscale-Zertifikate folgt mit M4; bis dahin dient Tailscale nur der Fernwartung.
+Tailscale verbindet den Pi mit Tablet und Geräten des Betreuers, ohne Ports im Router zu öffnen. Es ist der einfachste Weg zu HTTPS (M4, nötig für Wake Lock und die Installation als App) und ermöglicht nebenbei optional den Fernzugriff des Betreuers. Fernwartung ist eine Entscheidung des Betreuers, keine Pflicht.
 
 1. Auf dem Pi installieren und anmelden:
    ```bash
@@ -82,6 +80,6 @@ Tailscale verbindet den Pi und die Geräte des Betreuers, ohne Ports im Router z
 3. Auf Smartphone/PC des Betreuers Tailscale installieren und mit demselben Konto anmelden. Dann ist der Pi unter `http://augenblick:8080/` bzw. per `ssh augenblick` erreichbar.
 4. Optional das Tablet ebenfalls ins Tailnet nehmen (für M4 nötig, weil das Zertifikat auf den Tailscale-Namen ausgestellt wird).
 
-## Tablet (vorläufig)
+## Tablet
 
-Chrome, Seite aufrufen, „Zum Startbildschirm hinzufügen“. Bildschirmfixierung oder Kiosk-Launcher wird beim Einrichten entschieden (SPEC §15, offener Punkt 4). Benachrichtigungen aus, Systemschrift groß, Helligkeit hoch.
+Chrome, Seite aufrufen, „Zum Startbildschirm hinzufügen“. Kein Kiosk-Modus, kein Offline-Modus (SPEC §9). Benachrichtigungen aus, Systemschrift groß, Helligkeit hoch.

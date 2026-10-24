@@ -1,8 +1,9 @@
 /**
  * Maße für Tippziele (SPEC §8.1, [R17]).
  *
- * VORLÄUFIG: PX_PER_MM ist geschätzt (Recherche: 15–20 mm ≈ 95–125 CSS-px).
- * Am Galaxy Tab S11 mit Lineal nachmessen und hier eintragen.
+ * PX_PER_MM ist ein vorsichtiger Schätzwert aus der Recherche (15–20 mm ≈ 95–125 CSS-px); er macht
+ * Tasten eher größer als nötig. Die Schriftgröße stellt die Leserin in der Einführung selbst ein,
+ * eine Messung am Gerät ist laut Betreuer nicht nötig.
  */
 export const PX_PER_MM = 6.3;
 

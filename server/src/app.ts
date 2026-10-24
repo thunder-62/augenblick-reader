@@ -1,23 +1,38 @@
 import path from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import fastifyStatic from '@fastify/static';
-import type { Health } from '@augenblick/shared';
-import { registerAdmin } from './admin.ts';
+import type { Health, SettingsSource } from '@augenblick/shared';
 import type { Config } from './core/config.ts';
 import { getArticle, latestEdition, sourceStatuses, type Db } from './core/db.ts';
-import { getSettings, getSourcesConfig, logUsage, parseUsageEvent } from './core/store.ts';
+import {
+  addTopicPoints,
+  adjustInterests,
+  articleTopics,
+  baselineSettings,
+  forgetInterests,
+  getIntro,
+  getSettings,
+  interests,
+  parseIntro,
+  pick,
+  saveSettings,
+  setIntro,
+  signalPoints,
+  USER_KEYS,
+} from './core/store.ts';
 import { VERSION } from './core/version.ts';
+import { registerTechnik } from './technik.ts';
 
 export type AppConfig = Pick<
   Config,
   | 'settings'
-  | 'adminPin'
-  | 'adminNetworks'
+  | 'technikNetworks'
   | 'br24FeedUrl'
   | 'dbPath'
   | 'dataDir'
-  | 'anthropicApiKey'
-  | 'summaryModel'
+  | 'openrouterApiKey'
+  | 'openrouterModel'
+  | 'openrouterFallbackModel'
   | 'summaryDailyLimit'
 >;
 
@@ -28,6 +43,9 @@ export type AppOptions = {
   logger?: boolean;
   now?: () => Date;
 };
+
+/** Woher die Nutzerin auf dem Tablet speichert (SPEC §8.7, §8.8). */
+const USER_SOURCES: SettingsSource[] = ['nutzerin', 'einfuehrung', 'kalibrierung', 'wie-am-anfang'];
 
 export function createApp({
   db,
@@ -65,18 +83,52 @@ export function createApp({
     return article;
   });
 
+  // --- Einstellungen der Nutzerin (SPEC §8.7): kein PIN; das Tablet speichert erst nach Rückfrage.
   app.get('/api/settings', async () => getSettings(db, config.settings));
 
-  // Nutzungsprotokoll (SPEC §10): nur lokal, abschaltbar.
-  app.post('/api/usage', async (req, reply) => {
-    if (!getSourcesConfig(db, config).usageLogEnabled) return reply.code(204).send();
-    const event = parseUsageEvent(req.body);
-    if (!event) return reply.code(400).send({ error: 'invalid' });
-    logUsage(db, event, now());
+  app.get('/api/settings/baseline', async () => baselineSettings(db, config.settings));
+
+  app.put<{ Body: { settings?: unknown; source?: unknown } }>(
+    '/api/settings',
+    async (req, reply) => {
+      const source = req.body?.source as SettingsSource;
+      if (!USER_SOURCES.includes(source)) return reply.code(400).send({ error: 'source' });
+      const patch = pick(req.body?.settings, USER_KEYS);
+      const saved = saveSettings(db, patch, config.settings, now().toISOString(), source);
+      // Ohne Einverständnis wird nichts gelernt und nichts aufbewahrt (SPEC §5.3).
+      if (saved.interestLearning === false) forgetInterests(db);
+      return saved;
+    },
+  );
+
+  // --- Einführung (SPEC §8.8): Fortschritt, damit sie später an derselben Stelle weitergeht.
+  app.get('/api/intro', async () => getIntro(db));
+
+  app.put('/api/intro', async (req, reply) => {
+    const intro = parseIntro(req.body);
+    if (!intro) return reply.code(400).send({ error: 'invalid' });
+    setIntro(db, intro);
+    return intro;
+  });
+
+  // --- Interessen (SPEC §5.3): nur mit Einverständnis; gespeichert werden nur Themen-Gewichte.
+  const learning = (): boolean => getSettings(db, config.settings).interestLearning === true;
+
+  app.get('/api/interests', async () => (learning() ? interests(db, now()) : []));
+
+  app.put('/api/interests', async (req) =>
+    learning() ? adjustInterests(db, req.body, now()) : [],
+  );
+
+  app.post('/api/reading', async (req, reply) => {
+    const signal = signalPoints(req.body);
+    if (!signal) return reply.code(400).send({ error: 'invalid' });
+    const article = learning() ? getArticle(db, signal.articleId) : null;
+    if (article) addTopicPoints(db, articleTopics(article), signal.points, now());
     return reply.code(204).send();
   });
 
-  registerAdmin(app, { db, config, now });
+  registerTechnik(app, { db, config, now });
 
   app.all('/api/*', async (_req, reply) => reply.code(404).send({ error: 'not_found' }));
 
@@ -93,12 +145,10 @@ export function createApp({
         );
       },
     });
-    app.get('/admin', (_req, reply) =>
-      reply.type('text/html').header('cache-control', 'no-cache').sendFile('admin.html'),
-    );
-    app.get('/admin/*', (_req, reply) =>
-      reply.type('text/html').header('cache-control', 'no-cache').sendFile('admin.html'),
-    );
+    const technikPage = (_req: unknown, reply: import('fastify').FastifyReply) =>
+      reply.type('text/html').header('cache-control', 'no-cache').sendFile('technik.html');
+    app.get('/technik', technikPage);
+    app.get('/technik/*', technikPage);
     app.setNotFoundHandler((_req, reply) => reply.type('text/html').sendFile('index.html'));
   }
 

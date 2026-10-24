@@ -14,10 +14,14 @@ function interpolate(template: string, params: Params = {}): string {
   );
 }
 
-export function createTranslator(messages: Messages, locale: string): Translator {
+/**
+ * `variant` wählt die Anrede (SPEC §8.7): Texte mit Anrede stehen in der Locale als
+ * `{ "sie": "…", "du": "…" }`; ohne passende Variante gilt „sie“.
+ */
+export function createTranslator(messages: Messages, locale: string, variant = 'sie'): Translator {
   const plural = new Intl.PluralRules(locale);
   const lookup = (key: string): string => {
-    const value = messages[key];
+    const value = messages[key] ?? messages[`${key}.${variant}`] ?? messages[`${key}.sie`];
     if (value === undefined) {
       throw new Error(`Fehlender Text in Locale ${locale}: ${key}`);
     }

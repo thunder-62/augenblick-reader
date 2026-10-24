@@ -1,4 +1,4 @@
-/** Kleine Bausteine für die Formulare des Admin-Bereichs (normale Größen, SPEC §10). */
+/** Kleine Bausteine für die Formulare des Technik-Bereichs (normale Größen, SPEC §10). */
 import { h } from '../dom.ts';
 import { t } from '../i18n.ts';
 
@@ -63,13 +63,13 @@ export function statusLine(): {
   const el = h('p', { class: 'statusline', role: 'status' });
   return {
     el,
-    ok: (text = t('admin.common.saved')) => {
+    ok: (text = t('technik.common.saved')) => {
       el.className = 'statusline ok';
       el.textContent = text;
     },
     error: (err) => {
       el.className = 'statusline error';
-      el.textContent = t('admin.common.error', {
+      el.textContent = t('technik.common.error', {
         message: err instanceof Error ? err.message : String(err),
       });
     },
@@ -81,7 +81,7 @@ export function statusLine(): {
 }
 
 export function formatDateTime(iso: string | null): string {
-  if (!iso) return t('admin.common.never');
+  if (!iso) return t('technik.common.never');
   return new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(
     new Date(iso),
   );

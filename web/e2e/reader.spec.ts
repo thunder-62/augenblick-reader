@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { TAP_MIN_DURATION_MS } from '@augenblick/shared';
-import { checkScreen, pageInfo, tap, withSettings } from './helpers.ts';
+import { checkScreen, pageInfo, resetState, tap, withSettings } from './helpers.ts';
+
+test.beforeEach(async ({ request }) => {
+  await resetState(request);
+});
 
 test.describe('Übersicht', () => {
   test('zeigt Datum, Karten und blättert per Taste', async ({ page }) => {
@@ -233,7 +237,7 @@ test.describe('Ausfälle', () => {
 });
 
 test.describe('Kurzfassungen (M3)', () => {
-  test('KI-Kurzfassung ist erkennbar gestaltet, die ersten Sätze nicht', async ({ page }) => {
+  test('KI-Kurzfassung hat den Funkelstern, Anreißer und erste Sätze nicht', async ({ page }) => {
     await page.route('**/api/edition', async (route) => {
       const res = await route.fetch();
       const edition = await res.json();
@@ -243,13 +247,16 @@ test.describe('Kurzfassungen (M3)', () => {
     await withSettings(page, { fontSizePx: 24 });
     await page.goto('/');
     const ai = page.locator('.card').first().locator('.summary');
-    await expect(ai).toHaveClass(/summary-ai/);
-    expect(
-      await ai.evaluate((el) => parseFloat(getComputedStyle(el).borderLeftWidth)),
-    ).toBeGreaterThan(2);
+    await expect(ai.locator('svg.spark')).toBeVisible();
+    // Kein „KI“- oder „Kurz gesagt“-Text sichtbar, nur das Symbol (SPEC §6).
+    const visible = await ai.evaluate((el) => {
+      const copy = el.cloneNode(true) as HTMLElement;
+      copy.querySelectorAll('.sr-only').forEach((s) => s.remove());
+      return copy.textContent ?? '';
+    });
+    expect(visible).not.toMatch(/KI|Kurz gesagt/);
     await checkScreen(page);
     await tap(page.locator('.btn-next'));
-    const plain = page.locator('.card').first().locator('.summary');
-    await expect(plain).not.toHaveClass(/summary-ai/);
+    await expect(page.locator('.card').first().locator('.summary svg.spark')).toHaveCount(0);
   });
 });

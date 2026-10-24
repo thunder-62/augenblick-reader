@@ -6,7 +6,7 @@ import { api } from './api.ts';
 import { btn, field, section, statusLine } from './ui.ts';
 
 export async function sourcesView(root: HTMLElement): Promise<void> {
-  const [sources, { settings }] = await Promise.all([api.sources(), api.settings()]);
+  const [sources, { current: settings }] = await Promise.all([api.sources(), api.settings()]);
 
   // BR24-Feed
   const feed = h('input', {
@@ -19,11 +19,11 @@ export async function sourcesView(root: HTMLElement): Promise<void> {
   const feedForm = h(
     'form',
     {},
-    field(t('admin.sources.br24'), feed, t('admin.sources.br24Hint')),
+    field(t('technik.sources.br24'), feed, t('technik.sources.br24Hint')),
     h(
       'div',
       { class: 'actions' },
-      h('button', { type: 'submit', class: 'primary' }, t('admin.common.save')),
+      h('button', { type: 'submit', class: 'primary' }, t('technik.common.save')),
     ),
     feedStatus.el,
   );
@@ -46,21 +46,25 @@ export async function sourcesView(root: HTMLElement): Promise<void> {
       (n, i) => n + (Number(i.value) || 0),
       0,
     );
-    sum.textContent = t('admin.sources.sum', { sum: total });
+    sum.textContent = t('technik.sources.sum', { sum: total });
     sum.classList.toggle('warn', total > MAX_EDITION_ARTICLES);
   };
   const addRow = (q: SectionQuota): void => {
     const tr = h(
       'tr',
       {},
-      h('td', {}, h('input', { name: 'key', value: q.key, 'aria-label': t('admin.sources.name') })),
+      h(
+        'td',
+        {},
+        h('input', { name: 'key', value: q.key, 'aria-label': t('technik.sources.name') }),
+      ),
       h(
         'td',
         {},
         h('input', {
           name: 'sections',
           value: q.sections.join(', '),
-          'aria-label': t('admin.sources.sectionList'),
+          'aria-label': t('technik.sources.sectionList'),
         }),
       ),
       h(
@@ -72,7 +76,7 @@ export async function sourcesView(root: HTMLElement): Promise<void> {
           min: 0,
           max: MAX_EDITION_ARTICLES,
           value: q.count,
-          'aria-label': t('admin.sources.count'),
+          'aria-label': t('technik.sources.count'),
         }),
       ),
     );
@@ -80,7 +84,7 @@ export async function sourcesView(root: HTMLElement): Promise<void> {
       h(
         'td',
         {},
-        btn(t('admin.sources.remove'), () => (tr.remove(), updateSum()), 'link'),
+        btn(t('technik.sources.remove'), () => (tr.remove(), updateSum()), 'link'),
       ),
     );
     rows.append(tr);
@@ -90,7 +94,7 @@ export async function sourcesView(root: HTMLElement): Promise<void> {
   const mixForm = h(
     'form',
     {},
-    h('p', { class: 'hint' }, t('admin.sources.sectionsHint')),
+    h('p', { class: 'hint' }, t('technik.sources.sectionsHint')),
     h(
       'table',
       { class: 'mix' },
@@ -100,9 +104,9 @@ export async function sourcesView(root: HTMLElement): Promise<void> {
         h(
           'tr',
           {},
-          h('th', {}, t('admin.sources.name')),
-          h('th', {}, t('admin.sources.sectionList')),
-          h('th', {}, t('admin.sources.count')),
+          h('th', {}, t('technik.sources.name')),
+          h('th', {}, t('technik.sources.sectionList')),
+          h('th', {}, t('technik.sources.count')),
           h('th', {}),
         ),
       ),
@@ -112,8 +116,11 @@ export async function sourcesView(root: HTMLElement): Promise<void> {
     h(
       'div',
       { class: 'actions' },
-      btn(t('admin.sources.add'), () => (addRow({ key: '', sections: [], count: 1 }), updateSum())),
-      h('button', { type: 'submit', class: 'primary' }, t('admin.common.save')),
+      btn(
+        t('technik.sources.add'),
+        () => (addRow({ key: '', sections: [], count: 1 }), updateSum()),
+      ),
+      h('button', { type: 'submit', class: 'primary' }, t('technik.common.save')),
     ),
     mixStatus.el,
   );
@@ -128,7 +135,7 @@ export async function sourcesView(root: HTMLElement): Promise<void> {
       count: Number(tr.querySelector<HTMLInputElement>('input[name="count"]')?.value ?? 0),
     }));
     try {
-      const saved = await api.saveSettings({ sections });
+      const saved = await api.saveSetup({ sections });
       rows.replaceChildren();
       saved.sections.forEach(addRow);
       updateSum();
@@ -139,7 +146,7 @@ export async function sourcesView(root: HTMLElement): Promise<void> {
   });
 
   root.replaceChildren(
-    section(t('admin.sources.br24'), feedForm),
-    section(t('admin.sources.sections'), mixForm),
+    section(t('technik.sources.br24'), feedForm),
+    section(t('technik.sources.sections'), mixForm),
   );
 }

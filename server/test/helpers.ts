@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { DEFAULT_SETTINGS, type Article, type Block } from '@augenblick/shared';
 import type { AppConfig } from '../src/app.ts';
-import { DEFAULT_ADMIN_NETWORKS } from '../src/core/auth.ts';
+import { DEFAULT_TECHNIK_NETWORKS } from '../src/core/network.ts';
 import type { FetchLike } from '../src/core/http.ts';
 
 export const fixture = (name: string): string =>
@@ -44,18 +44,16 @@ export function makeArticle(over: Partial<Article> & { text?: string } = {}): Ar
   };
 }
 
-export const TEST_PIN = '4711';
-
 export function testConfig(over: Partial<AppConfig> = {}): AppConfig {
   return {
     settings: DEFAULT_SETTINGS,
-    adminPin: TEST_PIN,
-    adminNetworks: DEFAULT_ADMIN_NETWORKS,
+    technikNetworks: DEFAULT_TECHNIK_NETWORKS,
     br24FeedUrl: 'https://example.org/feed.xml',
     dbPath: ':memory:',
     dataDir: '.',
-    anthropicApiKey: null,
-    summaryModel: 'claude-opus-5-5',
+    openrouterApiKey: null,
+    openrouterModel: 'test/modell',
+    openrouterFallbackModel: null,
     summaryDailyLimit: 40,
     ...over,
   };

@@ -18,7 +18,7 @@ export async function statusView(root: HTMLElement): Promise<void> {
             'tr',
             {},
             ...['source', 'lastAttempt', 'lastSuccess', 'lastError'].map((k) =>
-              h('th', {}, t(`admin.status.${k}`)),
+              h('th', {}, t(`technik.status.${k}`)),
             ),
           ),
         ),
@@ -37,63 +37,74 @@ export async function statusView(root: HTMLElement): Promise<void> {
           ),
         ),
       )
-    : h('p', {}, t('admin.status.noSources'));
+    : h('p', {}, t('technik.status.noSources'));
 
   root.replaceChildren(
     section(
-      t('admin.tabs.status'),
+      t('technik.tabs.status'),
       h(
         'dl',
         { class: 'facts' },
-        row(t('admin.status.version'), s.version),
+        row(t('technik.status.version'), s.version),
         row(
-          t('admin.status.edition'),
+          t('technik.status.edition'),
           s.edition.day
-            ? t('admin.status.editionValue', {
+            ? t('technik.status.editionValue', {
                 day: s.edition.day,
                 count: s.edition.articles,
                 time: formatDateTime(s.edition.updatedAt),
               })
-            : t('admin.status.noEdition'),
+            : t('technik.status.noEdition'),
         ),
-        row(t('admin.status.articles'), t('admin.status.articlesValue', s.articles)),
+        row(t('technik.status.articles'), t('technik.status.articlesValue', s.articles)),
         row(
-          t('admin.status.storage'),
-          t('admin.status.storageValue', {
+          t('technik.status.storage'),
+          t('technik.status.storageValue', {
             db: formatBytes(s.storage.dbBytes),
             free: formatBytes(s.storage.freeBytes),
           }),
         ),
-        row(t('admin.status.calibrated'), formatDateTime(s.calibratedAt)),
+        row(t('technik.status.calibrated'), formatDateTime(s.calibratedAt)),
+        row(
+          t('technik.status.intro'),
+          t(`technik.status.introValue.${s.intro.state}`, { step: s.intro.step }),
+        ),
       ),
-      btn(t('admin.status.refresh'), () => void statusView(root)),
+      btn(t('technik.common.refresh'), () => void statusView(root)),
     ),
     section(
-      t('admin.status.ai'),
+      t('technik.status.ai'),
       h(
         'dl',
         { class: 'facts' },
         row(
-          t('admin.status.aiProvider'),
-          s.ai.provider ? `${s.ai.provider} · ${s.ai.model ?? ''}` : t('admin.status.aiOff'),
+          t('technik.status.aiProvider'),
+          s.ai.provider ? `${s.ai.provider} · ${s.ai.model ?? ''}` : t('technik.status.aiOff'),
         ),
+        s.ai.fallbackModel
+          ? row('', t('technik.status.aiFallback', { model: s.ai.fallbackModel }))
+          : null,
         row(
-          t('admin.status.aiToday'),
-          t('admin.status.aiTodayValue', {
+          t('technik.status.aiToday'),
+          t('technik.status.aiTodayValue', {
             calls: s.ai.today.calls,
             limit: s.ai.dailyLimit,
             failures: s.ai.today.failures,
             input: s.ai.today.inputTokens,
             output: s.ai.today.outputTokens,
+            cost: new Intl.NumberFormat('de-DE', {
+              style: 'currency',
+              currency: 'USD',
+              maximumFractionDigits: 4,
+            }).format(s.ai.today.costUsd),
           }),
         ),
         row(
-          t('admin.status.aiEdition'),
-          t('admin.status.aiEditionValue', { ai: s.ai.editionWithAi, total: s.edition.articles }),
+          t('technik.status.aiEdition'),
+          t('technik.status.aiEditionValue', { ai: s.ai.editionWithAi, total: s.edition.articles }),
         ),
       ),
     ),
-    section(t('admin.status.sources'), sources),
-    h('p', { class: 'hint' }, t('admin.status.summaryHint')),
+    section(t('technik.status.sources'), sources),
   );
 }

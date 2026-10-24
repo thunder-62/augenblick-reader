@@ -153,3 +153,25 @@ export async function checkScreen(page: Page): Promise<void> {
     ).toBeGreaterThanOrEqual(7);
   }
 }
+
+/** Ausgangszustand für jeden Test: Anfangswerte, Einführung erledigt, nichts gelernt. */
+export async function resetState(
+  request: import('@playwright/test').APIRequestContext,
+): Promise<void> {
+  const { DEFAULT_SETTINGS } = await import('@augenblick/shared');
+  await request.put('/api/settings', {
+    data: {
+      source: 'nutzerin',
+      settings: {
+        fontSizePx: DEFAULT_SETTINGS.fontSizePx,
+        theme: DEFAULT_SETTINGS.theme,
+        lineHeight: DEFAULT_SETTINGS.lineHeight,
+        interestLearning: false,
+      },
+    },
+  });
+  await request.put('/api/technik/settings', {
+    data: { salutation: 'sie', sections: DEFAULT_SETTINGS.sections },
+  });
+  await request.put('/api/intro', { data: { state: 'fertig', step: 6 } });
+}
