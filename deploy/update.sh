@@ -7,6 +7,7 @@
 # Healthcheck fehl, geht es zurück auf die vorige Version. Die letzten 3 Versionen bleiben liegen.
 #
 # Aufruf:  augenblick-update [--file PAKET.tar.gz] [--force]
+# Nachts läuft es als Benutzer augenblick-update (ADR 012), von Hand auch mit sudo.
 set -euo pipefail
 
 APP_DIR="${AUGENBLICK_APP_DIR:-/opt/augenblick}"
@@ -50,8 +51,15 @@ healthy() {
   return 1
 }
 
+# Als root direkt, sonst (nächtlicher Dienst als augenblick-update, ADR 012) über die Pfad-Unit
+# augenblick-restart.path. Der Healthcheck wartet ohnehin, bis die neue Version antwortet.
+RESTART_REQUEST="$APP_DIR/restart-request"
 restart_services() {
-  $SYSTEMCTL restart "${SERVICES[@]}"
+  if [[ $EUID -eq 0 ]]; then
+    $SYSTEMCTL restart "${SERVICES[@]}"
+  else
+    : > "$RESTART_REQUEST"
+  fi
 }
 
 switch_to() {
@@ -59,8 +67,17 @@ switch_to() {
   mv -T "$APP_DIR/current.new" "$CURRENT"
 }
 
+# Von Hand mit sudo gestartet: alles unter $APP_DIR gehört danach wieder dem Update-Benutzer,
+# damit das nächtliche Update (ohne Root-Rechte) weiterarbeiten kann (ADR 012).
+UPDATE_USER="${AUGENBLICK_UPDATE_USER:-augenblick-update}"
+finish() {
+  rm -rf "$WORK"
+  if [[ $EUID -eq 0 ]] && id "$UPDATE_USER" >/dev/null 2>&1; then
+    chown -R "$UPDATE_USER:$UPDATE_USER" "$APP_DIR" || true
+  fi
+}
 WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
+trap finish EXIT
 mkdir -p "$RELEASES"
 
 if [[ -z "$FILE" ]]; then
@@ -140,17 +157,16 @@ else
   exit 1
 fi
 
-# Sich selbst und die systemd-Units aktuell halten (nur bei echter Installation).
+# Update-Programm und systemd-Units sind root-eigen und ändern sich nur mit install.sh (ADR 012).
 if [[ "$APP_DIR" == "/opt/augenblick" && -d "$TARGET/deploy" ]]; then
-  install -m 755 "$TARGET/deploy/update.sh" /usr/local/sbin/augenblick-update
-  changed=0
+  stale=0
+  cmp -s "$TARGET/deploy/update.sh" /usr/local/sbin/augenblick-update || stale=1
   for unit in "$TARGET"/deploy/systemd/*; do
-    dest="/etc/systemd/system/$(basename "$unit")"
-    if ! cmp -s "$unit" "$dest"; then install -m 644 "$unit" "$dest"; changed=1; fi
+    cmp -s "$unit" "/etc/systemd/system/$(basename "$unit")" || stale=1
   done
-  if [[ $changed -eq 1 ]]; then
-    $SYSTEMCTL daemon-reload
-    restart_services || true
+  if [[ $stale -eq 1 ]]; then
+    log "Hinweis: Update-Programm oder systemd-Units sind neuer – bitte einmal ausführen:"
+    log "  sudo $TARGET/deploy/install.sh --file <Paket>  (oder aus einem Klon: sudo ./deploy/install.sh)"
   fi
 fi
 

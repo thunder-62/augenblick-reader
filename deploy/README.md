@@ -7,8 +7,9 @@ Augenblick läuft ohne Docker direkt auf einem Raspberry Pi 5 (SSD, Raspberry Pi
 | `augenblick-api` | liefert Web-App und JSON-API (Port aus `PORT`, Standard 8080) |
 | `augenblick-worker` | holt Artikel ab (5:00–22:00 alle 30 Minuten), bereinigt sie, stellt die Ausgabe zusammen |
 | `augenblick-update.timer` | jede Nacht 03:00: neues Release laden, Healthcheck, bei Fehler zurück |
+| `augenblick-restart.path` | startet API und Worker neu, wenn das Update darum bittet (ADR 012) |
 
-Verzeichnisse: Programm unter `/opt/augenblick/releases/<version>` mit Symlink `/opt/augenblick/current`, Daten (SQLite) unter `/var/lib/augenblick`, Konfiguration in `/etc/augenblick/augenblick.env`. Die Dienste laufen als Systembenutzer `augenblick`.
+Verzeichnisse: Programm unter `/opt/augenblick/releases/<version>` mit Symlink `/opt/augenblick/current`, Daten (SQLite) unter `/var/lib/augenblick`, Konfiguration in `/etc/augenblick/augenblick.env`. Die Dienste laufen als Systembenutzer `augenblick`. Das nächtliche Update läuft als eigener Benutzer `augenblick-update` ohne Root-Rechte: Es darf nur `/opt/augenblick` schreiben und bittet über die Datei `/opt/augenblick/restart-request` um den Neustart (ADR 012).
 
 ## Einrichten
 
@@ -48,6 +49,8 @@ Der **Technik-Bereich** liegt unter `http://<name-des-pi>:8080/technik` – ohne
 - von Hand: `sudo augenblick-update` (oder mit `--file paket.tar.gz`, `--force` für dieselbe Version)
 
 Ablauf: Release laden → Prüfsumme prüfen → nach `/opt/augenblick/releases/<version>` entpacken → `npm ci --omit=dev` → Symlink `current` umstellen → Dienste neu starten → `/health` muss „ok“ und die neue Version melden. Sonst zurück auf die vorige Version. Die letzten 3 Versionen bleiben liegen.
+
+Update-Programm und systemd-Units selbst ändern sich dabei nicht (sie gehören root). Bringt ein Release neuere mit, steht ein Hinweis im Log (`journalctl -u augenblick-update`); dann einmal `sudo ./deploy/install.sh` aus einem aktuellen Klon ausführen.
 
 `better-sqlite3` bringt fertige arm64-Pakete mit. Gibt es keins, baut npm es auf dem Pi (dafür installiert `install.sh` `build-essential`).
 

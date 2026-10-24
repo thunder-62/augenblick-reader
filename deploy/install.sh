@@ -53,7 +53,9 @@ node --version
 
 log "Benutzer und Verzeichnisse"
 id augenblick >/dev/null 2>&1 || useradd --system --home-dir "$DATA_DIR" --no-create-home --shell /usr/sbin/nologin augenblick
-install -d -m 755 "$APP_DIR" "$APP_DIR/releases"
+# Eigener Benutzer für das nächtliche Update: darf nur /opt/augenblick schreiben (ADR 012).
+id augenblick-update >/dev/null 2>&1 || useradd --system --home-dir /var/cache/augenblick-update --no-create-home --shell /usr/sbin/nologin augenblick-update
+install -d -m 755 -o augenblick-update -g augenblick-update "$APP_DIR" "$APP_DIR/releases"
 install -d -m 750 -o augenblick -g augenblick "$DATA_DIR"
 install -d -m 750 -o root -g augenblick "$CONF_DIR"
 
@@ -69,7 +71,7 @@ chown root:augenblick "$ENV_FILE"
 chmod 640 "$ENV_FILE"
 
 log "systemd-Dienste und Update-Programm"
-install -m 644 "$SCRIPT_DIR"/systemd/*.service "$SCRIPT_DIR"/systemd/*.timer /etc/systemd/system/
+install -m 644 "$SCRIPT_DIR"/systemd/*.service "$SCRIPT_DIR"/systemd/*.timer "$SCRIPT_DIR"/systemd/*.path /etc/systemd/system/
 install -m 755 "$SCRIPT_DIR/update.sh" /usr/local/sbin/augenblick-update
 
 log "Hardware-Watchdog"
@@ -108,8 +110,11 @@ case "$MODE" in
     ;;
 esac
 
-systemctl enable --quiet augenblick-api augenblick-worker augenblick-update.timer
-systemctl start augenblick-api augenblick-worker augenblick-update.timer
+# Was root eben installiert hat, gehört danach dem Update-Benutzer (ADR 012).
+chown -R augenblick-update:augenblick-update "$APP_DIR"
+
+systemctl enable --quiet augenblick-api augenblick-worker augenblick-update.timer augenblick-restart.path
+systemctl start augenblick-api augenblick-worker augenblick-update.timer augenblick-restart.path
 
 log "Prüfung"
 for _ in $(seq 1 30); do
