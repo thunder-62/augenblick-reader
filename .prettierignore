@@ -7,3 +7,4 @@ test-results
 package-lock.json
 web/public/fonts
 *.md
+docs/prototyp

@@ -12,7 +12,7 @@ Das Produkt besteht aus zwei Teilen:
 - **Server** (läuft auf einem Raspberry Pi im Heimnetz der Nutzerin): holt Artikel ab, bereinigt sie, erzeugt Kurzfassungen per KI, speichert alles und liefert die Web-App aus.
 - **Web-App / PWA** (läuft im Vollbild auf einem Samsung Galaxy Tab S11, 11", AMOLED, Android): Übersicht → Artikel. Sonst fast nichts.
 
-Ein Angehöriger („Betreuer") richtet alles ein und wartet es aus der Ferne. Die Nutzerin stellt nie etwas ein.
+Ein Angehöriger („Betreuer") richtet alles ein und kümmert sich um die Technik. **Ihre Leseeinstellungen ändert die Nutzerin selbst**, wenn sie möchte (§8.7). Kein abgeschlossener Bereich, kein PIN: Schutz vor Versehen durch eine Rückfrage, nicht durch Bevormundung.
 
 ### Leitsätze (gelten für jede Entscheidung)
 
@@ -28,7 +28,8 @@ Ein Angehöriger („Betreuer") richtet alles ein und wartet es aus der Ferne. D
 - Keine Mehrbenutzerfähigkeit, keine Konten, kein Login für die Nutzerin.
 - Keine Kommentare, Teilen-Funktionen, Werbung, Push-Benachrichtigungen.
 - Kein Nachbau des ePaper-Seitenlayouts. Text wird immer als einspaltiger Fließtext dargestellt. [R5]
-- Keine native Android-App (PWA reicht; Kiosk-Betrieb über Android-Bordmittel bzw. Launcher, siehe §9).
+- Keine native Android-App (Web-App reicht).
+- Kein Kiosk-Modus, kein Offline-Modus, Fernwartung nur optional (Entscheidung des Betreuers).
 - Keine Übersetzung, kein RSVP [R11].
 
 ## 3. Architektur
@@ -47,7 +48,7 @@ Ein Angehöriger („Betreuer") richtet alles ein und wartet es aus der Ferne. D
 └──────┼────────────────────────────────────────────┘
        │ ausgehend: Quellen (tagesschau, BR24, später Regionalzeitung), KI-API
        ▼
-   Internet          Betreuer ──Tailscale──▶ Admin-Bereich
+   Internet          Betreuer ──Tailscale──▶ Technik-Bereich
 ```
 
 ### Technik-Stack (Vorgabe, begründete Abweichung erlaubt)
@@ -99,7 +100,7 @@ type Block =
 
 type Summary = {
   text: string;            // 2–3 Sätze, einfache Sprache
-  model: string;           // z. B. "claude-haiku-…"
+  model: string;           // OpenRouter-Modell-ID, z. B. "anthropic/claude-haiku-…"
   createdAt: string;
 };
 ```
@@ -131,10 +132,21 @@ interface SourceAdapter {
 2. **Bereinigen:** Werbung, Bildunterschriften, „Mehr zum Thema", Links, Social-Embeds, Bildnachweise entfernen. Zwischenüberschriften behalten. Ergebnis als `Block[]`.
 3. **Sätze trennen:** deutscher Satztrenner mit Abkürzungsliste (z. B., Dr., Nr., …). Satzgrenzen sind Grundlage für das Vorlesen.
 4. **KI-Kurzfassung** (§6).
-5. **Auswahl für die Ausgabe:** maximal 12 Artikel pro Tag in der Übersicht, Mischung nach konfigurierbaren Rubriken (z. B. 4× Region aus BR24, 4× Deutschland/Welt aus tagesschau, 2× Vermischtes, 2× Sport). Dubletten (gleiches Thema) zusammenfassen.
+5. **Auswahl für die Ausgabe** (Reihenfolge siehe §5.3): maximal 12 Artikel pro Tag in der Übersicht, Mischung nach konfigurierbaren Rubriken (z. B. 4× Region aus BR24, 4× Deutschland/Welt aus tagesschau, 2× Vermischtes, 2× Sport). Dubletten (gleiches Thema) zusammenfassen.
 6. **Aufräumen:** Artikel älter als 7 Tage löschen.
 
 Fehler einer Quelle dürfen die anderen nicht blockieren. Wenn nichts Neues kommt, bleibt die letzte Ausgabe sichtbar.
+
+### 5.3 Interessen lernen
+
+Ziel: Themen, die die Nutzerin gern liest, rücken in der Übersicht nach vorn. Es geht ums Lernen für sie, nicht um Überwachung.
+
+- **Signale:** Artikel geöffnet, bis zum Ende gelesen bzw. vorgelesen, schnell wieder verlassen. Je Artikel werden daraus Punkte für seine **Themen** (Rubrik plus von der KI vergebene Schlagworte, z. B. „Region“, „Garten“, „Sport“, „Politik“).
+- **Gespeichert** werden nur Themen-Gewichte mit langsamem Vergessen (z. B. Halbwertszeit 30 Tage), keine Liste gelesener Artikel. Alles bleibt auf dem Pi.
+- **Reihenfolge:** Wichtigste Meldungen des Tages bleiben vorn (2 feste Plätze), danach nach Interesse sortiert. **Kein Filtern:** Mindestens 3 der 12 Plätze gehen an Themen außerhalb der Favoriten, damit die Zeitung abwechslungsreich bleibt.
+- **Transparenz:** In ihren Einstellungen (§8.7) gibt es „Was ich gern lese“: die gelernten Themen groß als Liste, je Thema „mehr davon“ / „weniger davon“ und „Alles vergessen“. Änderungen mit zweistufigem Speichern.
+- **Einverständnis:** In der Einführung (§8.8, Schritt 7) einmal fragen: „Augenblick merkt sich, welche Themen Sie gern lesen, und zeigt sie weiter vorn. Einverstanden?“ – „Ja“ / „Nein, lieber nicht“. Jederzeit in den Einstellungen änderbar. Ohne Einverständnis bleibt die Reihenfolge redaktionell.
+- **Umsetzung:** ab M3 (Themen-Schlagworte entstehen zusammen mit der KI-Kurzfassung).
 
 ## 6. KI-Einsatz
 
@@ -142,6 +154,7 @@ Fehler einer Quelle dürfen die anderen nicht blockieren. Wenn nichts Neues komm
 |---|---|---|
 | Kurzfassung 2–3 Sätze, einfache Sprache | Ja | 1 |
 | Rubrik normalisieren, Dubletten erkennen | Ja (günstiges Modell) | 1 |
+| Themen-Schlagworte je Artikel (für §5.3) | Ja (zusammen mit der Kurzfassung) | 1 |
 | Bereinigung schwieriger Quellen | Optional | 2 |
 | Vereinfachte Fassung (Einfache Sprache) des ganzen Artikels | Option, Feature-Flag | später |
 | Übersetzung | Nein | später |
@@ -151,15 +164,17 @@ Fehler einer Quelle dürfen die anderen nicht blockieren. Wenn nichts Neues komm
 Regeln:
 
 - Läuft **nur auf dem Server**, einmal pro Artikel, Ergebnis wird gespeichert. Das Tablet ruft nie eine KI auf.
-- **Provider-Abstraktion** (`SummaryProvider`), Standard: Anthropic Claude API. Modell und API-Schlüssel per `.env`. Ohne Schlüssel: Fallback auf die ersten zwei Sätze des Artikels.
+- **Anbindung über OpenRouter** (OpenAI-kompatible Chat-Completions-API). `.env`: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (Modell frei wählbar, Standard ein günstiges, gutes Modell für Deutsch), optional `OPENROUTER_FALLBACK_MODEL`. Header `HTTP-Referer`/`X-Title` mit dem Projektnamen setzen. Trotzdem hinter einer schmalen Provider-Abstraktion (`SummaryProvider`), damit ein Wechsel möglich bleibt. Ohne Schlüssel oder bei Fehler: Fallback auf den Anreißer der Quelle bzw. die ersten zwei Sätze.
+- Im Technik-Status: genutztes Modell, Aufrufe und Kosten heute (aus der OpenRouter-Antwort, soweit geliefert).
 - **Prompt** im Repo unter `/server/prompts/summary.de.md`, versioniert. Vorgaben: sachlich, keine Wertung, keine Informationen, die nicht im Text stehen, kurze Sätze, keine Fremdwörter ohne Not, max. 45 Wörter.
 - Ausgabe validieren (Länge, Sprache); bei Verstoß einmal neu, sonst Fallback.
 - Kosten begrenzen: Tageslimit an Aufrufen in der Konfiguration.
-- In der Oberfläche ist die Kurzfassung als solche erkennbar (eigene Gestaltung, Hinweis im Admin-Bereich dokumentiert). Der Originalartikel ist immer einen Tipp entfernt.
+- Die Kurzfassung steht **ohne Beschriftung** (kein „Kurz gesagt“, kein „KI“) direkt unter dem Titel; die Position auf der Karte macht sie als Zusammenfassung erkennbar. Der Originalartikel ist immer einen Tipp entfernt. (Entscheidung des Betreuers nach Prototyp-Test.)
+- **KI-Symbol:** Stammt die Kurzfassung von der KI (nicht vom Anreißer der Quelle), steht vor ihr ein kleines, ruhiges Symbol statt eines Textes. Gestaltung: eigenes SVG, gleiche Farbe wie der Text der Kurzfassung (Kontrast ≥ 7:1), Höhe ca. 0,8 × Schriftgröße, keine Animation, kein Tippziel. Bedeutung steht auf dem gedruckten Spickzettel und in den Einstellungen. Motiv: **Funkelstern (✦)** als eigenes SVG.
 
 ## 7. Einstellungen
 
-Alle Einstellungen liegen auf dem Server (`Settings`), werden vom Betreuer im Admin-Bereich gesetzt und vom Tablet beim Start und alle 15 Minuten geladen.
+Alle Einstellungen liegen auf dem Server (`Settings`). Die Leseeinstellungen ändert die Nutzerin auf dem Tablet (§8.7), der Betreuer kann sie im Technik-Bereich ansehen und auf eine frühere Fassung zurücksetzen (§10). Das Tablet lädt sie beim Start und alle 15 Minuten.
 
 | Einstellung | Standard | Herkunft |
 |---|---|---|
@@ -217,11 +232,11 @@ Alle Einstellungen liegen auf dem Server (`Settings`), werden vom Betreuer im Ad
 - Beim Öffnen der App: letzter Artikel und letzte Seite werden wiederhergestellt. [R24]
 - Ab Phase 3 zusätzlich Taste **„🔊 Vorlesen"** (siehe §8.5).
 
-### 8.4 Kalibrierung (nur Betreuer, gemeinsam mit der Nutzerin)
+### 8.4 Kalibrierung („Schrift einstellen“)
 
-Geführter Ablauf im Admin-Bereich, auf dem Tablet ausgeführt:
+Geführter Ablauf in den Einstellungen der Nutzerin (§8.7), allein oder gemeinsam mit dem Betreuer:
 
-1. **Schriftgröße:** Ein kurzer Beispielsatz in Stufen von je ca. +26 % (beginnend bei 18 pt). Betreuer tippt „angenehm" bei der ersten Stufe, die sie flüssig liest. Gespeichert wird diese Stufe oder eine darüber (Schalter). [R1]
+1. **Schriftgröße:** Ein kurzer Beispielsatz in Stufen von je ca. +26 % (beginnend bei 18 pt). Sie (oder der Betreuer mit ihr) tippt „Das ist angenehm“ bei der ersten Stufe, die sie flüssig liest. Gespeichert wird diese Stufe oder eine darüber (Schalter). [R1]
 2. **Farbschema:** derselbe Absatz einmal hell (≈ #111 auf #FAF7F0), einmal dunkel (≈ #F2EAD3 auf #000). Optional Lesezeit stoppen. Auswahl speichern. [R7]
 3. **Vorschau** einer echten Artikelseite mit den gewählten Werten.
 
@@ -233,37 +248,69 @@ Abstand Auge–Tablet bei der Kalibrierung und im Alltag gleich halten (Ständer
 - **Hervorhebung des aktuellen Satzes** (Hintergrund deutlich, kein Wort-für-Wort-Springen). Seite blättert automatisch weiter, wenn der Satz auf der nächsten Seite liegt.
 - Tempo `ttsRate`, Lautstärke über Gerät.
 - Vorlesen stoppt beim Verlassen des Artikels.
-- **Fehlerfall:** keine de-DE-Stimme → Taste ausblenden, im Admin-Status melden.
-- **Audioausgabe über Hörgeräte:** Die Ausgabe muss direkt über per Bluetooth gekoppelte Hörgeräte funktionieren (Android-Hörgeräteunterstützung, ASHA; LE Audio, sobald Gerät und Hörgeräte es können) oder kabelgebunden über einen USB-C-Klinkenadapter (z. B. zu einem Hörgeräte-Streamer oder Kopfhörer). Die App spielt nur über die Standard-Audioausgabe des Systems ab und darf kein Ausgabegerät erzwingen. Am Gerät testen: Verzögerung bis zum ersten Wort, Abbruch und Wiederaufnahme bei getrennter Verbindung (Vorlesen pausiert, nicht über den Tablet-Lautsprecher weiter), Lautstärke. Im Admin-Status anzeigen, ob gerade über Hörgeräte oder Lautsprecher ausgegeben wird, soweit der Browser das erkennen lässt.
+- **Fehlerfall:** keine de-DE-Stimme → Taste ausblenden, im Technik-Status melden.
+- **Audioausgabe über Hörgeräte:** Die Ausgabe muss direkt über per Bluetooth gekoppelte Hörgeräte funktionieren (Android-Hörgeräteunterstützung, ASHA; LE Audio, sobald Gerät und Hörgeräte es können) oder kabelgebunden über einen USB-C-Klinkenadapter (z. B. zu einem Hörgeräte-Streamer oder Kopfhörer). Die App spielt nur über die Standard-Audioausgabe des Systems ab und darf kein Ausgabegerät erzwingen. Am Gerät testen: Verzögerung bis zum ersten Wort, Abbruch und Wiederaufnahme bei getrennter Verbindung (Vorlesen pausiert, nicht über den Tablet-Lautsprecher weiter), Lautstärke. Im Technik-Status anzeigen, ob gerade über Hörgeräte oder Lautsprecher ausgegeben wird, soweit der Browser das erkennen lässt.
 
 ### 8.6 Experimente (Feature-Flags, standardmäßig aus)
 
-- **`tickerMode`:** Absatz als einzeilige Laufschrift, ca. 150–180 Zeichen/min, Tasten „Langsamer / Pause / Schneller", verschiebbare Fixiermarke (über/unter der Zeile, Einstellung des Betreuers). [R10]
+- **`tickerMode`:** Absatz als einzeilige Laufschrift, ca. 150–180 Zeichen/min, Tasten „Langsamer / Pause / Schneller", verschiebbare Fixiermarke (über/unter der Zeile, in den Einstellungen). [R10]
 - **`lineFocus`:** aktuelle Zeile voll, übrige Zeilen auf 40 % abgedunkelt; Weiter per Tipp unten. [R12]
 - **`fingerFollow`:** Finger über den Text ziehen, das Wort unter dem Finger wird leise gesprochen und der Satz hervorgehoben. Nur zusätzlich zu §8.5, nie als einziger Weg. [R14]
 
-Jedes Experiment protokolliert lokal anonyme Nutzung (siehe §10), damit der Betreuer bewerten kann, ob es hilft.
+Ob ein Experiment hilft, klären Betreuer und Nutzerin gemeinsam im Gespräch; Nutzungsprotokoll siehe §10.
+
+### 8.7 Einstellungen der Nutzerin
+
+Bewusste Abweichung von [R26] der Recherche: **Autonomie vor Schutz.** Die Nutzerin darf alles ändern, was ihr Lesen betrifft. Abgesichert wird gegen Versehen, nicht gegen sie.
+
+- **Erreichbar** über eine beschriftete Taste „Einstellungen“ in der Übersicht (zählt zu den max. 6 Tippzielen). Kein PIN, kein versteckter Zugang.
+- **Inhalt:** Schrift einstellen (§8.4), Farbschema, Zeilenabstand, Vorlesen an/aus und Tempo, später ggf. Laufschrift. Keine Technik (Quellen, KI, Updates) – die liegt im Technik-Bereich (§10).
+- **Gestaltung** nach denselben Regeln wie §8.1: groß, Einzeltipps, Symbol + Wort, max. 6 Tippziele pro Bildschirm, blättern statt scrollen. Jede Änderung wirkt sofort auf eine **Vorschau** mit echtem Text.
+- **Zweistufiges Speichern:** Taste „Speichern“ führt zu einem eigenen ganzseitigen Bestätigungsschritt (kein Pop-up): „Soll das ab jetzt immer so bleiben?“ mit den Tasten **„Ja, so lassen“** und **„Nein, wie vorher“**. Erst „Ja“ speichert dauerhaft.
+- **Verlassen ohne Bestätigung** (z. B. „◂ Übersicht“) stellt den vorherigen Zustand wieder her. Nichts ändert sich unbemerkt.
+- **Taste „Wie am Anfang“** stellt die zuletzt gemeinsam kalibrierten Werte wieder her, ebenfalls mit Bestätigungsschritt.
+- Jede gespeicherte Fassung wird mit Zeitpunkt aufbewahrt; der Betreuer kann im Technik-Bereich auf eine frühere zurückgehen (Hilfe bei Versehen, keine Kontrolle).
+- Anrede (du/Sie) und Wortlaut kommen aus der Locale-Datei und werden beim Einrichten gewählt.
+
+### 8.8 Einführung („Ausprobieren“)
+
+Eine geführte Einführung, mit der die Nutzerin selbst einstellt und übt. Erscheint beim ersten Start und ist jederzeit über „Einstellungen → Einführung noch einmal“ erreichbar. [R28]
+
+- **Ein Schritt pro Bildschirm**, Fortschritt „Schritt 2 von 7“. Jeder Schritt hat eine große Taste „Weiter ▸“ und eine kleinere „Überspringen“. Kein Zeitlimit.
+- **Schritte:**
+  1. **Willkommen:** ein Satz, was Augenblick ist. Taste „Los geht’s“.
+  2. **Schrift einstellen:** Kalibrierung nach §8.4 („Größer“, „Kleiner“, „Das ist angenehm“).
+  3. **Farben:** hell oder dunkel, beide mit demselben Absatz nebeneinander bzw. nacheinander. „So lese ich besser“.
+  4. **Blättern üben:** ein kurzer Übungstext über zwei Seiten; Aufgabe „Tippen Sie auf Weiter“. Gelingt es, kurze ruhige Bestätigung und weiter.
+  5. **Artikel öffnen und zurück:** eine Übungs-Übersicht mit zwei Karten; Karte antippen, danach „◂ Übersicht“.
+  6. **Vorlesen** (nur wenn aktiv): „Tippen Sie auf einen Satz“ – Vorlesen startet, erneutes Tippen hält an. Hinweis auf Hörgeräte, falls gekoppelt.
+  7. **Fertig:** Frage nach dem Einverständnis zum Interessen-Lernen (§5.3), Zusammenfassung der gewählten Werte, zweistufiges Speichern wie in §8.7. Hinweis, wo die Einführung wiederholt werden kann.
+- **Übungstexte** sind eigene, kurze, freundliche Texte (keine echten Nachrichten), damit nichts ablenkt.
+- **Würdevoll:** keine Kinder-Sprache, kein Konfetti, kein Lob-Überschwang. Bestätigung schlicht („Gut, das war es schon.“).
+- **Fehlertolerant:** Falsch getippt ist nie ein Fehler; der Schritt wiederholt die Aufgabe freundlich. Jeder Schritt kann übersprungen werden.
+- **Pausieren erlaubt:** Wer die Einführung verlässt, kann später an derselben Stelle weitermachen. Gedacht für mehrere kurze Sitzungen über etwa eine Woche. [R28]
+- **Optional vorgelesen:** Anweisungen jedes Schritts können per Taste „🔊 Vorlesen“ gehört werden.
+- **Spickzettel:** Am Ende kann der Betreuer im Technik-Bereich den gedruckten Großdruck-Spickzettel mit genau diesen Schritten erzeugen (§10).
 
 ## 9. Betrieb
 
 - **Raspberry Pi 5** (4 GB reicht), **SSD statt SD-Karte**, Raspberry Pi OS Lite (64 bit), Node.js 22 LTS. Zwei systemd-Dienste mit `Restart=always`, eigener Systembenutzer `augenblick`, Daten unter `/var/lib/augenblick`, Programm unter `/opt/augenblick`. Hardware-Watchdog an.
 - **`deploy/install.sh`** richtet alles auf einem frischen Pi ein (Benutzer, Verzeichnisse, Node, Dienste, Tailscale-Hinweise, `.env` aus Vorlage). Idempotent, mehrfach ausführbar.
-- **Tailscale** auf dem Pi und den Geräten des Betreuers. Das Tablet erreicht den Pi über dessen Tailscale-Namen; HTTPS-Zertifikat per `tailscale cert`. Ohne gültiges HTTPS keine Service Worker → Pflicht.
-- **Admin-Bereich** nur über Tailscale erreichbar **und** zusätzlich PIN-geschützt.
+- **HTTPS** im Heimnetz ist nötig, weil der Browser Bildschirm-wach-Halten (Wake Lock) und die Installation als App nur über HTTPS erlaubt. Einfachster Weg: Tailscale auf Pi und Tablet, Zertifikat per `tailscale cert`. Tailscale ermöglicht nebenbei optional den Fernzugriff des Betreuers.
+- **Technik-Bereich** im Heimnetz (bzw. über Tailscale) erreichbar, ohne PIN. Er ist auf dem Tablet nicht verlinkt, weil er nur Technik enthält, nicht weil er versperrt wäre.
 - **Updates:** CI erstellt bei jedem Release ein fertiges Paket (gebaute Web-App + Server, ohne `node_modules`) als GitHub-Release-Asset. `deploy/update.sh` läuft nachts (03:00, systemd-Timer): neues Release laden → nach `/opt/augenblick/releases/<version>` entpacken → `npm ci --omit=dev` → Symlink `current` umstellen → Dienste neu starten → Healthcheck (`/health`). Schlägt er fehl, Symlink zurück auf die vorige Version und erneut starten. Die letzten 3 Versionen bleiben liegen. Native Abhängigkeiten (`better-sqlite3`) nutzen die arm64-Prebuilds; falls keine passen, wird auf dem Pi gebaut (`build-essential` in `install.sh`).
-- **Offline:** Service Worker speichert die aktuelle Ausgabe (Übersicht + alle Artikel) auf dem Tablet. Fällt Pi oder Internet aus, bleibt die letzte Ausgabe lesbar, mit dezentem Hinweis „Stand: heute 6:30 Uhr" statt Fehlermeldung.
-- **Tablet:** Chrome, PWA installiert, Bildschirmfixierung oder Kiosk-Launcher (Entscheidung beim Einrichten, in README dokumentieren), Benachrichtigungen aus, Systemschrift groß, Helligkeit hoch.
+- **Kein Offline-Modus.** Ist der Pi nicht erreichbar, zeigt die App einen ruhigen Hinweis in großer Schrift („Die Zeitung ist gerade nicht erreichbar. Bitte später noch einmal öffnen.“) statt einer technischen Fehlermeldung.
+- **Tablet:** Chrome, Augenblick als App bzw. Verknüpfung auf dem Startbildschirm, Benachrichtigungen aus, Systemschrift groß, Helligkeit hoch. Kein Kiosk-Modus.
 - **Backup:** SQLite und Settings täglich auf einen konfigurierbaren WebDAV-Pfad (z. B. Nextcloud).
 
-## 10. Admin-Bereich (Betreuer)
+## 10. Technik-Bereich (Betreuer)
 
-Erreichbar unter `/admin`, für Smartphone/PC des Betreuers gestaltet (normale Größen).
+Erreichbar unter `/technik`, für Smartphone/PC des Betreuers gestaltet (normale Größen). Enthält Technik, keine Bevormundung: Was das Lesen betrifft, entscheidet die Nutzerin in §8.7.
 
-- Einstellungen aus §7 bearbeiten, mit Live-Vorschau.
-- Kalibrierung starten (§8.4).
+- Aktuelle Leseeinstellungen ansehen, Verlauf der gespeicherten Fassungen, auf eine frühere zurücksetzen.
 - Quellen und Rubriken-Mix.
 - Status: letzter Abruf je Quelle, Fehler, KI-Verbrauch heute, verfügbare TTS-Stimmen (vom Tablet gemeldet), Speicher, Version.
-- **Nutzungsprotokoll** (nur lokal auf dem Pi, keine Weitergabe): geöffnete Artikel, Seiten, Lesedauer, Taste „Vorlesen" benutzt. Dient nur dazu, das Produkt für die Nutzerin zu verbessern. Abschaltbar.
+- **Interessen** (§5.3): Der Betreuer sieht nur die gelernten Themen-Gewichte, kein Leseprotokoll einzelner Artikel.
 - Text des gedruckten Spickzettels als druckbare Seite (A4, Großdruck) generieren. [R28]
 
 ## 11. Sprache und Erweiterbarkeit
@@ -272,7 +319,7 @@ Erreichbar unter `/admin`, für Smartphone/PC des Betreuers gestaltet (normale G
 - Alle UI-Texte in `/shared/locales/de.json`, keine festen Strings im Code. Formatierung von Datum/Zahlen über `Intl` mit `locale`.
 - Jeder Artikel hat `lang`. Daraus folgen: `lang`-Attribut im HTML, TTS-Stimme, Satztrenner, Prompt-Datei (`summary.<lang>.md`).
 - Neue Sprache = neue Locale-Datei + Prompt + ggf. Satztrenner-Regeln. Kein Umbau.
-- Die Sprache stellt nur der Betreuer ein.
+- Die Sprache ist in den Einstellungen der Nutzerin wählbar, sobald es mehr als eine gibt.
 
 ## 12. Öffentliches Repo – Regeln
 
@@ -297,9 +344,9 @@ Verlage oder Sender sollen Augenblick mit eigenem Branding nutzen können. Desha
 |---|---|---|
 | M0 | Repo-Gerüst, CI (Lint, Tests, Release-Paket), lokaler Start per `npm run dev` | `npm run dev` liefert leere Übersicht |
 | M1 | tagesschau- und BR24-Adapter, Bereinigung, Satztrennung, Übersicht + Artikel statisch, ohne KI | Artikel lesbar, Regeln §8.1–8.3 erfüllt, Playwright-Tests grün |
-| M2 | Admin-Bereich, Settings, Kalibrierung | Größe/Schema per Kalibrierung gesetzt und auf dem Tablet wirksam |
-| M3 | KI-Kurzfassungen inkl. Fallback und Tageslimit | Jede Karte hat Kurzfassung ≤ 45 Wörter |
-| M4 | PWA offline, Tailscale-HTTPS, Pi-Deployment-Skript, nächtliche Updates | Pi neu gestartet → Tablet zeigt wieder aktuelle Ausgabe ohne Eingriff |
+| M2 | Einstellungen der Nutzerin mit zweistufigem Speichern (§8.7), Einführung (§8.8), Kalibrierung, Technik-Bereich | Nutzerin ändert Größe/Schema selbst, Bestätigungsschritt greift, Betreuer kann auf frühere Fassung zurücksetzen |
+| M3 | KI-Kurzfassungen inkl. Fallback und Tageslimit, Themen-Schlagworte, Interessen lernen (§5.3) | Jede Karte hat Kurzfassung ≤ 45 Wörter |
+| M4 | HTTPS, Pi-Deployment-Skript, nächtliche Updates | Pi neu gestartet → Tablet zeigt wieder aktuelle Ausgabe ohne Eingriff |
 | M5 | Vorlesen (§8.5) | Tipp auf Wort startet ab Satz, Hervorhebung, Pause |
 | M6 | Experimente (§8.6) hinter Flags | Je Flag einzeln an-/abschaltbar |
 | M7 | Regionalzeitungs-Adapter | **Erst nach schriftlicher Freigabe durch den Betreuer** |
@@ -308,7 +355,7 @@ Nach M1, M2 und M5 testet der Betreuer mit der Nutzerin am Gerät; Rückmeldunge
 
 ## 14. Qualitätsanforderungen
 
-- **E2E-Tests** im Viewport des Tab S11 (Querformat; tatsächliche CSS-Auflösung am Gerät ermitteln und eintragen) für: Übersicht blättern, Artikel öffnen, blättern, zurück, Zustand nach Neuladen, Offline-Modus.
+- **E2E-Tests** im Viewport des Tab S11 (Querformat; tatsächliche CSS-Auflösung am Gerät ermitteln und eintragen) für: Übersicht blättern, Artikel öffnen, blättern, zurück, Zustand nach Neuladen, Hinweis bei nicht erreichbarem Server.
 - **Automatischer Check** in CI: Kontrast ≥ 7:1 für beide Schemata, Tippziele ≥ Minimalgröße, maximal 6 Tippziele pro Bildschirm, keine Scrollbalken in Übersicht/Artikel.
 - **Performance:** Übersicht in < 1 s aus dem Cache, Seitenwechsel < 100 ms.
 - **Robustheit:** Ein kaputter Artikel darf die Übersicht nicht verhindern; Quelle down → letzte Ausgabe bleibt.
@@ -318,5 +365,4 @@ Nach M1, M2 und M5 testet der Betreuer mit der Nutzerin am Gerät; Rückmeldunge
 1. Rechtliche Klärung Regionalzeitungs-ePaper (Zugang, Nutzungsbedingungen, KI-Kurzfassungen) → Voraussetzung für M7.
 2. Augenbefund (Linsentrübung? Ausfall links/rechts?) – beeinflusst Farbschema und Laufschrift-Marke. Empfehlung: Low-Vision-Beratung.
 3. Hörgeräte der Nutzerin: Unterstützen sie ASHA oder LE Audio (nicht nur „Made for iPhone")? Kopplung mit dem Tab S11 vor M5 testen.
-4. Kiosk-Lösung auf dem Tab S11: Bildschirmfixierung vs. Kiosk-Launcher.
 
