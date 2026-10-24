@@ -155,7 +155,7 @@ Regeln:
 - **Prompt** im Repo unter `/server/prompts/summary.de.md`, versioniert. Vorgaben: sachlich, keine Wertung, keine Informationen, die nicht im Text stehen, kurze Sätze, keine Fremdwörter ohne Not, max. 45 Wörter.
 - Ausgabe validieren (Länge, Sprache); bei Verstoß einmal neu, sonst Fallback.
 - Kosten begrenzen: Tageslimit an Aufrufen in der Konfiguration.
-- In der Oberfläche ist die Kurzfassung als solche erkennbar (eigene Gestaltung, Hinweis im Admin-Bereich dokumentiert). Der Originalartikel ist immer einen Tipp entfernt.
+- Die Kurzfassung steht **ohne Beschriftung** (kein „Kurz gesagt“, kein „KI“) direkt unter dem Titel; die Position auf der Karte macht sie als Zusammenfassung erkennbar. Der Originalartikel ist immer einen Tipp entfernt. (Entscheidung des Betreuers nach Prototyp-Test.)
 
 ## 7. Einstellungen
 
