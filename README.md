@@ -38,6 +38,8 @@ Ohne Internetzugang bleibt die Übersicht leer („wird gerade zusammengestellt�
 npm run demo              # füllt data/augenblick.sqlite mit Beispielartikeln
 ```
 
+**Unter Windows** geht das genauso (PowerShell, Node.js 22 LTS von nodejs.org). Für die E2E-Tests einmal `npx playwright install chromium`. Nur die Skripte in `deploy/` sind für den Raspberry Pi bzw. Linux gedacht. Um die App vom Tablet im selben WLAN zu öffnen: `http://<IP-des-PCs>:5173` – beim ersten Start fragt die Windows-Firewall nach, ob Node.js im privaten Netz erreichbar sein darf.
+
 Weitere Befehle:
 
 | Befehl | Zweck |

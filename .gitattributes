@@ -1,0 +1,4 @@
+# Zeilenenden immer LF – auch beim Auschecken unter Windows (Prettier-Prüfung, Shell-Skripte für den Pi).
+* text=auto eol=lf
+*.woff2 binary
+*.png binary
