@@ -302,10 +302,11 @@ async function fetchVia(route, url) {
   try {
     const r = await fetch(route.wrap(url), { cache: "no-store", signal: ctrl.signal });
     if (!r.ok) throw new Error("HTTP " + r.status);
-    return await r.json();
+    return await r.text();
   } finally { clearTimeout(timer); }
 }
-async function getJson(url) {
+async function getJson(url) { return JSON.parse(await getText(url)); }
+async function getText(url) {
   const order = routeUsed ? [routeUsed, ...ROUTES.filter(r => r !== routeUsed)] : ROUTES;
   for (const route of order) {
     try { const j = await fetchVia(route, url); routeUsed = route; return j; }
@@ -313,9 +314,52 @@ async function getJson(url) {
   }
   throw new Error("nicht erreichbar");
 }
+/* BR24 Mittelfranken (RSS/RDF). Volltext: aus dem Feed, sonst von der Artikelseite, sonst nur Anreißer. */
+const BR_FEED = "https://nachrichtenfeeds.br.de/rdf/boards/UZlNk5T";
+function xmlText(el, names) {
+  for (const n of names) {
+    const hit = el.getElementsByTagName(n)[0] || (n.includes(":") ? el.getElementsByTagNameNS("*", n.split(":")[1])[0] : null);
+    if (hit && hit.textContent.trim()) return hit.textContent.trim();
+  }
+  return "";
+}
+function paragraphsFromHtml(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  for (const s of doc.querySelectorAll('script[type="application/ld+json"]')) {
+    try {
+      const data = JSON.parse(s.textContent);
+      const list = Array.isArray(data) ? data : (data["@graph"] || [data]);
+      for (const d of list) if (d && typeof d.articleBody === "string" && d.articleBody.length > 300)
+        return d.articleBody.split(/\n+/).map(x => x.trim()).filter(x => x.length > 2);
+    } catch (e) {}
+  }
+  const ps = [...doc.querySelectorAll("article p, main p")].map(p => p.textContent.replace(/\s+/g, " ").trim()).filter(x => x.length > 40);
+  return ps.length >= 2 ? ps : [];
+}
+async function loadBR(max) {
+  const xml = new DOMParser().parseFromString(await getText(BR_FEED), "text/xml");
+  const items = [...xml.getElementsByTagName("item")].slice(0, max);
+  const arts = await Promise.all(items.map(async it => {
+    const title = xmlText(it, ["title"]);
+    const link = xmlText(it, ["link"]) || it.getAttribute("rdf:about") || "";
+    const teaser = htmlToText(xmlText(it, ["description", "dc:description"]));
+    const encoded = xmlText(it, ["content:encoded"]);
+    let body = [], full = false;
+    if (encoded && encoded.length > 600) {
+      body = [...new DOMParser().parseFromString(encoded, "text/html").querySelectorAll("p")].map(p => p.textContent.replace(/\s+/g, " ").trim()).filter(x => x.length > 2);
+      full = body.length > 0;
+    }
+    if (!full && link) { try { body = paragraphsFromHtml(await getText(link)); full = body.length > 0; } catch (e) {} }
+    if (!full) body = teaser ? [teaser] : [];
+    if (!title || !body.length) return null;
+    return { id: "br:" + (link || title), sec: "Mittelfranken", title, sum: teaser || body[0], body, live: true, src: full ? "BR24" : "BR24 (nur Anreißer)" };
+  }));
+  return arts.filter(Boolean);
+}
 async function loadNews() {
-  const lists = await Promise.allSettled([getJson(API + "?regions=2"), getJson(API)]);
-  const out = [], seen = new Set();
+  const [br, ...lists] = await Promise.allSettled([loadBR(4), getJson(API + "?regions=2"), getJson(API)]);
+  if (br.status === "rejected") errors.push("BR24: " + br.reason.message);
+  const out = br.status === "fulfilled" ? br.value.slice() : [], seen = new Set(out.map(a => a.title.toLowerCase()));
   const take = (res, max, secFallback) => {
     if (res.status !== "fulfilled") return;
     let n = 0;
@@ -323,8 +367,8 @@ async function loadNews() {
       if (n >= max) break;
       if (it.type && it.type !== "story") continue;
       const a = fromItem(it, secFallback);
-      if (!a || seen.has(a.id) || !a.title) continue;
-      seen.add(a.id); out.push(a); n++;
+      if (!a || !a.title || seen.has(a.id) || seen.has(a.title.toLowerCase())) continue;
+      seen.add(a.id); seen.add(a.title.toLowerCase()); out.push(a); n++;
     }
   };
   // Falls die Liste keine Artikeltexte mitliefert: Details einzeln nachladen
@@ -334,7 +378,7 @@ async function loadNews() {
     const det = await Promise.allSettled(items.map(it => getJson(it.details)));
     det.forEach((d, k) => { if (d.status === "fulfilled") Object.assign(items[k], d.value); });
   }
-  take(lists[0], 4, "Bayern");
+  take(lists[0], 2, "Bayern");
   take(lists[1], 12 - out.length, "Nachrichten");
   if (!out.length) { errors.push(lists.some(l => l.status === "fulfilled") ? "Antwort enthielt keine lesbaren Artikel" : "keine Liste geladen"); throw new Error("leer"); }
   return out;
@@ -425,7 +469,7 @@ function renderOverview() {
   releaseWake();
   state.view = "overview";
   if (MODE === "loading") { flow.innerHTML = '<p>Die Nachrichten werden geladen …</p><span class="end"></span>'; layout(); return; }
-  let html = MODE === "live" ? '<p class="note">Nachrichten von tagesschau.de · Stand ' + esc(loadedAt) + (routeUsed && routeUsed.name !== "direkt" ? " · über " + esc(routeUsed.name) : "") + '</p>' : '<p class="note">Keine Verbindung zu tagesschau.de (' + esc([...new Set(errors)].slice(-4).join("; ")) + '). Frei erfundene Beispieltexte.</p>';
+  let html = MODE === "live" ? '<p class="note">Nachrichten von BR24 und tagesschau.de · Stand ' + esc(loadedAt) + (routeUsed && routeUsed.name !== "direkt" ? " · über " + esc(routeUsed.name) : "") + '</p>' : '<p class="note">Keine Verbindung zu tagesschau.de (' + esc([...new Set(errors)].slice(-4).join("; ")) + '). Frei erfundene Beispieltexte.</p>';
   for (const a of ARTICLES) {
     html += '<article class="card" data-act="open" data-id="' + a.id + '" role="button" tabindex="0" aria-label="' + esc(a.title) + ' öffnen">' +
       '<div class="meta"><span class="sec">' + esc(a.sec) + '</span><span>' + (readSet.has(a.id) ? "✓ gelesen · " : "") + "ca. " + minutes(a) + " Min.</span></div>" +
@@ -442,7 +486,7 @@ function renderArticle(id, keepSentence) {
   state.view = "article";
   state.articleId = id;
   if (changed && keepSentence == null) state.page = state.page || 0;
-  let i = 0, html = "<h1>" + esc(a.title) + '</h1><p class="src">' + esc(a.sec) + (a.live ? " · Quelle: tagesschau.de" : " · Beispieltext") + "</p>";
+  let i = 0, html = "<h1>" + esc(a.title) + '</h1><p class="src">' + esc(a.sec) + (a.live ? " · Quelle: " + (a.src || "tagesschau.de") : " · Beispieltext") + "</p>";
   for (const para of a.body) {
     if (typeof para !== "string") { html += '<p><b>' + esc(para.h) + '</b></p>'; continue; }
     html += "<p>" + splitSentences(para).map(s => '<span class="s" data-i="' + (i++) + '">' + esc(s) + "</span>").join(" ") + "</p>";
