@@ -51,3 +51,5 @@ Rubriken/Dubletten per KI (SPEC §6, optional), Einfache-Sprache-Fassung ganzer 
 - E2E: Funkelstern nur bei KI-Kurzfassungen, ohne sichtbare Beschriftung, Prüfungen nach §14; „Was ich gern lese“ mit Einverständnis, Lernen und „Mehr davon“ mit Rückfrage; Technik-Status ohne Schlüssel.
 
 **Offen:** siehe „Offene Fragen“. Danach ist der Test mit der Leserin am Gerät dran (M1–M3 zusammen).
+
+**Nach M3 angehalten.** Weiter mit M4 erst nach dem Test am Gerät (siehe [`docs/stand-und-absprachen.md`](../stand-und-absprachen.md)).

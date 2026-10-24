@@ -8,9 +8,10 @@ Ein ruhiger, sehr gut lesbarer Zeitungs-Reader für Menschen mit Makuladegenerat
 - Sanftes Vorlesen ab einem angetippten Wort – Begleitung, kein Ersatz fürs eigene Lesen
 - Leseeinstellungen ändert die Leserin selbst, mit Rückfrage vor dem dauerhaften Speichern; um die Technik kümmert sich ein Angehöriger
 
-**Status:** M0–M3 umgesetzt (Grundgerüst, tagesschau und BR24, Übersicht und Artikel, Einstellungen der Leserin mit Einführung, Technik-Bereich, KI-Zusammenfassungen über OpenRouter, Interessen lernen). Als Nächstes testet der Betreuer mit der Nutzerin am Gerät.
+**Status:** M0–M3 umgesetzt (Grundgerüst, tagesschau und BR24, Übersicht und Artikel, Einstellungen der Leserin mit Einführung, Technik-Bereich, KI-Zusammenfassungen über OpenRouter, Interessen lernen). Nach M3 angehalten: Als Nächstes testet der Betreuer mit der Nutzerin am Gerät.
 
 - Spezifikation: [`SPEC.md`](SPEC.md)
+- Stand und Absprachen: [`docs/stand-und-absprachen.md`](docs/stand-und-absprachen.md)
 - Recherche und Belege: [`docs/recherche.md`](docs/recherche.md)
 - Entscheidungen: [`docs/entscheidungen/`](docs/entscheidungen/)
 - Aufträge: [`docs/auftraege/`](docs/auftraege/)

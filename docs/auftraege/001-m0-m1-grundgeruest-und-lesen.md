@@ -90,6 +90,6 @@ KI-Kurzfassungen (M3), Einstellungen der Nutzerin, Kalibrierung und Technik-Bere
 - `npm run dev` startet API, Worker und Web-App; mit Beispieltexten vollständig bedienbar. Echte Artikel konnten hier wegen gesperrtem Netz nicht abgerufen werden (Offene Frage 1).
 - Release-Paket gebaut, ohne Entwicklungsabhängigkeiten installiert und gestartet; `update.sh` mit echten Paketen inkl. Rückfall durchgespielt (Offene Frage 11).
 
-**Offen** – siehe „Offene Fragen“, vor allem: Live-Abruf und Franken-Feed am Pi prüfen (1, 2), Gerätemaße messen (4), Karten pro Seite und Tagesausgabe mit der Nutzerin klären (6, 7), `install.sh` auf frischem Pi ausführen (11).
+**Offen** – siehe „Offene Fragen“, vor allem: Live-Abruf und Franken-Feed am Pi prüfen (1, 2), Karten pro Seite und Tagesausgabe mit der Nutzerin klären (6, 7), `install.sh` auf frischem Pi ausführen (11).
 
 **Nach M1 angehalten.** Der Betreuer testet jetzt mit der Nutzerin am Gerät.
