@@ -40,7 +40,8 @@
   "sources": {
     "tagesschau": "tagesschau",
     "br24": "BR24",
-    "demo": "Beispieltext"
+    "demo": "Beispieltext",
+    "rss": "RSS"
   },
   "sections": {
     "region": "Region",
@@ -275,8 +276,12 @@
       "learningUnset": "nicht gefragt"
     },
     "sources": {
-      "br24": "BR24-Feed (Region)",
-      "br24Hint": "Adresse eines BR24-RSS-Feeds, z. B. für Mittelfranken. Gilt ab dem nächsten Abruf.",
+      "feeds": "RSS-Feeds",
+      "feedsHint": "Ankreuzen, welche Feeds Augenblick abholt. Geprüfte Feeds liefern zuverlässig Volltexte; ungeprüfte stammen aus Feed-Verzeichnissen. Änderungen gelten ab dem nächsten Abruf.",
+      "checkedOn": "geprüft am {date}",
+      "unchecked": "ungeprüft",
+      "custom": "Weitere Feed-Adressen",
+      "customHint": "Eine Adresse pro Zeile (RSS, RDF oder Atom). Höchstens 10 Feeds insgesamt.",
       "sections": "Rubriken-Mix",
       "sectionsHint": "Je Zeile: Name, Rubriken (durch Komma getrennt) und Anzahl. Höchstens 12 Artikel pro Tag; freie Plätze füllt Augenblick mit übrigen Artikeln. Bekannte Rubriken: region, inland, ausland, wirtschaft, sport, wissen, vermischtes, kultur, nachrichten.",
       "name": "Name",

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Selbst geschriebener Atom-Test-Feed</title>
+  <id>urn:beispiel:feed</id>
+  <updated>2026-10-24T06:00:00Z</updated>
+  <entry>
+    <title type="html">Bücherei verleiht Lesegeräte &amp;amp; Lupen</title>
+    <link rel="alternate" href="https://example.org/buecherei,A1"/>
+    <link rel="enclosure" href="https://example.org/bild.jpg"/>
+    <id>urn:beispiel:a1</id>
+    <published>2026-10-24T06:00:00Z</published>
+    <category term="Kultur"/>
+    <summary>Ausleihe für zwei Wochen.</summary>
+  </entry>
+</feed>

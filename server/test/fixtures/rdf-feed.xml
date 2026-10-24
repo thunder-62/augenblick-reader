@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns="http://purl.org/rss/1.0/"
+         xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel rdf:about="https://example.org/region">
+    <title>Selbst geschriebener RDF-Test-Feed</title>
+    <link>https://example.org/region</link>
+    <items>
+      <rdf:Seq>
+        <rdf:li rdf:resource="https://example.org/nachrichten/marktplatz,R1"/>
+      </rdf:Seq>
+    </items>
+  </channel>
+  <item rdf:about="https://example.org/nachrichten/marktplatz,R1">
+    <title>Neuer Brunnen auf dem Marktplatz</title>
+    <link>https://example.org/nachrichten/marktplatz,R1</link>
+    <description>Der Brunnen soll im Frühjahr fertig sein.</description>
+    <dc:date>2026-10-24T07:30:00+02:00</dc:date>
+    <dc:subject>Region</dc:subject>
+  </item>
+  <item rdf:about="https://example.org/nachrichten/kegeln,R2">
+    <title>Kegelclub gewinnt den Pokal</title>
+    <dc:date>2026-10-24T08:00:00+02:00</dc:date>
+    <dc:subject>Sport</dc:subject>
+  </item>
+</rdf:RDF>

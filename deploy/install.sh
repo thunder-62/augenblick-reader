@@ -61,7 +61,7 @@ log "Konfiguration ($ENV_FILE)"
 if [[ ! -f "$ENV_FILE" ]]; then
   sed -e 's|^HOST=.*|HOST=0.0.0.0|' -e "s|^AUGENBLICK_DATA_DIR=.*|AUGENBLICK_DATA_DIR=$DATA_DIR|" \
     "$REPO_DIR/.env.example" > "$ENV_FILE"
-  echo "Neu angelegt aus .env.example – bei Bedarf anpassen (z. B. BR24_FEED_URL, AUGENBLICK_THEME)."
+  echo "Neu angelegt aus .env.example – bei Bedarf anpassen (z. B. AUGENBLICK_RSS_FEEDS, OPENROUTER_API_KEY)."
 else
   echo "Vorhanden, bleibt unverändert."
 fi

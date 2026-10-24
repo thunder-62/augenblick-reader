@@ -148,7 +148,8 @@ export type Health = {
 
 /** Konfiguration der Quellen, im Technik-Bereich änderbar. */
 export type SourcesConfig = {
-  br24FeedUrl: string;
+  /** Aktive RSS-Feeds: Kurznamen aus FEED_CATALOG oder eigene http(s)-Adressen. */
+  feeds: string[];
 };
 
 export type AiUsage = {

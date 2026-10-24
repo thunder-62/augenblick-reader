@@ -50,7 +50,7 @@ KI-Kurzfassungen (M3), Einstellungen der Nutzerin, Kalibrierung und Technik-Bere
 **Quellen**
 
 1. **Kein Live-Abruf möglich:** Aus der Entwicklungsumgebung waren tagesschau.de, br.de und br24.de gesperrt. Die Adapter beruhen auf der Dokumentation (ADR 001, 002) und sind mit selbst geschriebenen Testdaten abgesichert. Beim ersten Start auf dem Pi prüfen: `journalctl -u augenblick-worker` und `curl http://127.0.0.1:8080/health` – kommen Artikel beider Quellen an, und sind die Texte sauber (keine Bildunterschriften, Linklisten, Hinweiskästen)?
-2. **BR24-Feed für Franken/Mittelfranken:** Keine bestätigte URL gefunden (ADR 002). Bitte auf der Franken-Seite von BR24 nach dem RSS-Symbol suchen und in `BR24_FEED_URL` eintragen; bis dahin läuft der allgemeine Feed.
+2. ~~**BR24-Feed für Franken/Mittelfranken**~~ **Beantwortet (24.10.):** Der Betreuer hat den Feed BR24 Mittelfranken gefunden: `https://nachrichtenfeeds.br.de/rdf/boards/UZlNk5T` (RDF). Er ist jetzt Standard; mehrere Feeds sind möglich (ADR 010).
 3. **tagesschau in Einfacher Sprache:** In der dokumentierten Schnittstelle gibt es dafür kein eigenes Ressort. Zugangsweg vor M3 klären.
 
 **Gerät und Darstellung (beim Test mit der Nutzerin)**

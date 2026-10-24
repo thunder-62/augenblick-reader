@@ -27,7 +27,7 @@ export type AppConfig = Pick<
   Config,
   | 'settings'
   | 'technikNetworks'
-  | 'br24FeedUrl'
+  | 'rssFeeds'
   | 'dbPath'
   | 'dataDir'
   | 'openrouterApiKey'

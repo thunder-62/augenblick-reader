@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { DEFAULT_TECHNIK_NETWORKS } from './network.ts';
 import {
+  DEFAULT_FEEDS,
   DEFAULT_SECTIONS,
   DEFAULT_SETTINGS,
   MIN_FONT_SIZE_PX,
@@ -19,7 +20,8 @@ export type Config = {
   tagesschauBaseUrl: string;
   /** Höchstens so viele Abrufe pro Stunde (Nutzungsbedingungen: < 60). */
   tagesschauHourlyLimit: number;
-  br24FeedUrl: string;
+  /** Aktive RSS-Feeds (Kurznamen aus FEED_CATALOG oder Adressen), ADR 010. */
+  rssFeeds: string[];
   /** Höchstens so viele Artikelseiten pro Lauf und Quelle. */
   maxArticlesPerRun: number;
   fetchOnStart: boolean;
@@ -113,6 +115,19 @@ function findWebDist(): string | null {
   return candidates.find((p) => existsSync(path.join(p, 'index.html'))) ?? null;
 }
 
+/**
+ * AUGENBLICK_RSS_FEEDS: Kurznamen oder Adressen, durch Komma getrennt.
+ * Ältere Installationen mit BR24_FEED_URL laufen unverändert weiter.
+ */
+function feedsFromEnv(env: NodeJS.ProcessEnv): string[] {
+  const list = env.AUGENBLICK_RSS_FEEDS?.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (list?.length) return list;
+  if (env.BR24_FEED_URL?.trim()) return [env.BR24_FEED_URL.trim()];
+  return [...DEFAULT_FEEDS];
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const dataDir = path.resolve(env.AUGENBLICK_DATA_DIR ?? 'data');
   const theme: Theme = env.AUGENBLICK_THEME === 'light' ? 'light' : 'dark';
@@ -131,7 +146,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       '',
     ),
     tagesschauHourlyLimit: Math.min(55, num(env.TAGESSCHAU_HOURLY_LIMIT, 50)),
-    br24FeedUrl: env.BR24_FEED_URL ?? 'https://feeds.br24.de/rss/nachrichten',
+    rssFeeds: feedsFromEnv(env),
     maxArticlesPerRun: num(env.AUGENBLICK_MAX_ARTICLES_PER_RUN, 20),
     fetchOnStart: bool(env.AUGENBLICK_FETCH_ON_START, true),
     retentionDays: num(env.AUGENBLICK_RETENTION_DAYS, 7),

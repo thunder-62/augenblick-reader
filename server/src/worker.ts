@@ -19,8 +19,8 @@ import { createAdapters } from './sources/index.ts';
 loadEnvFile();
 const config = loadConfig();
 const db = openDb(config.dbPath);
-// Feed-URL und Rubriken-Mix können im Admin-Bereich geändert werden und gelten ab dem nächsten Lauf.
-const adapters = createAdapters(config, () => getSourcesConfig(db, config).br24FeedUrl);
+// Feed-Liste und Rubriken-Mix können im Technik-Bereich geändert werden und gelten ab dem nächsten Lauf.
+const adapters = createAdapters(config, () => getSourcesConfig(db, config).feeds);
 // KI-Kurzfassungen nur mit OpenRouter-Schlüssel; sonst Anreißer bzw. erste Sätze (SPEC §6).
 const summaryProvider = config.openrouterApiKey
   ? new OpenRouterSummaryProvider({
