@@ -264,7 +264,7 @@ Bewusste Abweichung von [R26] der Recherche: **Autonomie vor Schutz.** Die Nutze
 
 Eine geführte Einführung, mit der die Nutzerin selbst einstellt und übt. Erscheint beim ersten Start und ist jederzeit über „Einstellungen → Einführung noch einmal“ erreichbar. [R28]
 
-- **Ein Schritt pro Bildschirm**, Fortschritt „Schritt 2 von 6“. Jeder Schritt hat eine große Taste „Weiter ▸“ und eine kleinere „Überspringen“. Kein Zeitlimit.
+- **Ein Schritt pro Bildschirm**, Fortschritt „Schritt 2 von 7“. Jeder Schritt hat eine große Taste „Weiter ▸“ und eine kleinere „Überspringen“. Kein Zeitlimit.
 - **Schritte:**
   1. **Willkommen:** ein Satz, was Augenblick ist. Taste „Los geht’s“.
   2. **Schrift einstellen:** Kalibrierung nach §8.4 („Größer“, „Kleiner“, „Das ist angenehm“).
