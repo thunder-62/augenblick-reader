@@ -260,6 +260,26 @@ Bewusste Abweichung von [R26] der Recherche: **Autonomie vor Schutz.** Die Nutze
 - Jede gespeicherte Fassung wird mit Zeitpunkt aufbewahrt; der Betreuer kann im Technik-Bereich auf eine frühere zurückgehen (Hilfe bei Versehen, keine Kontrolle).
 - Anrede (du/Sie) und Wortlaut kommen aus der Locale-Datei und werden beim Einrichten gewählt.
 
+### 8.8 Einführung („Ausprobieren“)
+
+Eine geführte Einführung, mit der die Nutzerin selbst einstellt und übt. Erscheint beim ersten Start und ist jederzeit über „Einstellungen → Einführung noch einmal“ erreichbar. [R28]
+
+- **Ein Schritt pro Bildschirm**, Fortschritt „Schritt 2 von 6“. Jeder Schritt hat eine große Taste „Weiter ▸“ und eine kleinere „Überspringen“. Kein Zeitlimit.
+- **Schritte:**
+  1. **Willkommen:** ein Satz, was Augenblick ist. Taste „Los geht’s“.
+  2. **Schrift einstellen:** Kalibrierung nach §8.4 („Größer“, „Kleiner“, „Das ist angenehm“).
+  3. **Farben:** hell oder dunkel, beide mit demselben Absatz nebeneinander bzw. nacheinander. „So lese ich besser“.
+  4. **Blättern üben:** ein kurzer Übungstext über zwei Seiten; Aufgabe „Tippen Sie auf Weiter“. Gelingt es, kurze ruhige Bestätigung und weiter.
+  5. **Artikel öffnen und zurück:** eine Übungs-Übersicht mit zwei Karten; Karte antippen, danach „◂ Übersicht“.
+  6. **Vorlesen** (nur wenn aktiv): „Tippen Sie auf einen Satz“ – Vorlesen startet, erneutes Tippen hält an. Hinweis auf Hörgeräte, falls gekoppelt.
+  7. **Fertig:** Zusammenfassung der gewählten Werte, zweistufiges Speichern wie in §8.7. Hinweis, wo die Einführung wiederholt werden kann.
+- **Übungstexte** sind eigene, kurze, freundliche Texte (keine echten Nachrichten), damit nichts ablenkt.
+- **Würdevoll:** keine Kinder-Sprache, kein Konfetti, kein Lob-Überschwang. Bestätigung schlicht („Gut, das war es schon.“).
+- **Fehlertolerant:** Falsch getippt ist nie ein Fehler; der Schritt wiederholt die Aufgabe freundlich. Jeder Schritt kann übersprungen werden.
+- **Pausieren erlaubt:** Wer die Einführung verlässt, kann später an derselben Stelle weitermachen. Gedacht für mehrere kurze Sitzungen über etwa eine Woche. [R28]
+- **Optional vorgelesen:** Anweisungen jedes Schritts können per Taste „🔊 Vorlesen“ gehört werden.
+- **Spickzettel:** Am Ende kann der Betreuer im Technik-Bereich den gedruckten Großdruck-Spickzettel mit genau diesen Schritten erzeugen (§10).
+
 ## 9. Betrieb
 
 - **Raspberry Pi 5** (4 GB reicht), **SSD statt SD-Karte**, Raspberry Pi OS Lite (64 bit), Node.js 22 LTS. Zwei systemd-Dienste mit `Restart=always`, eigener Systembenutzer `augenblick`, Daten unter `/var/lib/augenblick`, Programm unter `/opt/augenblick`. Hardware-Watchdog an.
@@ -312,7 +332,7 @@ Verlage oder Sender sollen Augenblick mit eigenem Branding nutzen können. Desha
 |---|---|---|
 | M0 | Repo-Gerüst, CI (Lint, Tests, Release-Paket), lokaler Start per `npm run dev` | `npm run dev` liefert leere Übersicht |
 | M1 | tagesschau- und BR24-Adapter, Bereinigung, Satztrennung, Übersicht + Artikel statisch, ohne KI | Artikel lesbar, Regeln §8.1–8.3 erfüllt, Playwright-Tests grün |
-| M2 | Einstellungen der Nutzerin mit zweistufigem Speichern (§8.7), Kalibrierung, Technik-Bereich | Nutzerin ändert Größe/Schema selbst, Bestätigungsschritt greift, Betreuer kann auf frühere Fassung zurücksetzen |
+| M2 | Einstellungen der Nutzerin mit zweistufigem Speichern (§8.7), Einführung (§8.8), Kalibrierung, Technik-Bereich | Nutzerin ändert Größe/Schema selbst, Bestätigungsschritt greift, Betreuer kann auf frühere Fassung zurücksetzen |
 | M3 | KI-Kurzfassungen inkl. Fallback und Tageslimit | Jede Karte hat Kurzfassung ≤ 45 Wörter |
 | M4 | HTTPS, Pi-Deployment-Skript, nächtliche Updates | Pi neu gestartet → Tablet zeigt wieder aktuelle Ausgabe ohne Eingriff |
 | M5 | Vorlesen (§8.5) | Tipp auf Wort startet ab Satz, Hervorhebung, Pause |
