@@ -8,9 +8,57 @@ Ein ruhiger, sehr gut lesbarer Zeitungs-Reader für Menschen mit Makuladegenerat
 - Sanftes Vorlesen ab einem angetippten Wort – Begleitung, kein Ersatz fürs eigene Lesen
 - Alle Einstellungen macht ein Angehöriger aus der Ferne
 
-**Status:** Konzeptphase. Noch kein Code.
+**Status:** M0 + M1 umgesetzt (Grundgerüst, tagesschau und BR24, Übersicht und Artikelansicht). Als Nächstes testet der Betreuer mit der Nutzerin am Gerät.
 
 - Spezifikation: [`SPEC.md`](SPEC.md)
 - Recherche und Belege: [`docs/recherche.md`](docs/recherche.md)
+- Entscheidungen: [`docs/entscheidungen/`](docs/entscheidungen/)
+- Aufträge: [`docs/auftraege/`](docs/auftraege/)
+- Betrieb auf dem Raspberry Pi: [`deploy/README.md`](deploy/README.md)
 
-Lizenz: MIT
+## Starten
+
+Voraussetzung: Node.js 22 LTS.
+
+```bash
+npm install
+cp .env.example .env      # optional: Feed, Farbschema, Schriftgröße
+npm run dev
+```
+
+`npm run dev` startet drei Prozesse:
+
+- **API** auf <http://127.0.0.1:8080> (`/api/edition`, `/api/articles/:id`, `/api/settings`, `/health`)
+- **Worker**: holt beim Start einmal ab, danach 5:00–22:00 alle 30 Minuten (tagesschau, BR24)
+- **Web-App** (Vite) auf <http://localhost:5173> – im Browser im Querformat öffnen, z. B. mit den Entwicklerwerkzeugen auf 1280×800
+
+Ohne Internetzugang bleibt die Übersicht leer („wird gerade zusammengestellt“). Dann helfen die selbst geschriebenen Beispieltexte:
+
+```bash
+npm run demo              # füllt data/augenblick.sqlite mit Beispielartikeln
+```
+
+Weitere Befehle:
+
+| Befehl | Zweck |
+|---|---|
+| `npm run lint` | ESLint, Prettier-Prüfung, TypeScript |
+| `npm test` | Unit-Tests (Vitest) |
+| `npm run test:e2e` | E2E-Tests (Playwright) inkl. Kontrast-, Tippziel- und Scrollbalken-Prüfung |
+| `npm run build` | Web-App und Server bauen (`web/dist`, `server/dist`) |
+| `npm run package` | Release-Paket `release/augenblick-<version>.tar.gz` |
+| `npm start` | gebauten Server starten (liefert auch die Web-App aus) |
+
+Die E2E-Tests laufen im Querformat-Viewport **1280×800 CSS-px – vorläufig, am Gerät zu prüfen** (tatsächliche CSS-Auflösung des Galaxy Tab S11 messen und in `playwright.config.ts` eintragen). Ebenso vorläufig ist die Umrechnung Millimeter → CSS-Pixel für die Tippziele in `shared/src/geometry.ts` (mit Lineal am Gerät prüfen).
+
+Auf dem Raspberry Pi: `sudo ./deploy/install.sh` (Details in [`deploy/README.md`](deploy/README.md)). Releases entstehen automatisch, wenn ein Tag `v*` gepusht wird.
+
+## Öffentliches Repo – Hinweise
+
+- Keine personenbezogenen Daten, keine Secrets, keine fremden Artikeltexte als Testdaten (SPEC §12). Testdaten sind selbst geschrieben.
+- `.env` wird nie committet; neue Variablen kommen mit Platzhalter in `.env.example`.
+- **Secret-Scanning:** Die CI prüft jeden Push mit gitleaks. Zusätzlich in den Repo-Einstellungen unter *Settings → Code security* „Secret scanning“ und „Push protection“ einschalten.
+
+## Lizenz
+
+Code: MIT ([`LICENSE`](LICENSE)). Schrift Atkinson Hyperlegible: SIL Open Font License 1.1 ([`web/public/fonts/OFL.txt`](web/public/fonts/OFL.txt)).
