@@ -231,3 +231,25 @@ test.describe('Ausfälle', () => {
     await expect(page.locator('.notice')).toContainText('von selbst');
   });
 });
+
+test.describe('Kurzfassungen (M3)', () => {
+  test('KI-Kurzfassung ist erkennbar gestaltet, die ersten Sätze nicht', async ({ page }) => {
+    await page.route('**/api/edition', async (route) => {
+      const res = await route.fetch();
+      const edition = await res.json();
+      edition.articles[0].summaryAi = true;
+      await route.fulfill({ json: edition });
+    });
+    await withSettings(page, { fontSizePx: 24 });
+    await page.goto('/');
+    const ai = page.locator('.card').first().locator('.summary');
+    await expect(ai).toHaveClass(/summary-ai/);
+    expect(
+      await ai.evaluate((el) => parseFloat(getComputedStyle(el).borderLeftWidth)),
+    ).toBeGreaterThan(2);
+    await checkScreen(page);
+    await tap(page.locator('.btn-next'));
+    const plain = page.locator('.card').first().locator('.summary');
+    await expect(plain).not.toHaveClass(/summary-ai/);
+  });
+});

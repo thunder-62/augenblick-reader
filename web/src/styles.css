@@ -293,6 +293,11 @@ button {
   line-height: 1.35;
   margin: 0.1em 0 0.2em;
 }
+.card .summary-ai {
+  /* KI-Kurzfassung als solche erkennbar (SPEC §6): senkrechter Strich links, kein anderer Text. */
+  border-left: 0.15em solid var(--muted);
+  padding-left: 0.5em;
+}
 .card .summary {
   max-width: calc(var(--maxch) * var(--chw));
 }

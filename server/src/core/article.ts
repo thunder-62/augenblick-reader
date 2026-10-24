@@ -1,4 +1,5 @@
 import type { Article, Block, Summary } from '@augenblick/shared';
+import { MAX_SUMMARY_WORDS } from './summary.ts';
 import { countWords, readingMinutes } from './text.ts';
 
 export const FALLBACK_SUMMARY_MODEL = 'fallback-erste-saetze';
@@ -31,20 +32,33 @@ export function blocksWordCount(blocks: Block[]): number {
   return n;
 }
 
-/** Kurzfassung bis M3: die ersten zwei Sätze des Artikels (Fallback aus SPEC §6). */
+/**
+ * Fallback-Kurzfassung (SPEC §6): die ersten Sätze des Artikels, höchstens zwei und zusammen
+ * höchstens 45 Wörter. Ist schon der erste Satz länger, wird er nach 45 Wörtern mit „…“ gekürzt.
+ */
 export function fallbackSummary(blocks: Block[], now: string): Summary | undefined {
-  const sentences: string[] = [];
-  for (const b of blocks) {
-    if (b.type !== 'paragraph') continue;
-    for (const s of b.sentences) {
-      sentences.push(s);
-      if (sentences.length === 2) break;
-    }
-    if (sentences.length === 2) break;
+  const sentences = blocks.flatMap((b) => (b.type === 'paragraph' ? b.sentences : []));
+  const first = sentences[0];
+  if (!first) return undefined;
+  const firstWords = first.split(/\s+/);
+  let text: string;
+  if (countWords(first) > MAX_SUMMARY_WORDS) {
+    text = `${firstWords
+      .slice(0, MAX_SUMMARY_WORDS)
+      .join(' ')
+      .replace(/[,;:–-]+$/, '')} …`;
+  } else {
+    const second = sentences[1];
+    text =
+      second && countWords(`${first} ${second}`) <= MAX_SUMMARY_WORDS
+        ? `${first} ${second}`
+        : first;
   }
-  if (!sentences.length) return undefined;
-  return { text: sentences.join(' '), model: FALLBACK_SUMMARY_MODEL, createdAt: now };
+  return { text, model: FALLBACK_SUMMARY_MODEL, createdAt: now };
 }
+
+export const isAiSummary = (s: Summary | undefined): boolean =>
+  Boolean(s && s.model !== FALLBACK_SUMMARY_MODEL);
 
 /** Mindestumfang, damit ein Artikel in die Ausgabe darf. */
 export const MIN_WORDS = 40;

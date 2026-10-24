@@ -10,7 +10,15 @@ import { VERSION } from './core/version.ts';
 
 export type AppConfig = Pick<
   Config,
-  'settings' | 'adminPin' | 'adminNetworks' | 'br24FeedUrl' | 'dbPath' | 'dataDir'
+  | 'settings'
+  | 'adminPin'
+  | 'adminNetworks'
+  | 'br24FeedUrl'
+  | 'dbPath'
+  | 'dataDir'
+  | 'anthropicApiKey'
+  | 'summaryModel'
+  | 'summaryDailyLimit'
 >;
 
 export type AppOptions = {

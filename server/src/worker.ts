@@ -7,7 +7,9 @@ import cron from 'node-cron';
 import { loadConfig, loadEnvFile } from './core/config.ts';
 import { openDb } from './core/db.ts';
 import { log } from './core/log.ts';
-import { runPipeline } from './core/pipeline.ts';
+import { AnthropicSummaryProvider } from './core/anthropic.ts';
+import { runPipeline, summarizeEdition } from './core/pipeline.ts';
+import { loadPrompt } from './core/summary.ts';
 import { FETCH_SCHEDULES } from './core/schedule.ts';
 import { getSettings, getSourcesConfig, pruneUsage } from './core/store.ts';
 import { TIME_ZONE } from './core/time.ts';
@@ -19,6 +21,16 @@ const config = loadConfig();
 const db = openDb(config.dbPath);
 // Feed-URL und Rubriken-Mix können im Admin-Bereich geändert werden und gelten ab dem nächsten Lauf.
 const adapters = createAdapters(config, () => getSourcesConfig(db, config).br24FeedUrl);
+// KI-Kurzfassungen nur mit API-Schlüssel; sonst bleiben die ersten Sätze (SPEC §6).
+const summaryProvider = config.anthropicApiKey
+  ? new AnthropicSummaryProvider({
+      apiKey: config.anthropicApiKey,
+      model: config.summaryModel,
+      prompt: loadPrompt(config.promptsDir, 'de'),
+    })
+  : null;
+if (!summaryProvider)
+  log.warn('Kein ANTHROPIC_API_KEY – Kurzfassungen sind die ersten Sätze der Artikel.');
 let running = false;
 
 async function run(): Promise<void> {
@@ -33,6 +45,13 @@ async function run(): Promise<void> {
       maxArticlesPerRun: config.maxArticlesPerRun,
       retentionDays: config.retentionDays,
     });
+    if (summaryProvider) {
+      const r = await summarizeEdition(db, {
+        provider: summaryProvider,
+        dailyLimit: config.summaryDailyLimit,
+      });
+      log.info('Kurzfassungen', r);
+    }
     pruneUsage(db, new Date(), config.usageRetentionDays);
   } catch (err) {
     log.error('Lauf fehlgeschlagen', err);

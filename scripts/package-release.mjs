@@ -33,7 +33,7 @@ const files = [
   'server/package.json',
 ];
 for (const f of files) cpSync(path.join(root, f), path.join(stage, f));
-for (const d of ['server/dist', 'web/dist', 'deploy'])
+for (const d of ['server/dist', 'server/prompts', 'web/dist', 'deploy'])
   cpSync(path.join(root, d), path.join(stage, d), { recursive: true });
 writeFileSync(path.join(stage, 'VERSION'), `${version}\n`);
 

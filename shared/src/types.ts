@@ -40,6 +40,8 @@ export type ArticleCard = {
   lang: string;
   title: string;
   summary?: string;
+  /** Kurzfassung von der KI (sonst: erste Sätze des Artikels) – wird anders gestaltet (SPEC §6). */
+  summaryAi?: boolean;
   readingMinutes: number;
   publishedAt: string;
 };
@@ -125,6 +127,14 @@ export type SourcesConfig = {
   usageLogEnabled: boolean;
 };
 
+export type AiUsage = {
+  day: string;
+  calls: number;
+  failures: number;
+  inputTokens: number;
+  outputTokens: number;
+};
+
 export type AdminStatus = {
   version: string;
   now: string;
@@ -133,4 +143,13 @@ export type AdminStatus = {
   articles: { total: number; ready: number; failed: number };
   storage: { dbBytes: number; freeBytes: number | null };
   calibratedAt: string | null;
+  ai: {
+    /** null: kein API-Schlüssel – Kurzfassungen sind die ersten Sätze. */
+    provider: string | null;
+    model: string | null;
+    dailyLimit: number;
+    today: AiUsage;
+    /** Artikel der aktuellen Ausgabe mit KI-Kurzfassung. */
+    editionWithAi: number;
+  };
 };

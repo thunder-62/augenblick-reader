@@ -36,6 +36,8 @@ sudo systemctl restart augenblick-api augenblick-worker
 
 Wichtig ist vor allem `AUGENBLICK_ADMIN_PIN` (mindestens 4 Ziffern) – ohne PIN bleibt der Admin-Bereich gesperrt. Die Datei ist nur für root und den Dienstbenutzer lesbar; sie gehört nie ins Repo.
 
+Für KI-Kurzfassungen `ANTHROPIC_API_KEY` eintragen (Schlüssel aus der Anthropic Console); optional `AUGENBLICK_SUMMARY_MODEL` und `AUGENBLICK_SUMMARY_DAILY_LIMIT`. Ohne Schlüssel zeigen die Karten die ersten Sätze. Verbrauch und Fehler stehen im Admin-Status; Fehler beim Abruf auch in `journalctl -u augenblick-worker`.
+
 ## Admin-Bereich
 
 `http://<tailscale-name>:8080/admin` – nur aus dem Tailnet (und vom Pi selbst) erreichbar, zusätzlich mit PIN. Dort: Einstellungen mit Live-Vorschau, Kalibrierung (am Tablet ausführen; das Tablet muss dafür im Tailnet sein), BR24-Feed und Rubriken-Mix, Status, Nutzungsprotokoll und der Spickzettel zum Ausdrucken. Andere Netze lassen sich mit `AUGENBLICK_ADMIN_NETWORKS` freigeben (siehe ADR 007).

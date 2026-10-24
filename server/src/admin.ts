@@ -15,7 +15,8 @@ import {
   sessionSecret,
   verifySessionToken,
 } from './core/auth.ts';
-import { latestEdition, sourceStatuses, type Db } from './core/db.ts';
+import { aiUsage, latestEdition, sourceStatuses, type Db } from './core/db.ts';
+import { berlinDay } from './core/time.ts';
 import {
   articleCounts,
   deleteUsage,
@@ -120,6 +121,13 @@ export function registerAdmin(app: FastifyInstance, { db, config, now }: Deps): 
         freeBytes: memory ? null : freeBytes(config.dataDir),
       },
       calibratedAt: getConfig(db, 'calibrated_at'),
+      ai: {
+        provider: config.anthropicApiKey ? 'anthropic' : null,
+        model: config.anthropicApiKey ? config.summaryModel : null,
+        dailyLimit: config.summaryDailyLimit,
+        today: aiUsage(db, berlinDay(now())),
+        editionWithAi: edition.articles.filter((a) => a.summaryAi).length,
+      },
     };
   });
 

@@ -4,8 +4,13 @@ import type { SourceAdapter } from '../sources/types.ts';
 import { buildArticle, makeArticleId } from './article.ts';
 import { htmlToBlocks } from './clean.ts';
 import {
+  aiUsage,
   cleanup,
   getArticle,
+  latestEdition,
+  recordAiUsage,
+  saveSummary,
+  summaryAttempts,
   getEditionIds,
   hasArticle,
   readyArticlesSince,
@@ -16,6 +21,7 @@ import {
 } from './db.ts';
 import { log } from './log.ts';
 import { selectEdition } from './selection.ts';
+import { articleText, createSummary, type SummaryProvider } from './summary.ts';
 import { berlinDay } from './time.ts';
 
 export type PipelineOptions = {
@@ -113,4 +119,70 @@ export async function runPipeline(
   const removed = cleanup(db, now, opts.retentionDays);
   log.info('Lauf beendet', { sources, edition, removed });
   return { sources, edition };
+}
+
+/** Höchstens so viele KI-Versuche je Artikel (Fehlschläge eingeschlossen), dann bleibt der Fallback. */
+export const MAX_SUMMARY_ATTEMPTS = 2;
+
+export type SummaryOptions = { provider: SummaryProvider; dailyLimit: number; now?: () => Date };
+export type SummaryReport = { created: number; failed: number; skipped: number; calls: number };
+
+/**
+ * KI-Kurzfassungen für die Artikel der aktuellen Ausgabe (SPEC §6): nur was gezeigt wird,
+ * einmal pro Artikel, innerhalb des Tageslimits. Was nicht klappt, behält den Fallback.
+ */
+export async function summarizeEdition(db: Db, opts: SummaryOptions): Promise<SummaryReport> {
+  const now = (opts.now ?? (() => new Date()))();
+  const day = berlinDay(now);
+  const report: SummaryReport = { created: 0, failed: 0, skipped: 0, calls: 0 };
+  const edition = latestEdition(db);
+  for (const card of edition.articles) {
+    if (card.summaryAi) continue;
+    if (summaryAttempts(db, card.id) >= MAX_SUMMARY_ATTEMPTS) {
+      report.skipped++;
+      continue;
+    }
+    const article = getArticle(db, card.id);
+    if (!article) continue;
+    // Jeder Aufruf (auch der Neuversuch) zählt gegen das Tageslimit.
+    let budget = opts.dailyLimit - aiUsage(db, day).calls;
+    if (budget <= 0) {
+      log.warn(
+        `KI-Tageslimit (${opts.dailyLimit} Aufrufe) erreicht – restliche Karten behalten die ersten Sätze.`,
+      );
+      break;
+    }
+    const mayCall = (): boolean => (budget > 0 ? (budget--, true) : false);
+    const outcome = await createSummary(
+      opts.provider,
+      { title: article.title, text: articleText(article.blocks), lang: article.lang },
+      mayCall,
+    );
+    report.calls += outcome.calls;
+    recordAiUsage(db, day, {
+      calls: outcome.calls,
+      failures: outcome.ok ? 0 : 1,
+      inputTokens: outcome.inputTokens,
+      outputTokens: outcome.outputTokens,
+    });
+    if (!outcome.ok && outcome.unavailable) {
+      // Liegt nicht am Artikel: kein Versuch zählt, Abbruch bis zum nächsten Lauf.
+      log.error(`[KI] Kurzfassungen pausiert bis zum nächsten Lauf: ${outcome.reason}`);
+      report.failed++;
+      break;
+    }
+    if (outcome.ok) {
+      saveSummary(db, article.id, {
+        text: outcome.text,
+        model: outcome.model,
+        createdAt: now.toISOString(),
+      });
+      report.created++;
+    } else {
+      saveSummary(db, article.id, null);
+      report.failed++;
+      log.warn(`[KI] Kurzfassung für ${article.id} nicht übernommen: ${outcome.reason}`);
+    }
+  }
+  return report;
 }

@@ -68,6 +68,31 @@ export async function statusView(root: HTMLElement): Promise<void> {
       ),
       btn(t('admin.status.refresh'), () => void statusView(root)),
     ),
+    section(
+      t('admin.status.ai'),
+      h(
+        'dl',
+        { class: 'facts' },
+        row(
+          t('admin.status.aiProvider'),
+          s.ai.provider ? `${s.ai.provider} · ${s.ai.model ?? ''}` : t('admin.status.aiOff'),
+        ),
+        row(
+          t('admin.status.aiToday'),
+          t('admin.status.aiTodayValue', {
+            calls: s.ai.today.calls,
+            limit: s.ai.dailyLimit,
+            failures: s.ai.today.failures,
+            input: s.ai.today.inputTokens,
+            output: s.ai.today.outputTokens,
+          }),
+        ),
+        row(
+          t('admin.status.aiEdition'),
+          t('admin.status.aiEditionValue', { ai: s.ai.editionWithAi, total: s.edition.articles }),
+        ),
+      ),
+    ),
     section(t('admin.status.sources'), sources),
     h('p', { class: 'hint' }, t('admin.status.summaryHint')),
   );

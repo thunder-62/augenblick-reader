@@ -95,7 +95,14 @@
       "storageValue": "Datenbank {db}, frei {free}",
       "calibrated": "Kalibriert",
       "refresh": "Aktualisieren",
-      "summaryHint": "Kurzfassungen: Auf den Karten der Übersicht steht unter dem Titel eine Kurzfassung. Ist sie von einer KI erstellt, hat sie einen senkrechten Strich am linken Rand; ohne Strich sind es die ersten Sätze des Artikels selbst."
+      "summaryHint": "Kurzfassungen: Auf den Karten der Übersicht steht unter dem Titel eine Kurzfassung. Ist sie von einer KI erstellt, hat sie einen senkrechten Strich am linken Rand; ohne Strich sind es die ersten Sätze des Artikels selbst.",
+      "ai": "KI-Kurzfassungen",
+      "aiProvider": "Anbieter",
+      "aiOff": "aus – kein API-Schlüssel, Kurzfassungen sind die ersten Sätze",
+      "aiToday": "Verbrauch heute",
+      "aiTodayValue": "{calls} von {limit} Aufrufen, {failures} ohne Ergebnis, {input} Eingabe- und {output} Ausgabe-Tokens",
+      "aiEdition": "In der Ausgabe",
+      "aiEditionValue": "{ai} von {total} Karten mit KI-Kurzfassung"
     },
     "settings": {
       "intro": "Änderungen erscheinen sofort in der Vorschau. Auf dem Tablet wirken sie nach dem Speichern, sobald die App wieder geöffnet wird, spätestens nach 15 Minuten.",

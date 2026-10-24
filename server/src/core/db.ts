@@ -1,7 +1,15 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import type { Article, ArticleCard, Edition, SourceStatus } from '@augenblick/shared';
+import type {
+  AiUsage,
+  Article,
+  ArticleCard,
+  Edition,
+  Summary,
+  SourceStatus,
+} from '@augenblick/shared';
+import { isAiSummary } from './article.ts';
 
 export type Db = Database.Database;
 
@@ -55,6 +63,15 @@ const MIGRATIONS: string[] = [
      seconds INTEGER NOT NULL
    );
    CREATE INDEX usage_log_day ON usage_log(day);`,
+  // M3: KI-Kurzfassungen – Versuche je Artikel und Verbrauch je Tag
+  `ALTER TABLE articles ADD COLUMN summary_attempts INTEGER NOT NULL DEFAULT 0;
+   CREATE TABLE ai_usage (
+     day TEXT PRIMARY KEY,
+     calls INTEGER NOT NULL DEFAULT 0,
+     failures INTEGER NOT NULL DEFAULT 0,
+     input_tokens INTEGER NOT NULL DEFAULT 0,
+     output_tokens INTEGER NOT NULL DEFAULT 0
+   );`,
 ];
 
 export function openDb(file: string): Db {
@@ -119,7 +136,7 @@ export function toCard(a: Article): ArticleCard {
     ...(a.section ? { section: a.section } : {}),
     lang: a.lang,
     title: a.title,
-    ...(a.summary ? { summary: a.summary.text } : {}),
+    ...(a.summary ? { summary: a.summary.text, summaryAi: isAiSummary(a.summary) } : {}),
     readingMinutes: a.readingMinutes,
     publishedAt: a.publishedAt,
   };
@@ -254,4 +271,51 @@ export function cleanup(db: Db, now: Date, days: number): { articles: number; ed
       .run(cutoffDay, latest?.day ?? null).changes;
     return { articles, editions };
   })();
+}
+
+export function summaryAttempts(db: Db, id: string): number {
+  const row = db.prepare('SELECT summary_attempts AS n FROM articles WHERE id = ?').get(id) as
+    { n: number } | undefined;
+  return row?.n ?? 0;
+}
+
+/** Speichert eine KI-Kurzfassung bzw. zählt einen fehlgeschlagenen Versuch. */
+export function saveSummary(db: Db, id: string, summary: Summary | null): void {
+  if (summary) {
+    db.prepare(
+      'UPDATE articles SET summary_json = ?, summary_attempts = summary_attempts + 1 WHERE id = ?',
+    ).run(JSON.stringify(summary), id);
+  } else {
+    db.prepare('UPDATE articles SET summary_attempts = summary_attempts + 1 WHERE id = ?').run(id);
+  }
+}
+
+export function recordAiUsage(
+  db: Db,
+  day: string,
+  u: { calls: number; failures: number; inputTokens: number; outputTokens: number },
+): void {
+  db.prepare(
+    `INSERT INTO ai_usage (day, calls, failures, input_tokens, output_tokens) VALUES (@day, @calls, @failures, @input, @output)
+     ON CONFLICT(day) DO UPDATE SET calls = calls + @calls, failures = failures + @failures,
+       input_tokens = input_tokens + @input, output_tokens = output_tokens + @output`,
+  ).run({
+    day,
+    calls: u.calls,
+    failures: u.failures,
+    input: u.inputTokens,
+    output: u.outputTokens,
+  });
+}
+
+export function aiUsage(db: Db, day: string): AiUsage {
+  const row = db.prepare('SELECT * FROM ai_usage WHERE day = ?').get(day) as
+    { calls: number; failures: number; input_tokens: number; output_tokens: number } | undefined;
+  return {
+    day,
+    calls: row?.calls ?? 0,
+    failures: row?.failures ?? 0,
+    inputTokens: row?.input_tokens ?? 0,
+    outputTokens: row?.output_tokens ?? 0,
+  };
 }

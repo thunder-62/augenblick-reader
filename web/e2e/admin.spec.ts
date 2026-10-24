@@ -26,8 +26,10 @@ test('Anmeldung: falsche PIN abgewiesen, richtige PIN zeigt den Status', async (
   await expect(page.locator('.statusline.error')).toContainText('PIN stimmt nicht');
   await page.fill('input[name=pin]', PIN);
   await page.click('button[type=submit]');
-  await expect(page.locator('.facts')).toContainText('Version');
-  await expect(page.locator('.facts')).toContainText('8 Artikel');
+  await expect(page.locator('.facts').first()).toContainText('Version');
+  await expect(page.locator('.facts').first()).toContainText('8 Artikel');
+  // Ohne API-Schlüssel: KI aus, Kurzfassungen sind die ersten Sätze.
+  await expect(page.locator('body')).toContainText('kein API-Schlüssel');
 });
 
 test('ohne Anmeldung liefert die Admin-API nichts', async ({ request }) => {

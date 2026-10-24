@@ -54,6 +54,9 @@ export function testConfig(over: Partial<AppConfig> = {}): AppConfig {
     br24FeedUrl: 'https://example.org/feed.xml',
     dbPath: ':memory:',
     dataDir: '.',
+    anthropicApiKey: null,
+    summaryModel: 'claude-opus-5-5',
+    summaryDailyLimit: 40,
     ...over,
   };
 }

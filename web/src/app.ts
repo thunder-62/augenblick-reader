@@ -286,7 +286,9 @@ export class App {
           : null,
       ),
       h('span', { class: 'title' }, c.title),
-      summary ? h('span', { class: 'summary' }, App.glue(summary)) : null,
+      summary
+        ? h('span', { class: c.summaryAi ? 'summary summary-ai' : 'summary' }, App.glue(summary))
+        : null,
       h('span', { class: 'time' }, tp('card.readingTime', c.readingMinutes)),
     );
   }

@@ -8,7 +8,7 @@ Ein ruhiger, sehr gut lesbarer Zeitungs-Reader für Menschen mit Makuladegenerat
 - Sanftes Vorlesen ab einem angetippten Wort – Begleitung, kein Ersatz fürs eigene Lesen
 - Alle Einstellungen macht ein Angehöriger aus der Ferne
 
-**Status:** M0–M2 umgesetzt (Grundgerüst, tagesschau und BR24, Übersicht und Artikelansicht, Admin-Bereich mit Kalibrierung). M3 (KI-Kurzfassungen) in Arbeit.
+**Status:** M0–M3 umgesetzt (Grundgerüst, tagesschau und BR24, Übersicht und Artikelansicht, Admin-Bereich mit Kalibrierung, KI-Kurzfassungen). Als Nächstes testet der Betreuer mit der Nutzerin am Gerät.
 
 - Spezifikation: [`SPEC.md`](SPEC.md)
 - Recherche und Belege: [`docs/recherche.md`](docs/recherche.md)
@@ -32,6 +32,7 @@ npm run dev
 - **Worker**: holt beim Start einmal ab, danach 5:00–22:00 alle 30 Minuten (tagesschau, BR24)
 - **Web-App** (Vite) auf <http://localhost:5173> – im Browser im Querformat öffnen, z. B. mit den Entwicklerwerkzeugen auf 1280×800
 - **Admin-Bereich** auf <http://localhost:5173/admin> – vorher in `.env` `AUGENBLICK_ADMIN_PIN` (mind. 4 Ziffern) setzen
+- **KI-Kurzfassungen** nur mit `ANTHROPIC_API_KEY` in `.env`; ohne Schlüssel zeigen die Karten die ersten Sätze des Artikels
 
 Ohne Internetzugang bleibt die Übersicht leer („wird gerade zusammengestellt“). Dann helfen die selbst geschriebenen Beispieltexte:
 

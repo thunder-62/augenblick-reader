@@ -32,6 +32,12 @@ export type Config = {
   adminNetworks: string[];
   /** Nutzungsprotokoll nach so vielen Tagen löschen. */
   usageRetentionDays: number;
+  /** API-Schlüssel für Kurzfassungen; ohne Schlüssel gelten die ersten Sätze (SPEC §6). */
+  anthropicApiKey: string | null;
+  summaryModel: string;
+  /** Höchstens so viele KI-Aufrufe pro Tag (Kostenbremse). */
+  summaryDailyLimit: number;
+  promptsDir: string;
 };
 
 /** Lädt `.env` aus dem Arbeitsverzeichnis bzw. dem Repo-Wurzelverzeichnis, falls vorhanden. */
@@ -82,6 +88,25 @@ export function parsePin(value: string | undefined): string | null {
   return /^\d{4,12}$/.test(pin) ? pin : null;
 }
 
+/** Platzhalter aus .env.example („sk-ant-…“ ohne Inhalt) zählen nicht als Schlüssel. */
+export function parseApiKey(value: string | undefined): string | null {
+  const key = value?.trim() ?? '';
+  return key.length >= 20 && !key.includes('…') && !/bitte|hier|xxx/i.test(key) ? key : null;
+}
+
+function findPromptsDir(explicit: string | undefined): string {
+  const candidates = [
+    explicit,
+    path.resolve('server/prompts'),
+    path.resolve('prompts'),
+    path.resolve('../server/prompts'),
+  ].filter((p): p is string => Boolean(p));
+  return (
+    candidates.find((p) => existsSync(path.join(p, 'summary.de.md'))) ??
+    path.resolve('server/prompts')
+  );
+}
+
 function findWebDist(): string | null {
   const candidates = [
     process.env.AUGENBLICK_WEB_DIST,
@@ -118,6 +143,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       ? env.AUGENBLICK_ADMIN_NETWORKS.split(',').map((s) => s.trim())
       : DEFAULT_ADMIN_NETWORKS,
     usageRetentionDays: num(env.AUGENBLICK_USAGE_RETENTION_DAYS, 180),
+    anthropicApiKey: parseApiKey(env.ANTHROPIC_API_KEY),
+    summaryModel: env.AUGENBLICK_SUMMARY_MODEL?.trim() || 'claude-opus-5-5',
+    summaryDailyLimit: Math.max(0, num(env.AUGENBLICK_SUMMARY_DAILY_LIMIT, 40)),
+    promptsDir: findPromptsDir(env.AUGENBLICK_PROMPTS_DIR),
     settings: {
       ...DEFAULT_SETTINGS,
       theme,
