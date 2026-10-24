@@ -39,7 +39,7 @@ Ein Angehöriger („Betreuer") richtet alles ein und wartet es aus der Ferne. D
 │  Tablet (Chrome, PWA, Vollbild)                   │
 │      │ HTTPS (Tailscale-Zertifikat)               │
 │      ▼                                            │
-│  Raspberry Pi (Docker)                            │
+│  Raspberry Pi (systemd-Dienste)                   │
 │   ├─ api      Fastify, liefert Web-App + JSON-API │
 │   ├─ worker   Abholen → Bereinigen → KI → SQLite  │
 │   └─ data/    SQLite, Konfiguration, Cache        │
@@ -61,7 +61,7 @@ Ein Angehöriger („Betreuer") richtet alles ein und wartet es aus der Ferne. D
 | Schrift | Atkinson Hyperlegible, selbst gehostet (OFL) | Keine externen Requests [R4] |
 | Vorlesen | Web Speech API (`speechSynthesis`), Systemstimme de-DE | Offline, ohne Kosten, ohne Latenz |
 | Tests | Vitest (Unit), Playwright (E2E, Tablet-Viewport) | |
-| Betrieb | Docker Compose, Image für `linux/arm64` und `linux/amd64` | Umzug auf Cloud-Server ohne Umbau |
+| Betrieb | Node direkt auf dem Pi, zwei systemd-Dienste (`augenblick-api`, `augenblick-worker`), **kein Docker** | Einfach, wenig Last, direkte Fehlersuche; läuft unverändert auch auf jedem Linux-Server |
 
 ### Repo-Struktur
 
@@ -69,7 +69,7 @@ Ein Angehöriger („Betreuer") richtet alles ein und wartet es aus der Ferne. D
 /server          api + worker (gemeinsamer Code in /server/src/core)
 /web             PWA
 /shared          Typen (Article, Settings, …), Locale-Dateien
-/deploy          docker-compose.yml, Pi-Setup-Skript, Tailscale-Anleitung
+/deploy          systemd-Units, install.sh, update.sh, Tailscale-Anleitung
 /docs            recherche.md, entscheidungen/ (ADRs)
 SPEC.md, README.md, LICENSE (MIT)
 ```
@@ -244,10 +244,11 @@ Jedes Experiment protokolliert lokal anonyme Nutzung (siehe §10), damit der Bet
 
 ## 9. Betrieb
 
-- **Raspberry Pi 5** (4 GB reicht), **SSD statt SD-Karte**, Docker Compose, Neustart-Policy `unless-stopped`, Hardware-Watchdog an.
+- **Raspberry Pi 5** (4 GB reicht), **SSD statt SD-Karte**, Raspberry Pi OS Lite (64 bit), Node.js 22 LTS. Zwei systemd-Dienste mit `Restart=always`, eigener Systembenutzer `augenblick`, Daten unter `/var/lib/augenblick`, Programm unter `/opt/augenblick`. Hardware-Watchdog an.
+- **`deploy/install.sh`** richtet alles auf einem frischen Pi ein (Benutzer, Verzeichnisse, Node, Dienste, Tailscale-Hinweise, `.env` aus Vorlage). Idempotent, mehrfach ausführbar.
 - **Tailscale** auf dem Pi und den Geräten des Betreuers. Das Tablet erreicht den Pi über dessen Tailscale-Namen; HTTPS-Zertifikat per `tailscale cert`. Ohne gültiges HTTPS keine Service Worker → Pflicht.
 - **Admin-Bereich** nur über Tailscale erreichbar **und** zusätzlich PIN-geschützt.
-- **Updates:** Images werden aus GitHub Container Registry gezogen; Update nachts (03:00) per Watchtower oder Cron, mit Rollback auf das vorherige Image bei fehlgeschlagenem Healthcheck.
+- **Updates:** CI erstellt bei jedem Release ein fertiges Paket (gebaute Web-App + Server, ohne `node_modules`) als GitHub-Release-Asset. `deploy/update.sh` läuft nachts (03:00, systemd-Timer): neues Release laden → nach `/opt/augenblick/releases/<version>` entpacken → `npm ci --omit=dev` → Symlink `current` umstellen → Dienste neu starten → Healthcheck (`/health`). Schlägt er fehl, Symlink zurück auf die vorige Version und erneut starten. Die letzten 3 Versionen bleiben liegen. Native Abhängigkeiten (`better-sqlite3`) nutzen die arm64-Prebuilds; falls keine passen, wird auf dem Pi gebaut (`build-essential` in `install.sh`).
 - **Offline:** Service Worker speichert die aktuelle Ausgabe (Übersicht + alle Artikel) auf dem Tablet. Fällt Pi oder Internet aus, bleibt die letzte Ausgabe lesbar, mit dezentem Hinweis „Stand: heute 6:30 Uhr" statt Fehlermeldung.
 - **Tablet:** Chrome, PWA installiert, Bildschirmfixierung oder Kiosk-Launcher (Entscheidung beim Einrichten, in README dokumentieren), Benachrichtigungen aus, Systemschrift groß, Helligkeit hoch.
 - **Backup:** SQLite und Settings täglich auf einen konfigurierbaren WebDAV-Pfad (z. B. Nextcloud).
@@ -282,7 +283,7 @@ Erreichbar unter `/admin`, für Smartphone/PC des Betreuers gestaltet (normale G
 
 | # | Ziel | Abnahme |
 |---|---|---|
-| M0 | Repo-Gerüst, CI (Lint, Tests, arm64-Build), Docker Compose läuft lokal | `docker compose up` liefert leere Übersicht |
+| M0 | Repo-Gerüst, CI (Lint, Tests, Release-Paket), lokaler Start per `npm run dev` | `npm run dev` liefert leere Übersicht |
 | M1 | tagesschau-Adapter, Bereinigung, Satztrennung, Übersicht + Artikel statisch, ohne KI | Artikel lesbar, Regeln §8.1–8.3 erfüllt, Playwright-Tests grün |
 | M2 | Admin-Bereich, Settings, Kalibrierung | Größe/Schema per Kalibrierung gesetzt und auf dem Tablet wirksam |
 | M3 | KI-Kurzfassungen inkl. Fallback und Tageslimit | Jede Karte hat Kurzfassung ≤ 45 Wörter |
