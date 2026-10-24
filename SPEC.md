@@ -280,6 +280,16 @@ Erreichbar unter `/admin`, für Smartphone/PC des Betreuers gestaltet (normale G
 - **Keine Secrets:** `.env.example` mit Platzhaltern; `.env`, `data/` und Logs in `.gitignore`. Secret-Scanning in CI aktivieren.
 - **Keine Inhalte Dritter** (Artikeltexte, Screenshots von ePaper-Seiten) als Testdaten im Repo. Testdaten sind selbst geschriebene Beispieltexte.
 - Lizenz: MIT (Code). Schrift Atkinson Hyperlegible: OFL, Lizenzdatei mitliefern.
+- **Keine fremden Marken** (Logos, Namen, Farben von Verlagen oder Sendern) im Repo, außer als reine Quellenangabe im Text.
+
+### 12a. Branding durch Dritte (White-Label)
+
+Verlage oder Sender sollen Augenblick mit eigenem Branding nutzen können. Deshalb:
+
+- **Branding als Konfiguration**, nicht im Code: Name, Logo (SVG), eine Akzentfarbe, Impressums-/Datenschutz-Links, Standardquellen. Ein Ordner `/branding/<name>/` pro Variante; Standard ist das neutrale Augenblick-Branding.
+- **Lesbarkeit geht vor Corporate Design:** Branding darf Schriftgröße, Abstände, Farbschemata und Kontrast (≥ 7:1) nicht verändern. Akzentfarben nur für Rahmen und Symbole, nur wenn sie im jeweiligen Schema den Kontrast einhalten (CI prüft das). Logo nur auf der Übersicht, nicht im Artikel.
+- **Quellen-Adapter austauschbar**, damit ein Verlag seine eigene Artikel-Schnittstelle anbinden kann, ohne den Rest zu ändern.
+- Betrieb nicht nur als Einzelinstallation auf einem Pi denkbar: Architektur so halten, dass später mehrere Nutzerinnen pro Server möglich wären (Settings pro Gerät statt global), auch wenn Version 1 nur eine unterstützt.
 
 ## 13. Meilensteine
 
