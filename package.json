@@ -14,8 +14,8 @@
     "web"
   ],
   "scripts": {
-    "dev": "concurrently -k -n api,worker,web -c blue,magenta,green \"npm run dev:api -w server\" \"npm run dev:worker -w server\" \"npm run dev -w web\"",
-    "demo": "npm run demo -w server",
+    "dev": "concurrently -k -n api,worker,web -c blue,magenta,green \"tsx watch --clear-screen=false server/src/api.ts\" \"tsx watch --clear-screen=false server/src/worker.ts\" \"npm run dev -w web\"",
+    "demo": "tsx server/src/seed-demo.ts",
     "build": "npm run build -w web && npm run build -w server",
     "start": "node server/dist/api.js",
     "lint": "eslint . && prettier --check . && npm run typecheck",

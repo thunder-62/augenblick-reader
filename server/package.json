@@ -4,9 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev:api": "tsx watch --clear-screen=false src/api.ts",
-    "dev:worker": "tsx watch --clear-screen=false src/worker.ts",
-    "demo": "tsx src/seed-demo.ts",
     "build": "node build.mjs"
   },
   "devDependencies": {
