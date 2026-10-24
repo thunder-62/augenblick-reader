@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Augenblick</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<style>
+/* Layout: one screen, three bands (header / paged reading area / footer nav), no scrolling.
+   The reading area flows text into CSS columns exactly one screen wide and pages through them. */
+:root {
+  --font-body: "Atkinson Hyperlegible", Verdana, "DejaVu Sans", sans-serif;
+  --font-brand: "Fraunces", Georgia, serif;
+  /* dark scheme (default, AMOLED) */
+  --bg: #000000;
+  --fg: #F2EAD3;
+  --muted: #D2C8AF;
+  --accent: #FFCB6B;
+  --rule: #4A4436;
+  --btn-bg: #15130F;
+  --btn-border: #7A7059;
+  --btn-press: #F2EAD3;
+  --btn-press-fg: #000000;
+  --mark: #4A3D16;
+  --fs: 25px;
+  --lh: 2;
+  --ws: 0.25em;
+  color-scheme: dark;
+}
+.schema-light {
+  --bg: #FAF7F0;
+  --fg: #141210;
+  --muted: #3A352D;
+  --accent: #6E4300;
+  --rule: #C9BFA9;
+  --btn-bg: #EEE8DA;
+  --btn-border: #6F6656;
+  --btn-press: #141210;
+  --btn-press-fg: #FAF7F0;
+  --mark: #FFE29A;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  overflow: hidden;
+}
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--fg);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px;
+  gap: 10px;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+header.bar, footer.bar {
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+header.bar { border-bottom: 2px solid var(--rule); padding-bottom: 10px; padding-top: 6px; }
+footer.bar { border-top: 2px solid var(--rule); padding-top: 10px; }
+.bar > :first-child { justify-self: start; }
+.bar > :last-child { justify-self: end; }
+.brand {
+  font-family: var(--font-brand);
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+.dateline { font-size: 20px; font-weight: 700; text-align: center; line-height: 1.25; }
+.pageinfo { font-size: 18px; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.3; }
+
+.btn {
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--fg);
+  background: var(--btn-bg);
+  border: 2px solid var(--btn-border);
+  border-radius: 14px;
+  min-height: 68px;
+  min-width: 112px;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  cursor: pointer;
+}
+.btn svg { width: 24px; height: 24px; flex: none; }
+.btn.pressed { background: var(--btn-press); color: var(--btn-press-fg); border-color: var(--btn-press); }
+.btn[aria-disabled="true"] { opacity: 0.35; }
+.btn.small { min-height: 52px; min-width: 0; font-size: 16px; font-weight: 400; }
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+#viewport { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+#flow {
+  height: 100%;
+  position: relative;
+  column-fill: auto;
+  font-size: var(--fs);
+  line-height: var(--lh);
+  word-spacing: var(--ws);
+  transition: transform 0s;
+}
+@media (prefers-reduced-motion: no-preference) {
+  #flow.animate { transition: transform 180ms ease-out; }
+}
+#flow h1 {
+  font-size: 1.15em;
+  line-height: 1.5;
+  font-weight: 700;
+  margin: 0 0 0.6em;
+  text-wrap: balance;
+  word-spacing: 0.1em;
+}
+#flow p { margin: 0 0 0.9em; text-align: left; hyphens: none; }
+#flow .src { font-size: max(18px, 0.7em); line-height: 1.5; color: var(--muted); margin-bottom: 0.8em; }
+.s { border-radius: 6px; padding: 0.05em 0; }
+.s.now { background: var(--mark); box-shadow: 0 0 0 0.12em var(--mark); }
+
+.card {
+  break-inside: avoid;
+  border: 2px solid var(--btn-border);
+  border-radius: 14px;
+  padding: 0.5em 0.7em;
+  margin: 0 0 0.6em;
+  line-height: 1.45;
+  word-spacing: 0.1em;
+  background: var(--btn-bg);
+  cursor: pointer;
+}
+.card.pressed { border-color: var(--accent); outline: 3px solid var(--accent); }
+.card .meta { display: flex; justify-content: space-between; gap: 0.5em; font-size: max(17px, 0.68em); color: var(--muted); }
+.card .sec { color: var(--accent); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.card h2 { font-size: 1em; font-weight: 700; margin: 0.15em 0 0.25em; text-wrap: balance; }
+.card .sum { font-size: 0.82em; margin: 0; }
+.card .sum b { color: var(--accent); }
+.note { font-size: max(16px, 0.6em); color: var(--muted); line-height: 1.4; margin: 0 0 0.8em; break-inside: avoid; }
+.end { display: inline-block; width: 1px; height: 1px; }
+
+/* Settings sheet (for the carer only): scrolls normally, normal sizes */
+#sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: var(--bg);
+  color: var(--fg);
+  overflow-y: auto;
+  touch-action: auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  font-size: 17px;
+  line-height: 1.5;
+}
+#sheet .inner { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+#sheet h2 { font-size: 22px; margin: 0; }
+#sheet h3 { font-size: 15px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+#sheet .row { display: flex; flex-wrap: wrap; gap: 8px; }
+#sheet .opt {
+  font: inherit; font-size: 16px; color: var(--fg); background: var(--btn-bg);
+  border: 2px solid var(--btn-border); border-radius: 10px; padding: 10px 14px; min-height: 48px; cursor: pointer;
+}
+#sheet .opt[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+#sheet .preview { border: 2px solid var(--rule); border-radius: 12px; padding: 12px 14px; font-size: var(--fs); line-height: var(--lh); word-spacing: var(--ws); }
+#sheet .hint { font-size: 15px; color: var(--muted); margin: 6px 0 0; }
+#sheet .done { align-self: flex-start; }
+</style>
+
+<div id="app" class="schema-dark">
+  <header class="bar" id="top"></header>
+  <div id="viewport"><div id="flow"></div></div>
+  <footer class="bar" id="bottom"></footer>
+</div>
+<div id="sheet" hidden></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- Beispieltexte (frei erfunden, keine echten Meldungen) ---------- */
+const SAMPLES = [
+  { id: "baenke", sec: "Region", title: "Neue Sitzbänke am Flussufer",
+    sum: "Entlang des Uferwegs stehen jetzt zwölf neue Bänke mit Armlehnen. Sie sind höher als die alten und sollen das Aufstehen erleichtern.",
+    body: [
+      "Wer am Fluss spazieren geht, kann sich jetzt öfter ausruhen. Die Gemeinde hat entlang des Uferwegs zwölf neue Sitzbänke aufgestellt. Zwischen zwei Bänken liegen höchstens dreihundert Meter.",
+      "Die neuen Bänke sind etwas höher als die alten. Außerdem haben sie auf beiden Seiten Armlehnen. Damit fällt das Aufstehen leichter, besonders mit einem Stock oder nach einer längeren Strecke.",
+      "Die Idee kam aus dem Seniorenbeirat. Viele ältere Menschen hatten gesagt, dass sie den Weg gern gehen würden, sich aber die ganze Runde nicht mehr zutrauen. Mit mehr Pausen sei das wieder möglich.",
+      "Die Bänke sind aus heimischem Holz. Im Winter bleiben sie stehen. Im Frühjahr sollen am Wegrand außerdem neue Hinweisschilder mit großer Schrift dazukommen."
+    ]},
+  { id: "wandern", sec: "Bayern", title: "Herbstwandern: Früher losgehen, Lampe einpacken",
+    sum: "Im Herbst wird es schnell dunkel und Laub macht Wege rutschig. Wanderer sollten früh starten und feste Schuhe tragen.",
+    body: [
+      "Der Herbst ist für viele die schönste Zeit zum Wandern. Die Luft ist klar, und die Wälder leuchten in Gelb und Rot. Doch die Tage werden kürzer, und das unterschätzen viele.",
+      "Wer eine längere Tour plant, sollte am Vormittag aufbrechen. Gegen fünf Uhr am Nachmittag wird es im Wald bereits dämmrig. Eine kleine Taschenlampe gehört deshalb in jeden Rucksack.",
+      "Nasses Laub kann glatt sein wie Eis. Feste Schuhe mit gutem Profil helfen. Auf steilen Stücken sind Wanderstöcke eine gute Stütze.",
+      "Auch warme Kleidung ist wichtig. Morgens kann es noch frisch sein, mittags in der Sonne dagegen warm. Am besten zieht man mehrere dünne Schichten an, die man ausziehen kann."
+    ]},
+  { id: "bibliothek", sec: "Deutschland", title: "Bibliotheken verleihen Lesegeräte",
+    sum: "Immer mehr Stadtbüchereien verleihen elektronische Lupen und Vorlesegeräte. Man kann sie zu Hause ausprobieren, bevor man selbst eines kauft.",
+    body: [
+      "Wer schlecht sieht, kann Lesegeräte inzwischen oft in der Bücherei ausleihen. Immer mehr Stadtbibliotheken bieten elektronische Lupen und Vorlesegeräte an. Die Ausleihe ist meist für zwei oder vier Wochen möglich.",
+      "Der Vorteil: Man kann in Ruhe zu Hause testen, ob ein Gerät hilft. Solche Geräte sind teuer. Viele Menschen kaufen erst, wenn sie sicher sind, dass sie damit zurechtkommen.",
+      "In manchen Büchereien erklären Ehrenamtliche die Geräte. Sie nehmen sich Zeit und zeigen alles in Ruhe. Oft reicht ein Termin von einer halben Stunde.",
+      "Wer Interesse hat, fragt am besten direkt an der Ausleihtheke nach. Einen Bibliotheksausweis braucht man in der Regel trotzdem."
+    ]},
+  { id: "voegel", sec: "Natur", title: "Zugvögel lassen sich Zeit",
+    sum: "Viele Kraniche und Störche fliegen in milden Herbsten später nach Süden. Manche bleiben sogar den ganzen Winter hier.",
+    body: [
+      "Am Himmel sind sie jetzt wieder zu hören: Kraniche auf dem Weg in den Süden. Sie fliegen in großen Keilen und rufen dabei laut. Wer genau hinsieht, kann Gruppen mit über hundert Tieren zählen.",
+      "Vogelkundler beobachten seit Jahren, dass viele Zugvögel später aufbrechen als früher. In milden Herbsten finden sie länger genug Futter. Einige Störche bleiben sogar ganz hier und überwintern auf Wiesen und an Gewässern.",
+      "Für die Vögel ist das nicht ohne Risiko. Kommt plötzlich Frost, wird das Futter knapp. Meist kommen sie aber gut zurecht.",
+      "Wer Vögel im Garten unterstützen möchte, kann ab dem ersten Frost Körner und Haferflocken anbieten. Wichtig ist eine saubere Futterstelle, an die Katzen nicht herankommen."
+    ]},
+  { id: "wetter", sec: "Wetter", title: "Sonniges Wochenende, kalte Nächte",
+    sum: "Am Samstag und Sonntag scheint oft die Sonne bei bis zu vierzehn Grad. Nachts kann es Bodenfrost geben.",
+    body: [
+      "Das Wochenende wird freundlich. Nach Nebel am Morgen setzt sich am Samstag rasch die Sonne durch. Die Temperaturen steigen auf zwölf bis vierzehn Grad.",
+      "Auch der Sonntag bleibt meist trocken. Nur im Westen ziehen am Nachmittag ein paar Wolken auf. Der Wind weht schwach.",
+      "In den klaren Nächten wird es kalt. In Bodennähe ist leichter Frost möglich. Empfindliche Pflanzen auf dem Balkon sollte man deshalb abdecken oder hereinholen.",
+      "Am Montag kommt ein Regengebiet. Dann wird es auch tagsüber kühler."
+    ]},
+  { id: "tulpen", sec: "Garten", title: "Jetzt ist Zeit für Tulpenzwiebeln",
+    sum: "Tulpen, Narzissen und Krokusse kommen im Oktober in die Erde. Wer jetzt pflanzt, hat im Frühjahr Farbe im Beet und auf dem Balkon.",
+    body: [
+      "Wer sich im Frühjahr über bunte Blumen freuen will, muss jetzt pflanzen. Tulpen, Narzissen und Krokusse brauchen die Kälte des Winters, um später zu blühen.",
+      "Die Faustregel lautet: Die Zwiebel kommt doppelt so tief in die Erde, wie sie hoch ist. Die Spitze zeigt nach oben. Danach einmal kräftig gießen, das reicht.",
+      "Auch im Balkonkasten klappt das gut. Man kann sogar mehrere Sorten übereinander setzen: unten die großen Tulpen, darüber Narzissen und ganz oben Krokusse. So blüht der Kasten mehrere Wochen nacheinander.",
+      "Gegen hungrige Mäuse hilft ein Drahtkorb um die Zwiebeln. Im Fachhandel gibt es dafür fertige Pflanzkörbe."
+    ]},
+  { id: "kegeln", sec: "Sport", title: "Kegelclub holt den Pokal",
+    sum: "Die Kegler des Sportvereins haben das Herbstturnier gewonnen. Den Ausschlag gab die letzte Runde mit neun Holz in einem Wurf.",
+    body: [
+      "Großer Jubel im Vereinsheim: Die Kegelgruppe des Sportvereins hat das Herbstturnier gewonnen. Acht Mannschaften waren angetreten.",
+      "Lange lag die Gastmannschaft vorn. Erst in der letzten Runde drehte sich das Spiel. Mit einem Wurf fielen alle neun Kegel, und damit stand der Sieg fest.",
+      "Die älteste Spielerin der Mannschaft ist einundachtzig Jahre alt. Sie kegelt seit über fünfzig Jahren und trainiert jeden Dienstag. Für sie ist es der dritte Pokal.",
+      "Gefeiert wurde mit Kaffee und Zwetschgenkuchen. Neue Mitspielerinnen und Mitspieler sind jederzeit willkommen, auch ohne Erfahrung."
+    ]}
+];
+
+/* ---------- Echte Nachrichten: tagesschau-Schnittstelle (live auf dem Gerät) ---------- */
+let ARTICLES = [];
+let MODE = "loading"; // "live" | "samples" | "loading"
+const API = "https://www.tagesschau.de/api2u/news/";
+function htmlToText(h) {
+  try { return (new DOMParser().parseFromString("<div>" + h + "</div>", "text/html").body.textContent || "").replace(/\s+/g, " ").trim(); }
+  catch (e) { return String(h).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); }
+}
+function fromItem(it, secFallback) {
+  const body = [];
+  for (const c of (it.content || [])) {
+    if (!c || !c.value) continue;
+    if (c.type === "text" || c.type === "headline" || c.type === "quotation") {
+      const txt = htmlToText(typeof c.value === "string" ? c.value : (c.value.text || ""));
+      if (txt.length < 3 || /^(Mehr zum Thema|Dieses Thema im Programm|Hinweis:)/i.test(txt)) continue;
+      body.push(c.type === "headline" ? { h: txt } : txt);
+    }
+  }
+  if (!body.length) return null;
+  const sec = it.regionId ? "Bayern" : ({ inland: "Deutschland", ausland: "Welt", wirtschaft: "Wirtschaft", sport: "Sport", wissen: "Wissen", investigativ: "Recherche" }[it.ressort] || secFallback);
+  return {
+    id: it.sophoraId || it.externalId || it.title,
+    sec, title: it.title || it.topline || "",
+    sum: it.firstSentence || (typeof body[0] === "string" ? body[0] : ""),
+    body, live: true, url: it.shareURL || ""
+  };
+}
+async function getJson(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+async function loadNews() {
+  const lists = await Promise.allSettled([getJson(API + "?regions=2"), getJson(API)]);
+  const out = [], seen = new Set();
+  const take = (res, max, secFallback) => {
+    if (res.status !== "fulfilled") return;
+    let n = 0;
+    for (const it of (res.value.news || [])) {
+      if (n >= max) break;
+      if (it.type && it.type !== "story") continue;
+      const a = fromItem(it, secFallback);
+      if (!a || seen.has(a.id) || !a.title) continue;
+      seen.add(a.id); out.push(a); n++;
+    }
+  };
+  take(lists[0], 4, "Bayern");
+  take(lists[1], 12 - out.length, "Nachrichten");
+  if (!out.length) throw new Error(lists.map(l => l.reason && l.reason.message).filter(Boolean).join(", ") || "keine Artikel");
+  return out;
+}
+
+/* ---------- Einstellungen ---------- */
+const SIZES = [20, 25, 32, 40, 50];
+const DEFAULTS = { size: 1, schema: "dark", lh: 2, tts: true, rate: 0.85 };
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("augenblick." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("augenblick." + k, JSON.stringify(v)); } catch (e) {} }
+};
+const settings = Object.assign({}, DEFAULTS, store.get("settings", {}));
+const readSet = new Set(store.get("read", []));
+const state = { view: "overview", articleId: null, page: 0, pages: 1, ovPage: 0 };
+const last = store.get("last", null);
+let loadedAt = "";
+
+const app = document.getElementById("app");
+const top = document.getElementById("top");
+const bottom = document.getElementById("bottom");
+const viewport = document.getElementById("viewport");
+const flow = document.getElementById("flow");
+const sheet = document.getElementById("sheet");
+const GAP = 48;
+
+function applySettings() {
+  app.className = settings.schema === "light" ? "schema-light" : "schema-dark";
+  sheet.className = app.className;
+  document.body.style.background = settings.schema === "light" ? "#FAF7F0" : "#000000";
+  const r = document.documentElement.style;
+  r.setProperty("--fs", SIZES[settings.size] + "px");
+  r.setProperty("--lh", String(settings.lh));
+}
+
+/* ---------- Hilfen ---------- */
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const splitSentences = t => t.split(/(?<=[.!?:])\s+(?=[A-ZÄÖÜ„"])/);
+const minutes = a => Math.max(1, Math.round(a.body.map(b => typeof b === "string" ? b : b.h).join(" ").split(/\s+/).length / 70));
+const ICON_SPEAK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+const ICON_STOP = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
+function today() {
+  try { return new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long" }).format(new Date()); }
+  catch (e) { return ""; }
+}
+
+/* ---------- Seiten berechnen (CSS-Spalten = Seiten) ---------- */
+function layout(keepSentence) {
+  const W = viewport.clientWidth;
+  flow.classList.remove("animate");
+  flow.style.width = W + "px";
+  flow.style.columnWidth = W + "px";
+  flow.style.columnGap = GAP + "px";
+  const end = flow.querySelector(".end");
+  const step = W + GAP;
+  const pages = end ? Math.floor((end.offsetLeft + 1) / step) + 1 : 1;
+  if (state.view === "article") {
+    state.pages = pages;
+    if (keepSentence != null) {
+      const el = flow.querySelector('.s[data-i="' + keepSentence + '"]');
+      if (el) state.page = Math.floor(el.offsetLeft / step);
+    }
+    state.page = Math.min(Math.max(0, state.page), pages - 1);
+  } else {
+    state.ovPages = pages;
+    state.ovPage = Math.min(Math.max(0, state.ovPage), pages - 1);
+  }
+  shift(false);
+}
+function shift(animate) {
+  const W = viewport.clientWidth;
+  const p = state.view === "article" ? state.page : state.ovPage;
+  if (animate) flow.classList.add("animate"); else flow.classList.remove("animate");
+  flow.style.transform = "translateX(" + (-p * (W + GAP)) + "px)";
+  renderBars();
+  save();
+}
+function pageOf(el) { return Math.floor(el.offsetLeft / (viewport.clientWidth + GAP)); }
+function firstSentenceOnPage() {
+  const all = flow.querySelectorAll(".s");
+  for (const el of all) if (pageOf(el) >= state.page) return Number(el.dataset.i);
+  return 0;
+}
+
+/* ---------- Ansichten ---------- */
+function renderOverview() {
+  stopSpeaking();
+  releaseWake();
+  state.view = "overview";
+  if (MODE === "loading") { flow.innerHTML = '<p>Die Nachrichten werden geladen …</p><span class="end"></span>'; layout(); return; }
+  let html = MODE === "live" ? '<p class="note">Nachrichten von tagesschau.de · Stand ' + esc(loadedAt) + '</p>' : '<p class="note">Keine Verbindung zu tagesschau.de. Frei erfundene Beispieltexte.</p>';
+  for (const a of ARTICLES) {
+    html += '<article class="card" data-act="open" data-id="' + a.id + '" role="button" tabindex="0" aria-label="' + esc(a.title) + ' öffnen">' +
+      '<div class="meta"><span class="sec">' + esc(a.sec) + '</span><span>' + (readSet.has(a.id) ? "✓ gelesen · " : "") + "ca. " + minutes(a) + " Min.</span></div>" +
+      "<h2>" + esc(a.title) + "</h2>" +
+      '<p class="sum"><b>Kurz gesagt:</b> ' + esc(a.sum) + "</p></article>";
+  }
+  flow.innerHTML = html + '<span class="end"></span>';
+  layout();
+}
+function renderArticle(id, keepSentence) {
+  const a = ARTICLES.find(x => x.id === id);
+  if (!a) return renderOverview();
+  const changed = state.articleId !== id || state.view !== "article";
+  state.view = "article";
+  state.articleId = id;
+  if (changed && keepSentence == null) state.page = state.page || 0;
+  let i = 0, html = "<h1>" + esc(a.title) + '</h1><p class="src">' + esc(a.sec) + (a.live ? " · Quelle: tagesschau.de" : " · Beispieltext") + "</p>";
+  for (const para of a.body) {
+    if (typeof para !== "string") { html += '<p><b>' + esc(para.h) + '</b></p>'; continue; }
+    html += "<p>" + splitSentences(para).map(s => '<span class="s" data-i="' + (i++) + '">' + esc(s) + "</span>").join(" ") + "</p>";
+  }
+  flow.innerHTML = html + '<span class="end"></span>';
+  readSet.add(id);
+  store.set("read", [...readSet]);
+  layout(keepSentence);
+  requestWake();
+}
+function renderBars() {
+  if (state.view === "overview") {
+    top.innerHTML =
+      '<span class="brand">Augenblick</span>' +
+      '<span class="dateline">' + esc(today()) + "</span>" +
+      '<button class="btn small" data-act="settings" type="button">Einstellungen</button>';
+    const p = state.ovPage, n = state.ovPages || 1;
+    bottom.innerHTML =
+      btn("prev", "◂ Zurück", p <= 0) +
+      '<span class="pageinfo">Seite ' + (p + 1) + "<br>von " + n + "</span>" +
+      btn("next", "Weiter ▸", p >= n - 1);
+  } else {
+    const speaking = speech.on;
+    top.innerHTML =
+      btn("home", "◂ Übersicht", false) +
+      "<span></span>" +
+      (settings.tts && "speechSynthesis" in window
+        ? '<button class="btn" type="button" data-act="speak">' + (speaking ? ICON_STOP + "Anhalten" : ICON_SPEAK + "Vorlesen") + "</button>"
+        : "<span></span>");
+    const p = state.page, n = state.pages;
+    const lastPage = p >= n - 1;
+    const idx = ARTICLES.findIndex(x => x.id === state.articleId);
+    const hasNext = idx < ARTICLES.length - 1;
+    bottom.innerHTML =
+      btn("prev", "◂ Zurück", p <= 0) +
+      '<span class="pageinfo">Seite ' + (p + 1) + "<br>von " + n + "</span>" +
+      (lastPage ? btn(hasNext ? "nextArticle" : "home", hasNext ? "Nächster Artikel ▸" : "Zur Übersicht ▸", false) : btn("next", "Weiter ▸", false));
+  }
+}
+function btn(act, label, disabled) {
+  return '<button class="btn" type="button" data-act="' + act + '"' + (disabled ? ' aria-disabled="true"' : "") + ">" + esc(label) + "</button>";
+}
+
+/* ---------- Aktionen ---------- */
+function act(name, el) {
+  if (name === "open") { state.page = 0; stopSpeaking(); renderArticle(el.dataset.id); return; }
+  if (name === "home") { renderOverview(); return; }
+  if (name === "settings") { openSheet(); return; }
+  if (name === "speak") { speech.on ? stopSpeaking() : speakFrom(firstSentenceOnPage()); return; }
+  if (name === "nextArticle") {
+    const idx = ARTICLES.findIndex(x => x.id === state.articleId);
+    state.page = 0; stopSpeaking(); renderArticle(ARTICLES[idx + 1].id); return;
+  }
+  if (name === "prev" || name === "next") {
+    const d = name === "next" ? 1 : -1;
+    if (state.view === "article") {
+      const np = state.page + d;
+      if (np < 0 || np >= state.pages) return;
+      stopSpeaking(); state.page = np;
+    } else {
+      const np = state.ovPage + d;
+      if (np < 0 || np >= (state.ovPages || 1)) return;
+      state.ovPage = np;
+    }
+    shift(true);
+  }
+}
+
+/* ---------- Tipp-Erkennung: nur einfache Tipps ---------- */
+let down = null, lastTap = 0;
+app.addEventListener("pointerdown", e => {
+  if (!e.isPrimary) { down = null; return; }
+  down = { x: e.clientX, y: e.clientY, t: performance.now(), target: e.target };
+  const pressable = e.target.closest(".btn, .card");
+  if (pressable && pressable.getAttribute("aria-disabled") !== "true") pressable.classList.add("pressed");
+});
+function clearPressed() { app.querySelectorAll(".pressed").forEach(el => el.classList.remove("pressed")); }
+app.addEventListener("pointercancel", () => { clearPressed(); });
+app.addEventListener("pointerup", e => {
+  setTimeout(clearPressed, 150);
+  if (down && e.isPrimary) { down.upX = e.clientX; down.upY = e.clientY; down.upT = performance.now(); }
+});
+/* Ausgelöst wird beim Klick-Ereignis des Browsers. Das kommt auch dann,
+   wenn die umgebende App die Berührung kurz für sich beansprucht hat. */
+app.addEventListener("click", e => {
+  const d = down; down = null;
+  const now = performance.now();
+  if (d && d.upT) {
+    const dt = d.upT - d.t;
+    const moved = Math.hypot(d.upX - d.x, d.upY - d.y);
+    if (dt < 30 || moved > 40) return;        // Zucken oder Streifen
+  }
+  if (now - lastTap < 300) return;            // Doppeltipp ignorieren
+  lastTap = now;
+  handleTap(e.target);
+});
+app.addEventListener("keydown", e => {
+  const c = e.target.closest(".card");
+  if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); handleTap(c); }
+});
+function handleTap(target) {
+  const b = target.closest("[data-act]");
+  if (b) { if (b.getAttribute("aria-disabled") !== "true") act(b.dataset.act, b); return; }
+  const s = target.closest(".s");
+  if (s && state.view === "article" && settings.tts && "speechSynthesis" in window) {
+    if (speech.on) stopSpeaking(); else speakFrom(Number(s.dataset.i));
+  }
+}
+document.addEventListener("contextmenu", e => { if (app.contains(e.target)) e.preventDefault(); });
+
+/* ---------- Vorlesen: ab angetipptem Satz, aktueller Satz markiert ---------- */
+const speech = { on: false, token: 0 };
+function germanVoice() {
+  const vs = speechSynthesis.getVoices();
+  return vs.find(v => /^de(-|_)DE/i.test(v.lang) && /google|samsung|natural/i.test(v.name)) ||
+         vs.find(v => /^de(-|_)DE/i.test(v.lang)) || vs.find(v => /^de/i.test(v.lang)) || null;
+}
+function speakFrom(i) {
+  if (!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  speech.on = true;
+  const token = ++speech.token;
+  renderBars();
+  const step = k => {
+    if (!speech.on || token !== speech.token) return;
+    const el = flow.querySelector('.s[data-i="' + k + '"]');
+    if (!el) { stopSpeaking(); return; }
+    flow.querySelectorAll(".s.now").forEach(x => x.classList.remove("now"));
+    el.classList.add("now");
+    const pg = pageOf(el);
+    if (pg !== state.page) { state.page = pg; shift(true); }
+    const u = new SpeechSynthesisUtterance(el.textContent);
+    u.lang = "de-DE";
+    const v = germanVoice(); if (v) u.voice = v;
+    u.rate = settings.rate;
+    u.onend = () => step(k + 1);
+    u.onerror = () => { if (token === speech.token) stopSpeaking(); };
+    speechSynthesis.speak(u);
+  };
+  step(i);
+}
+function stopSpeaking() {
+  speech.on = false;
+  speech.token++;
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  flow.querySelectorAll(".s.now").forEach(x => x.classList.remove("now"));
+  if (state.view === "article") renderBars();
+}
+if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => {};
+
+/* ---------- Bildschirm wach halten im Artikel ---------- */
+let wake = null;
+async function requestWake() {
+  try { if ("wakeLock" in navigator && !wake) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); } } catch (e) { wake = null; }
+}
+function releaseWake() { try { if (wake) wake.release(); } catch (e) {} wake = null; }
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && state.view === "article") requestWake();
+  if (document.visibilityState === "hidden") stopSpeaking();
+});
+
+/* ---------- Einstellungen (nur für Angehörige) ---------- */
+function openSheet() {
+  stopSpeaking();
+  const opt = (key, val, label) =>
+    '<button class="opt" type="button" data-key="' + key + '" data-val="' + val + '" aria-pressed="' + (String(settings[key]) === String(val)) + '">' + label + "</button>";
+  const hasVoice = "speechSynthesis" in window;
+  sheet.innerHTML =
+    '<div class="inner">' +
+    "<h2>Einstellungen</h2>" +
+    "<p class=\"hint\" style=\"margin:0\">Gedacht für Angehörige. Am besten gemeinsam ausprobieren: die erste Schriftgröße wählen, die sich angenehm liest, oder eine Stufe größer.</p>" +
+    "<section><h3>Schriftgröße</h3><div class=\"row\">" +
+      SIZES.map((s, i) => opt("size", i, "Stufe " + (i + 1) + " (" + s + " px)")).join("") +
+    "</div></section>" +
+    "<section><h3>Farbschema</h3><div class=\"row\">" +
+      opt("schema", "dark", "Hell auf Schwarz") + opt("schema", "light", "Dunkel auf Hell") +
+    "</div><p class=\"hint\">Beide ausprobieren. Welches besser passt, hängt vom Auge ab.</p></section>" +
+    "<section><h3>Zeilenabstand</h3><div class=\"row\">" +
+      opt("lh", 1.5, "1,5-fach") + opt("lh", 2, "Doppelt (empfohlen)") +
+    "</div></section>" +
+    "<section><h3>Vorlesen</h3><div class=\"row\">" +
+      opt("tts", true, "An") + opt("tts", false, "Aus") +
+    "</div><div class=\"row\" style=\"margin-top:8px\">" +
+      opt("rate", 0.75, "Langsam") + opt("rate", 0.85, "Ruhig") + opt("rate", 1, "Normal") +
+    "</div><p class=\"hint\">" + (hasVoice ? "Im Artikel auf einen Satz tippen: Ab dort wird vorgelesen. Nochmal tippen hält an." : "Dieser Browser kann nicht vorlesen.") + "</p></section>" +
+    "<section><h3>Vorschau</h3><div class=\"preview\">Wer am Fluss spazieren geht, kann sich jetzt öfter ausruhen. Die neuen Bänke haben Armlehnen.</div></section>" +
+    "<section><h3>Lesestand</h3><div class=\"row\">" +
+      '<button class="opt" type="button" data-reset="1">Gelesen-Markierungen zurücksetzen</button>' +
+    "</div></section>" +
+    '<button class="btn done" type="button" data-close="1">Fertig</button>' +
+    "</div>";
+  sheet.hidden = false;
+}
+sheet.addEventListener("click", e => {
+  const o = e.target.closest(".opt");
+  if (o && o.dataset.key) {
+    const k = o.dataset.key; let v = o.dataset.val;
+    v = (k === "schema") ? v : (v === "true" ? true : v === "false" ? false : Number(v));
+    settings[k] = v;
+    store.set("settings", settings);
+    applySettings();
+    sheet.querySelectorAll('.opt[data-key="' + k + '"]').forEach(x => x.setAttribute("aria-pressed", String(x.dataset.val) === String(v)));
+    return;
+  }
+  if (e.target.closest("[data-reset]")) { readSet.clear(); store.set("read", []); return; }
+  if (e.target.closest("[data-close]")) { sheet.hidden = true; renderOverview(); }
+});
+
+/* ---------- Start ---------- */
+function save() {
+  if (state.view === "article") store.set("last", { id: state.articleId, page: state.page });
+  else store.set("last", null);
+}
+let resizeT = null;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => {
+    if (state.view === "article") renderArticle(state.articleId, speech.on ? null : firstSentenceOnPage());
+    else layout();
+  }, 120);
+});
+applySettings();
+function finishLoad(list, mode) {
+  ARTICLES = list; MODE = mode;
+  try { loadedAt = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" }).format(new Date()) + " Uhr"; } catch (e) {}
+  if (state.view === "article" && ARTICLES.some(a => a.id === state.articleId)) return; // nicht beim Lesen stören
+  if (last && state.view === "overview" && !started && ARTICLES.some(a => a.id === last.id)) {
+    started = true; state.page = last.page || 0; renderArticle(last.id); return;
+  }
+  started = true;
+  if (state.view !== "article") renderOverview();
+}
+let started = false;
+async function refresh() {
+  try { finishLoad(await loadNews(), "live"); }
+  catch (e) { if (MODE !== "live") finishLoad(SAMPLES, "samples"); }
+}
+renderOverview();
+refresh();
+setInterval(() => { if (state.view === "overview") refresh(); }, 30 * 60 * 1000);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { state.view === "article" ? layout(firstSentenceOnPage()) : layout(); });
+})();
+</script>
+
+</body>
+</html>
