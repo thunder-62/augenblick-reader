@@ -156,6 +156,7 @@ Regeln:
 - Ausgabe validieren (Länge, Sprache); bei Verstoß einmal neu, sonst Fallback.
 - Kosten begrenzen: Tageslimit an Aufrufen in der Konfiguration.
 - Die Kurzfassung steht **ohne Beschriftung** (kein „Kurz gesagt“, kein „KI“) direkt unter dem Titel; die Position auf der Karte macht sie als Zusammenfassung erkennbar. Der Originalartikel ist immer einen Tipp entfernt. (Entscheidung des Betreuers nach Prototyp-Test.)
+- **KI-Symbol:** Stammt die Kurzfassung von der KI (nicht vom Anreißer der Quelle), steht vor ihr ein kleines, ruhiges Symbol statt eines Textes. Gestaltung: eigenes SVG, gleiche Farbe wie der Text der Kurzfassung (Kontrast ≥ 7:1), Höhe ca. 0,8 × Schriftgröße, keine Animation, kein Tippziel. Bedeutung steht auf dem gedruckten Spickzettel und im Admin-Bereich. Das konkrete Motiv legt der Betreuer fest.
 
 ## 7. Einstellungen
 
