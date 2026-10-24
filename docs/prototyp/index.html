@@ -85,7 +85,8 @@ footer.bar { border-top: 2px solid var(--rule); padding-top: 10px; }
   letter-spacing: 0.02em;
   color: var(--accent);
 }
-.dateline { font-size: 20px; font-weight: 700; text-align: center; line-height: 1.25; }
+.dateline { font-size: 20px; font-weight: 700; text-align: center; line-height: 1.25; min-width: 0; }
+@media (max-width: 600px) { .brand { display: none; } header.bar.ov { grid-template-columns: 1fr auto; } header.bar.ov .dateline { text-align: left; justify-self: start; } }
 .pageinfo { font-size: 18px; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.3; }
 
 .btn {
@@ -421,7 +422,8 @@ const minutes = a => Math.max(1, Math.round(a.body.map(b => typeof b === "string
 const ICON_SPEAK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
 const ICON_STOP = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
 function today() {
-  try { return new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long" }).format(new Date()); }
+  const narrow = window.innerWidth <= 600;
+  try { return new Intl.DateTimeFormat("de-DE", narrow ? { weekday: "short", day: "numeric", month: "short" } : { weekday: "long", day: "numeric", month: "long" }).format(new Date()); }
   catch (e) { return ""; }
 }
 
@@ -498,6 +500,7 @@ function renderArticle(id, keepSentence) {
   requestWake();
 }
 function renderBars() {
+  top.classList.toggle("ov", state.view === "overview");
   if (state.view === "overview") {
     top.innerHTML =
       '<span class="brand">Augenblick</span>' +
