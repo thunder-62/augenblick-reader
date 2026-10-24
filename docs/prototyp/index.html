@@ -330,18 +330,65 @@ function xmlText(el, names) {
   }
   return "";
 }
-function paragraphsFromHtml(html) {
+/* Text der Artikelseite finden: 1) strukturierte Daten (ld+json), 2) eingebettete Seitendaten
+   (z. B. __NEXT_DATA__) mit Textblöcken, 3) größter zusammenhängender Absatzblock im HTML. */
+const clean = s => htmlToText(String(s)).replace(/\s+/g, " ").trim();
+const sentenceLike = s => s.length > 40 && /[.!?“"]$/.test(s) && /\s/.test(s);
+function findArticleBody(node, depth) {
+  if (!node || depth > 12) return null;
+  if (Array.isArray(node)) { for (const n of node) { const r = findArticleBody(n, depth + 1); if (r) return r; } return null; }
+  if (typeof node === "object") {
+    if (typeof node.articleBody === "string" && node.articleBody.length > 200) return node.articleBody;
+    for (const k in node) { const r = findArticleBody(node[k], depth + 1); if (r) return r; }
+  }
+  return null;
+}
+function bestBlockArray(node, depth, best) {
+  if (!node || depth > 25) return best;
+  if (Array.isArray(node)) {
+    const texts = [];
+    for (const el of node) {
+      if (el && typeof el === "object") {
+        const v = ["text", "html", "content", "value", "body", "paragraph"].map(k => el[k]).find(x => typeof x === "string");
+        if (v) { const c = clean(v); if (c) texts.push(c); }
+      }
+    }
+    const good = texts.filter(sentenceLike);
+    const len = good.join(" ").length;
+    if (good.length >= 2 && len > best.len) best = { len, texts: good };
+    for (const el of node) best = bestBlockArray(el, depth + 1, best);
+  } else if (typeof node === "object") {
+    for (const k in node) best = bestBlockArray(node[k], depth + 1, best);
+  }
+  return best;
+}
+function paragraphsFromHtml(html, diag) {
   const doc = new DOMParser().parseFromString(html, "text/html");
+  diag.push("Seite " + Math.round(html.length / 1024) + " KB");
   for (const s of doc.querySelectorAll('script[type="application/ld+json"]')) {
     try {
-      const data = JSON.parse(s.textContent);
-      const list = Array.isArray(data) ? data : (data["@graph"] || [data]);
-      for (const d of list) if (d && typeof d.articleBody === "string" && d.articleBody.length > 300)
-        return d.articleBody.split(/\n+/).map(x => x.trim()).filter(x => x.length > 2);
+      const body = findArticleBody(JSON.parse(s.textContent), 0);
+      if (body) { diag.push("ld+json"); return body.split(/\n+/).map(clean).filter(x => x.length > 2); }
     } catch (e) {}
   }
-  const ps = [...doc.querySelectorAll("article p, main p")].map(p => p.textContent.replace(/\s+/g, " ").trim()).filter(x => x.length > 40);
-  return ps.length >= 2 ? ps : [];
+  let best = { len: 0, texts: [] };
+  for (const s of doc.querySelectorAll('script#__NEXT_DATA__, script[type="application/json"]')) {
+    try { best = bestBlockArray(JSON.parse(s.textContent), 0, best); } catch (e) {}
+  }
+  if (best.texts.length) { diag.push("Seitendaten"); return best.texts; }
+  doc.querySelectorAll("nav, header, footer, aside, script, style, noscript, figure, figcaption, form, button").forEach(n => n.remove());
+  const groups = new Map();
+  for (const p of doc.querySelectorAll("p")) {
+    const txt = p.textContent.replace(/\s+/g, " ").trim();
+    if (txt.length < 30) continue;
+    const g = groups.get(p.parentElement) || [];
+    g.push(txt); groups.set(p.parentElement, g);
+  }
+  let top = [];
+  for (const g of groups.values()) if (g.join(" ").length > top.join(" ").length) top = g;
+  if (top.length >= 2) { diag.push("HTML-Absätze"); return top; }
+  diag.push("kein Artikeltext gefunden");
+  return [];
 }
 async function loadBR(max) {
   const xml = new DOMParser().parseFromString(await getText(BR_FEED), "text/xml");
@@ -356,10 +403,16 @@ async function loadBR(max) {
       body = [...new DOMParser().parseFromString(encoded, "text/html").querySelectorAll("p")].map(p => p.textContent.replace(/\s+/g, " ").trim()).filter(x => x.length > 2);
       full = body.length > 0;
     }
-    if (!full && link) { try { body = paragraphsFromHtml(await getText(link)); full = body.length > 0; } catch (e) {} }
+    const diag = [];
+    if (!link) diag.push("kein Link im Feed");
+    if (!full && link) {
+      try { body = paragraphsFromHtml(await getText(link), diag); full = body.length > 0; }
+      catch (e) { diag.push("Artikelseite nicht geladen: " + e.message); }
+    }
     if (!full) body = teaser ? [teaser] : [];
     if (!title || !body.length) return null;
-    return { id: "br:" + (link || title), sec: "Mittelfranken", title, sum: teaser || body[0], body, live: true, src: full ? "BR24" : "BR24 (nur Anreißer)" };
+    return { id: "br:" + (link || title), sec: "Mittelfranken", title, sum: teaser || body[0], body, live: true,
+      src: full ? "BR24" : "BR24 (nur Anreißer: " + diag.join(", ") + ")" };
   }));
   return arts.filter(Boolean);
 }
