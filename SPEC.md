@@ -232,7 +232,7 @@ Abstand Auge–Tablet bei der Kalibrierung und im Alltag gleich halten (Ständer
 - Tempo `ttsRate`, Lautstärke über Gerät.
 - Vorlesen stoppt beim Verlassen des Artikels.
 - **Fehlerfall:** keine de-DE-Stimme → Taste ausblenden, im Admin-Status melden.
-- **Audioausgabe über Hörgeräte:** Die Ausgabe muss direkt über per Bluetooth gekoppelte Hörgeräte funktionieren (Android-Hörgeräteunterstützung, ASHA; LE Audio, sobald Gerät und Hörgeräte es können). Die App spielt nur über die Standard-Audioausgabe des Systems ab und darf kein Ausgabegerät erzwingen. Am Gerät testen: Verzögerung bis zum ersten Wort, Abbruch und Wiederaufnahme bei getrennter Verbindung (Vorlesen pausiert, nicht über den Tablet-Lautsprecher weiter), Lautstärke. Im Admin-Status anzeigen, ob gerade über Hörgeräte oder Lautsprecher ausgegeben wird, soweit der Browser das erkennen lässt.
+- **Audioausgabe über Hörgeräte:** Die Ausgabe muss direkt über per Bluetooth gekoppelte Hörgeräte funktionieren (Android-Hörgeräteunterstützung, ASHA; LE Audio, sobald Gerät und Hörgeräte es können) oder kabelgebunden über einen USB-C-Klinkenadapter (z. B. zu einem Hörgeräte-Streamer oder Kopfhörer). Die App spielt nur über die Standard-Audioausgabe des Systems ab und darf kein Ausgabegerät erzwingen. Am Gerät testen: Verzögerung bis zum ersten Wort, Abbruch und Wiederaufnahme bei getrennter Verbindung (Vorlesen pausiert, nicht über den Tablet-Lautsprecher weiter), Lautstärke. Im Admin-Status anzeigen, ob gerade über Hörgeräte oder Lautsprecher ausgegeben wird, soweit der Browser das erkennen lässt.
 
 ### 8.6 Experimente (Feature-Flags, standardmäßig aus)
 
