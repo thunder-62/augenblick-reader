@@ -3,6 +3,7 @@
  */
 import {
   DEFAULT_SETTINGS,
+  sanitizeSettings,
   type Article,
   type ArticleCard,
   type Edition,
@@ -13,7 +14,8 @@ import { button, fitsIn, h, icons, measureBox, setButton } from './dom.ts';
 import { setLocale, t, tOr, tp } from './i18n.ts';
 import { packPages, pageForAnchor, paginate, type Page, type PageItem } from './paginate.ts';
 import { applySettings, calibrateCharWidth, layoutKey } from './settings.ts';
-import { loadState, markRead, readIds, saveState } from './state.ts';
+import { loadState, markRead, readIds, saveState as storeState } from './state.ts';
+import { endReading, trackPage } from './usage.ts';
 import { onTap } from './tap.ts';
 import { keepAwake } from './wakelock.ts';
 
@@ -31,6 +33,8 @@ function firstSentence(text: string): string {
   return m ? m[0] : text;
 }
 
+export type Preview = { settings: unknown; articleId?: string };
+
 type View =
   | { kind: 'loading' }
   | { kind: 'overview'; page: number }
@@ -38,13 +42,21 @@ type View =
 
 export class App {
   private settings: Settings = DEFAULT_SETTINGS;
+  private serverSettings: Settings = DEFAULT_SETTINGS;
   private edition: Edition | null = null;
   private editionFailed = false;
   private view: View = { kind: 'loading' };
   private overviewPages: ArticleCard[][] = [];
   private screen: HTMLElement | null = null;
 
-  constructor(private readonly root: HTMLElement) {}
+  /**
+   * `preview`: Vorschau im Admin-Bereich – Einstellungen kommen vom Admin-Bereich, nichts wird
+   * gespeichert oder protokolliert.
+   */
+  constructor(
+    private readonly root: HTMLElement,
+    private readonly preview: Preview | null = null,
+  ) {}
 
   async start(): Promise<void> {
     applySettings(this.settings);
@@ -54,6 +66,22 @@ export class App {
     calibrateCharWidth();
     await this.loadEdition();
 
+    if (this.preview) {
+      window.addEventListener('message', (e: MessageEvent<unknown>) => {
+        if (e.origin !== location.origin) return;
+        const data = e.data as { type?: string; settings?: unknown };
+        if (data?.type !== 'augenblick-preview') return;
+        if (this.preview) this.preview.settings = data.settings;
+        void this.refreshSettings(true);
+      });
+      // Dem Admin-Bereich melden, dass die Vorschau bereit ist – er schickt dann den aktuellen Entwurf.
+      if (window.parent !== window)
+        window.parent.postMessage({ type: 'augenblick-preview-ready' }, location.origin);
+      if (this.preview.articleId) await this.openArticle(this.preview.articleId, -1);
+      else this.showOverview(0);
+      return;
+    }
+
     const saved = loadState();
     if (saved.view === 'article' && saved.articleId)
       await this.openArticle(saved.articleId, saved.anchor ?? -1);
@@ -61,6 +89,12 @@ export class App {
 
     setInterval(() => void this.refreshSettings(), SETTINGS_REFRESH_MS);
     setInterval(() => void this.refreshEdition(), EDITION_REFRESH_MS);
+    // Zurück im Vordergrund (z. B. nach der Kalibrierung): Einstellungen und Ausgabe sofort neu laden.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      void this.refreshSettings();
+      void this.refreshEdition();
+    });
     let resizeTimer = 0;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
@@ -70,19 +104,24 @@ export class App {
 
   // --- Daten ---------------------------------------------------------------
 
-  private async loadSettings(): Promise<void> {
-    try {
-      this.settings = await fetchSettings();
-    } catch {
-      // Standardwerte bleiben; nächster Versuch beim regelmäßigen Abruf.
+  private async loadSettings(cachedOnly = false): Promise<void> {
+    if (!cachedOnly) {
+      try {
+        this.serverSettings = await fetchSettings();
+      } catch {
+        // Standardwerte bleiben; nächster Versuch beim regelmäßigen Abruf.
+      }
     }
+    this.settings = this.preview
+      ? sanitizeSettings(this.preview.settings, this.serverSettings)
+      : this.serverSettings;
     setLocale(this.settings.locale);
     applySettings(this.settings);
   }
 
-  private async refreshSettings(): Promise<void> {
+  private async refreshSettings(cachedOnly = false): Promise<void> {
     const before = layoutKey(this.settings) + this.settings.theme;
-    await this.loadSettings();
+    await this.loadSettings(cachedOnly);
     if (layoutKey(this.settings) + this.settings.theme !== before) {
       await document.fonts?.ready;
       calibrateCharWidth();
@@ -111,6 +150,11 @@ export class App {
       setTimeout(() => void this.refreshEdition(), RETRY_MS);
   }
 
+  /** In der Vorschau wird kein Lesezustand gespeichert. */
+  private saveState(state: Parameters<typeof storeState>[0]): void {
+    if (!this.preview) storeState(state);
+  }
+
   private rerender(): void {
     const v = this.view;
     if (v.kind === 'overview') this.showOverview(v.page);
@@ -135,6 +179,7 @@ export class App {
   /** `focusId`: Seite mit diesem Artikel zeigen (Rückkehr aus dem Artikel). */
   private showOverview(page: number, focusId?: string): void {
     keepAwake(false);
+    endReading();
     const cards = this.edition?.articles ?? [];
     const read = readIds();
     const date = new Intl.DateTimeFormat(this.settings.locale, {
@@ -200,7 +245,7 @@ export class App {
     const go = (p: number): void => {
       const current = Math.max(0, Math.min(total - 1, p));
       this.view = { kind: 'overview', page: current };
-      saveState({ view: 'overview', overviewPage: current });
+      this.saveState({ view: 'overview', overviewPage: current });
       const items = (this.overviewPages[current] ?? []).map((c) => {
         const el = cardFor(c);
         onTap(el, () => void this.openArticle(c.id, -1));
@@ -259,7 +304,7 @@ export class App {
       this.renderMissingArticle(id);
       return;
     }
-    markRead(article.id);
+    if (!this.preview) markRead(article.id);
     this.renderArticle(article, anchor);
   }
 
@@ -281,7 +326,7 @@ export class App {
       ),
     );
     this.view = { kind: 'article', article: null, id, page: 0, pages: [] };
-    saveState({ view: 'overview', overviewPage: 0 });
+    this.saveState({ view: 'overview', overviewPage: 0 });
   }
 
   private renderArticle(article: Article, anchor: number): void {
@@ -320,11 +365,12 @@ export class App {
       const current = Math.max(0, Math.min(total - 1, p));
       this.view = { kind: 'article', article, id: article.id, page: current, pages };
       // Seite 1 als -1 merken: sie beginnt mit dem Titel, auch wenn der erste Satz erst auf Seite 2 steht.
-      saveState({
+      this.saveState({
         view: 'article',
         articleId: article.id,
         anchor: current === 0 ? -1 : (pages[current]?.anchor ?? 0),
       });
+      if (!this.preview) trackPage(article.id, current, total);
       pageEl.replaceChildren(...this.renderItems(article, pages[current]?.items ?? [], offsets));
       info.textContent = t('pager.pageOf', { page: current + 1, total });
       setButton(back, t('nav.back'), 'left', { inactive: current === 0 });

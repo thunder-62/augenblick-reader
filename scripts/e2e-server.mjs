@@ -10,6 +10,7 @@ const env = {
   AUGENBLICK_DATA_DIR: dataDir,
   AUGENBLICK_WEB_DIST: path.resolve('web/dist'),
   HOST: '127.0.0.1',
+  AUGENBLICK_ADMIN_PIN: '4711',
 };
 execSync('npm run build -w web', { stdio: 'inherit', env });
 // tsx direkt über Node laden statt über npx – funktioniert so auch unter Windows (npx ist dort eine .cmd-Datei).

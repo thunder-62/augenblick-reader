@@ -68,7 +68,8 @@ export function extractArticleHtml(
   return { title: result.title ?? null, html: result.content };
 }
 
-export type Br24Options = { feedUrl: string; fetch?: FetchLike };
+/** `feedUrl` als Funktion, damit eine im Admin-Bereich geänderte Adresse ohne Neustart gilt. */
+export type Br24Options = { feedUrl: string | (() => string); fetch?: FetchLike };
 
 export class Br24Adapter implements SourceAdapter {
   readonly id = 'br24';
@@ -80,7 +81,8 @@ export class Br24Adapter implements SourceAdapter {
   }
 
   async fetchList(): Promise<RawItem[]> {
-    const xml = await getText(this.options.feedUrl, {
+    const { feedUrl } = this.options;
+    const xml = await getText(typeof feedUrl === 'function' ? feedUrl() : feedUrl, {
       ...this.fetchOpts(),
       accept: 'application/rss+xml, application/xml',
     });

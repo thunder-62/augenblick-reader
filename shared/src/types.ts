@@ -101,3 +101,36 @@ export type Health = {
   edition: { day: string | null; updatedAt: string | null; articles: number };
   sources: SourceStatus[];
 };
+
+/** Vom Tablet gemeldet, wenn ein Artikel verlassen wird (Nutzungsprotokoll, SPEC §10). */
+export type UsageEvent = {
+  articleId: string;
+  /** Höchste gesehene Seite (1-basiert) und Seitenzahl insgesamt. */
+  pagesSeen: number;
+  pagesTotal: number;
+  /** Sichtbare Lesezeit in Sekunden. */
+  seconds: number;
+};
+
+export type UsageDay = {
+  day: string;
+  articles: number;
+  pages: number;
+  minutes: number;
+};
+
+/** Konfiguration der Quellen, im Admin-Bereich änderbar. */
+export type SourcesConfig = {
+  br24FeedUrl: string;
+  usageLogEnabled: boolean;
+};
+
+export type AdminStatus = {
+  version: string;
+  now: string;
+  edition: { day: string | null; updatedAt: string | null; articles: number };
+  sources: SourceStatus[];
+  articles: { total: number; ready: number; failed: number };
+  storage: { dbBytes: number; freeBytes: number | null };
+  calibratedAt: string | null;
+};

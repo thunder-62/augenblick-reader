@@ -118,7 +118,7 @@ describe('Datenbank', () => {
 
   it('Migrationen sind wiederholbar', () => {
     const db = openDb(':memory:');
-    expect(db.pragma('user_version', { simple: true })).toBe(1);
+    expect(db.pragma('user_version', { simple: true })).toBeGreaterThanOrEqual(2);
     upsertArticle(db, makeArticle());
     expect(() => openDb(':memory:')).not.toThrow();
   });

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS } from '@augenblick/shared';
 import { createApp } from '../src/app.ts';
 import { openDb, saveEdition, upsertArticle } from '../src/core/db.ts';
-import { makeArticle } from './helpers.ts';
+import { makeArticle, testConfig } from './helpers.ts';
 
 function setup() {
   const db = openDb(':memory:');
@@ -11,7 +11,7 @@ function setup() {
   upsertArticle(db, a);
   upsertArticle(db, failed);
   saveEdition(db, '2026-10-24', [a.id, failed.id, 'gibt-es-nicht'], '2026-10-24T06:00:00.000Z');
-  return { app: createApp({ db, settings: DEFAULT_SETTINGS, webDist: null }), a };
+  return { app: createApp({ db, config: testConfig(), webDist: null }), a };
 }
 
 describe('API', () => {
@@ -48,7 +48,7 @@ describe('API', () => {
   });
 
   it('leere Datenbank: leere Ausgabe statt Fehler', async () => {
-    const app = createApp({ db: openDb(':memory:'), settings: DEFAULT_SETTINGS, webDist: null });
+    const app = createApp({ db: openDb(':memory:'), config: testConfig(), webDist: null });
     expect((await app.inject('/api/edition')).json()).toEqual({
       day: null,
       updatedAt: null,

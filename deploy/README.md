@@ -34,7 +34,11 @@ sudo nano /etc/augenblick/augenblick.env
 sudo systemctl restart augenblick-api augenblick-worker
 ```
 
-Wichtig sind vor allem `BR24_FEED_URL` (Region) und `AUGENBLICK_THEME`. Die Datei ist nur für root und den Dienstbenutzer lesbar; sie gehört nie ins Repo.
+Wichtig ist vor allem `AUGENBLICK_ADMIN_PIN` (mindestens 4 Ziffern) – ohne PIN bleibt der Admin-Bereich gesperrt. Die Datei ist nur für root und den Dienstbenutzer lesbar; sie gehört nie ins Repo.
+
+## Admin-Bereich
+
+`http://<tailscale-name>:8080/admin` – nur aus dem Tailnet (und vom Pi selbst) erreichbar, zusätzlich mit PIN. Dort: Einstellungen mit Live-Vorschau, Kalibrierung (am Tablet ausführen; das Tablet muss dafür im Tailnet sein), BR24-Feed und Rubriken-Mix, Status, Nutzungsprotokoll und der Spickzettel zum Ausdrucken. Andere Netze lassen sich mit `AUGENBLICK_ADMIN_NETWORKS` freigeben (siehe ADR 007).
 
 Am Tablet: Chrome öffnen, `http://<name-des-pi>:8080/` aufrufen. Bis HTTPS (M4) läuft, funktionieren Wake Lock und Installation als App nur eingeschränkt.
 

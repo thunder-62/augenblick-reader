@@ -7,7 +7,11 @@ import { VERSION } from './core/version.ts';
 loadEnvFile();
 const config = loadConfig();
 const db = openDb(config.dbPath);
-const app = createApp({ db, settings: config.settings, webDist: config.webDist });
+const app = createApp({ db, config, webDist: config.webDist });
+if (!config.adminPin)
+  log.warn(
+    'AUGENBLICK_ADMIN_PIN ist nicht gesetzt (mind. 4 Ziffern) – der Admin-Bereich bleibt gesperrt.',
+  );
 
 if (!config.webDist)
   log.warn(

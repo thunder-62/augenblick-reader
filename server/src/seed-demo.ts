@@ -5,13 +5,14 @@
 import { loadConfig, loadEnvFile } from './core/config.ts';
 import { openDb } from './core/db.ts';
 import { runPipeline } from './core/pipeline.ts';
+import { getSettings } from './core/store.ts';
 import { DemoAdapter } from './sources/demo.ts';
 
 loadEnvFile();
 const config = loadConfig();
 const db = openDb(config.dbPath);
 const report = await runPipeline(db, [new DemoAdapter()], {
-  sections: config.settings.sections,
+  sections: getSettings(db, config.settings).sections,
   maxArticlesPerRun: 50,
   retentionDays: config.retentionDays,
 });

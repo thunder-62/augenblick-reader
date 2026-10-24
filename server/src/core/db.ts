@@ -35,6 +35,26 @@ const MIGRATIONS: string[] = [
      last_success_at TEXT,
      last_error TEXT
    );`,
+  // M2: Einstellungen (pro Gerät vorbereitet, SPEC §12a), Konfiguration, Nutzungsprotokoll
+  `CREATE TABLE settings (
+     device TEXT PRIMARY KEY,
+     json TEXT NOT NULL,
+     updated_at TEXT NOT NULL
+   );
+   CREATE TABLE config (
+     key TEXT PRIMARY KEY,
+     value TEXT NOT NULL
+   );
+   CREATE TABLE usage_log (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     at TEXT NOT NULL,
+     day TEXT NOT NULL,
+     article_id TEXT NOT NULL,
+     pages_seen INTEGER NOT NULL,
+     pages_total INTEGER NOT NULL,
+     seconds INTEGER NOT NULL
+   );
+   CREATE INDEX usage_log_day ON usage_log(day);`,
 ];
 
 export function openDb(file: string): Db {

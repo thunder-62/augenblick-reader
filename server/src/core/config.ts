@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { DEFAULT_ADMIN_NETWORKS } from './auth.ts';
 import {
   DEFAULT_SECTIONS,
   DEFAULT_SETTINGS,
@@ -23,7 +24,14 @@ export type Config = {
   maxArticlesPerRun: number;
   fetchOnStart: boolean;
   retentionDays: number;
+  /** Anfangswerte der Einstellungen; danach gelten die im Admin-Bereich gespeicherten. */
   settings: Settings;
+  /** PIN für den Admin-Bereich; ohne PIN ist der Admin-Bereich gesperrt. */
+  adminPin: string | null;
+  /** Netze, aus denen der Admin-Bereich erreichbar ist (CIDR). */
+  adminNetworks: string[];
+  /** Nutzungsprotokoll nach so vielen Tagen löschen. */
+  usageRetentionDays: number;
 };
 
 /** Lädt `.env` aus dem Arbeitsverzeichnis bzw. dem Repo-Wurzelverzeichnis, falls vorhanden. */
@@ -68,6 +76,12 @@ export function parseSections(value: string | undefined): SectionQuota[] {
   return out;
 }
 
+/** Mindestens 4 Ziffern; Platzhalter aus .env.example gelten nicht. */
+export function parsePin(value: string | undefined): string | null {
+  const pin = value?.trim() ?? '';
+  return /^\d{4,12}$/.test(pin) ? pin : null;
+}
+
 function findWebDist(): string | null {
   const candidates = [
     process.env.AUGENBLICK_WEB_DIST,
@@ -99,6 +113,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     maxArticlesPerRun: num(env.AUGENBLICK_MAX_ARTICLES_PER_RUN, 20),
     fetchOnStart: bool(env.AUGENBLICK_FETCH_ON_START, true),
     retentionDays: num(env.AUGENBLICK_RETENTION_DAYS, 7),
+    adminPin: parsePin(env.AUGENBLICK_ADMIN_PIN),
+    adminNetworks: env.AUGENBLICK_ADMIN_NETWORKS?.trim()
+      ? env.AUGENBLICK_ADMIN_NETWORKS.split(',').map((s) => s.trim())
+      : DEFAULT_ADMIN_NETWORKS,
+    usageRetentionDays: num(env.AUGENBLICK_USAGE_RETENTION_DAYS, 180),
     settings: {
       ...DEFAULT_SETTINGS,
       theme,

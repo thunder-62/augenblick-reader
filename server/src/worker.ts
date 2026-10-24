@@ -9,6 +9,7 @@ import { openDb } from './core/db.ts';
 import { log } from './core/log.ts';
 import { runPipeline } from './core/pipeline.ts';
 import { FETCH_SCHEDULES } from './core/schedule.ts';
+import { getSettings, getSourcesConfig, pruneUsage } from './core/store.ts';
 import { TIME_ZONE } from './core/time.ts';
 import { VERSION } from './core/version.ts';
 import { createAdapters } from './sources/index.ts';
@@ -16,7 +17,8 @@ import { createAdapters } from './sources/index.ts';
 loadEnvFile();
 const config = loadConfig();
 const db = openDb(config.dbPath);
-const adapters = createAdapters(config);
+// Feed-URL und Rubriken-Mix können im Admin-Bereich geändert werden und gelten ab dem nächsten Lauf.
+const adapters = createAdapters(config, () => getSourcesConfig(db, config).br24FeedUrl);
 let running = false;
 
 async function run(): Promise<void> {
@@ -27,10 +29,11 @@ async function run(): Promise<void> {
   running = true;
   try {
     await runPipeline(db, adapters, {
-      sections: config.settings.sections,
+      sections: getSettings(db, config.settings).sections,
       maxArticlesPerRun: config.maxArticlesPerRun,
       retentionDays: config.retentionDays,
     });
+    pruneUsage(db, new Date(), config.usageRetentionDays);
   } catch (err) {
     log.error('Lauf fehlgeschlagen', err);
   } finally {

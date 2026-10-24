@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import type { Article, Block } from '@augenblick/shared';
+import { DEFAULT_SETTINGS, type Article, type Block } from '@augenblick/shared';
+import type { AppConfig } from '../src/app.ts';
+import { DEFAULT_ADMIN_NETWORKS } from '../src/core/auth.ts';
 import type { FetchLike } from '../src/core/http.ts';
 
 export const fixture = (name: string): string =>
@@ -38,6 +40,20 @@ export function makeArticle(over: Partial<Article> & { text?: string } = {}): Ar
     wordCount: 60,
     readingMinutes: 1,
     status: 'ready',
+    ...over,
+  };
+}
+
+export const TEST_PIN = '4711';
+
+export function testConfig(over: Partial<AppConfig> = {}): AppConfig {
+  return {
+    settings: DEFAULT_SETTINGS,
+    adminPin: TEST_PIN,
+    adminNetworks: DEFAULT_ADMIN_NETWORKS,
+    br24FeedUrl: 'https://example.org/feed.xml',
+    dbPath: ':memory:',
+    dataDir: '.',
     ...over,
   };
 }
