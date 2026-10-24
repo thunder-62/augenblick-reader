@@ -45,7 +45,7 @@ Ein Angehöriger („Betreuer") richtet alles ein und wartet es aus der Ferne. D
 │   └─ data/    SQLite, Konfiguration, Cache        │
 │      │                                            │
 └──────┼────────────────────────────────────────────┘
-       │ ausgehend: Quellen (tagesschau, später Regionalzeitung), KI-API
+       │ ausgehend: Quellen (tagesschau, BR24, später Regionalzeitung), KI-API
        ▼
    Internet          Betreuer ──Tailscale──▶ Admin-Bereich
 ```
@@ -79,7 +79,7 @@ SPEC.md, README.md, LICENSE (MIT)
 ```ts
 type Article = {
   id: string;              // stabil, aus Quelle + Original-ID
-  source: string;          // "tagesschau", später "regional"
+  source: string;          // "tagesschau", "br24", später "regional"
   sourceUrl: string;
   lang: string;            // BCP-47, z. B. "de"
   section?: string;        // Rubrik, normalisiert: "inland", "region", "sport", …
@@ -120,7 +120,9 @@ interface SourceAdapter {
 }
 ```
 
-- **Phase 1: tagesschau.** Öffentliche JSON-Schnittstelle der tagesschau (vor Umsetzung Endpunkte und Nutzungsbedingungen prüfen und in `docs/entscheidungen/` festhalten). Zusätzlich prüfen, ob sich „tagesschau in Einfacher Sprache" als eigene Rubrik einbinden lässt.
+- **Phase 1a: tagesschau** (Deutschland/Welt). Öffentliche JSON-Schnittstelle der tagesschau (vor Umsetzung Endpunkte und Nutzungsbedingungen prüfen und in `docs/entscheidungen/` festhalten). Zusätzlich prüfen, ob sich „tagesschau in Einfacher Sprache" als eigene Rubrik einbinden lässt.
+- **Phase 1b: BR24** (Bayern und Region). BR24 bietet RSS-Feeds, u. a. allgemein (`https://feeds.br24.de/rss/nachrichten`) und je Region bzw. Ressort (`nachrichtenfeeds.br.de/...`). Die Region (Feed-URL) ist eine Einstellung des Betreuers, nicht fest im Code. Feeds liefern meist nur Anreißer: Volltext von der Artikelseite holen und mit einer Readability-artigen Extraktion bereinigen. Vor Umsetzung aktuelle Feed-URLs, insbesondere für Franken/Mittelfranken, und Nutzungsbedingungen prüfen und dokumentieren.
+- **Dubletten zwischen Quellen:** Gleiche Meldung bei tagesschau und BR24 nur einmal zeigen, bevorzugt die Fassung mit mehr Text.
 - **Phase 2: Regionale Tageszeitung (ePaper, Abo).** Nur Schnittstelle und Konfigurationsplatz vorsehen, **keinen Scraper bauen**, bevor der Betreuer die rechtliche Klärung (Nutzungsbedingungen, privater Gebrauch, KI-Kurzfassungen) freigegeben hat. Zugangsdaten nie im Repo, nur in `.env` auf dem Pi.
 
 ### 5.2 Verarbeitungs-Pipeline (Worker)
@@ -129,7 +131,7 @@ interface SourceAdapter {
 2. **Bereinigen:** Werbung, Bildunterschriften, „Mehr zum Thema", Links, Social-Embeds, Bildnachweise entfernen. Zwischenüberschriften behalten. Ergebnis als `Block[]`.
 3. **Sätze trennen:** deutscher Satztrenner mit Abkürzungsliste (z. B., Dr., Nr., …). Satzgrenzen sind Grundlage für das Vorlesen.
 4. **KI-Kurzfassung** (§6).
-5. **Auswahl für die Ausgabe:** maximal 12 Artikel pro Tag in der Übersicht, Mischung nach konfigurierbaren Rubriken (z. B. 4× Region, 4× Deutschland/Welt, 2× Vermischtes, 2× Sport). Dubletten (gleiches Thema) zusammenfassen.
+5. **Auswahl für die Ausgabe:** maximal 12 Artikel pro Tag in der Übersicht, Mischung nach konfigurierbaren Rubriken (z. B. 4× Region aus BR24, 4× Deutschland/Welt aus tagesschau, 2× Vermischtes, 2× Sport). Dubletten (gleiches Thema) zusammenfassen.
 6. **Aufräumen:** Artikel älter als 7 Tage löschen.
 
 Fehler einer Quelle dürfen die anderen nicht blockieren. Wenn nichts Neues kommt, bleibt die letzte Ausgabe sichtbar.
@@ -284,7 +286,7 @@ Erreichbar unter `/admin`, für Smartphone/PC des Betreuers gestaltet (normale G
 | # | Ziel | Abnahme |
 |---|---|---|
 | M0 | Repo-Gerüst, CI (Lint, Tests, Release-Paket), lokaler Start per `npm run dev` | `npm run dev` liefert leere Übersicht |
-| M1 | tagesschau-Adapter, Bereinigung, Satztrennung, Übersicht + Artikel statisch, ohne KI | Artikel lesbar, Regeln §8.1–8.3 erfüllt, Playwright-Tests grün |
+| M1 | tagesschau- und BR24-Adapter, Bereinigung, Satztrennung, Übersicht + Artikel statisch, ohne KI | Artikel lesbar, Regeln §8.1–8.3 erfüllt, Playwright-Tests grün |
 | M2 | Admin-Bereich, Settings, Kalibrierung | Größe/Schema per Kalibrierung gesetzt und auf dem Tablet wirksam |
 | M3 | KI-Kurzfassungen inkl. Fallback und Tageslimit | Jede Karte hat Kurzfassung ≤ 45 Wörter |
 | M4 | PWA offline, Tailscale-HTTPS, Pi-Deployment-Skript, nächtliche Updates | Pi neu gestartet → Tablet zeigt wieder aktuelle Ausgabe ohne Eingriff |
