@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release-Paket bauen und veröffentlichen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - name: Bauen
+        run: npm run build
+        env:
+          AUGENBLICK_VERSION: ${{ github.ref_name }}
+      - name: Paket
+        run: npm run package
+      - name: GitHub-Release mit Paket als Asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" release/augenblick-*.tar.gz release/augenblick-*.tar.gz.sha256 --title "${GITHUB_REF_NAME}" --generate-notes
