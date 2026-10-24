@@ -157,6 +157,12 @@ footer.bar { border-top: 2px solid var(--rule); padding-top: 10px; }
 .card h2 { font-size: 1em; font-weight: 700; margin: 0.15em 0 0.25em; text-wrap: balance; }
 .card .sum { font-size: 0.82em; margin: 0; }
 .card .sum b { color: var(--accent); }
+.spark { display: inline-block; width: 0.8em; height: 0.8em; margin-right: 0.3em; vertical-align: -0.08em; color: var(--accent); }
+#sheet input[type=text], #sheet input[type=password] {
+  font: inherit; font-size: 16px; width: 100%; padding: 10px 12px; min-height: 48px;
+  color: var(--fg); background: var(--btn-bg); border: 2px solid var(--btn-border); border-radius: 10px;
+}
+#sheet label { display: block; font-size: 15px; color: var(--muted); margin: 8px 0 4px; }
 .note { font-size: max(16px, 0.6em); color: var(--muted); line-height: 1.4; margin: 0 0 0.8em; break-inside: avoid; }
 .end { display: inline-block; width: 1px; height: 1px; }
 
@@ -476,7 +482,7 @@ function renderOverview() {
     html += '<article class="card" data-act="open" data-id="' + a.id + '" role="button" tabindex="0" aria-label="' + esc(a.title) + ' öffnen">' +
       '<div class="meta"><span class="sec">' + esc(a.sec) + '</span><span>' + (readSet.has(a.id) ? "✓ gelesen · " : "") + "ca. " + minutes(a) + " Min.</span></div>" +
       "<h2>" + esc(a.title) + "</h2>" +
-      '<p class="sum">' + esc(a.sum) + "</p></article>";
+      '<p class="sum">' + (a.ai ? SPARK : "") + esc(a.sum) + "</p></article>";
   }
   flow.innerHTML = html + '<span class="end"></span>';
   layout();
@@ -676,6 +682,12 @@ function openSheet() {
       opt("rate", 0.75, "Langsam") + opt("rate", 0.85, "Ruhig") + opt("rate", 1, "Normal") +
     "</div><p class=\"hint\">" + (hasVoice ? "Im Artikel auf einen Satz tippen: Ab dort wird vorgelesen. Nochmal tippen hält an." : "Dieser Browser kann nicht vorlesen.") + "</p></section>" +
     "<section><h3>Vorschau</h3><div class=\"preview\">Wer am Fluss spazieren geht, kann sich jetzt öfter ausruhen. Die neuen Bänke haben Armlehnen.</div></section>" +
+    "<section><h3>KI-Zusammenfassungen (OpenRouter)</h3>" +
+      "<p class=\"hint\" style=\"margin:0 0 4px\">Nur für diesen Prototyp, mit einem kostenlosen Modell (Endung :free). Ein kostenloses OpenRouter-Konto mit Schlüssel ist trotzdem nötig. Der Schlüssel bleibt in diesem Browser auf diesem Gerät. Ohne Schlüssel erscheinen die Anreißer von BR24 und tagesschau, ohne ✦.</p>" +
+      '<label for="orkey">API-Schlüssel</label><input id="orkey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-or-…" value="' + esc(orKey) + '">' +
+      '<label for="ormodel">Modell</label><input id="ormodel" type="text" autocomplete="off" spellcheck="false" value="' + esc(orModel) + '">' +
+      '<p class="hint">' + esc(aiStatus) + "</p>" +
+    "</section>" +
     "<section><h3>Lesestand</h3><div class=\"row\">" +
       '<button class="opt" type="button" data-reset="1">Gelesen-Markierungen zurücksetzen</button>' +
     "</div></section>" +
@@ -723,8 +735,58 @@ function finishLoad(list, mode) {
   if (state.view !== "article") renderOverview();
 }
 let started = false;
+sheet.addEventListener("change", e => {
+  if (e.target.id === "orkey") { orKey = e.target.value.trim(); store.set("orkey", orKey); }
+  if (e.target.id === "ormodel") { orModel = e.target.value.trim() || DEFAULT_MODEL; store.set("ormodel", orModel); }
+  if (e.target.id === "orkey" || e.target.id === "ormodel") summarizeAll();
+});
+
+/* ---------- KI-Zusammenfassungen über OpenRouter (Prototyp: direkt aus dem Browser) ---------- */
+const DEFAULT_MODEL = "qwen/qwen3-next-80b-a3b-instruct:free"; // kostenloses Modell
+let orKey = store.get("orkey", "");
+let orModel = store.get("ormodel", DEFAULT_MODEL);
+let aiStatus = "Noch keine Zusammenfassungen erzeugt.";
+const SPARK = '<svg class="spark" viewBox="0 0 24 24" role="img" aria-label="KI-Zusammenfassung"><path fill="currentColor" d="M12 1.5c.9 5.8 4.7 9.6 10.5 10.5-5.8.9-9.6 4.7-10.5 10.5C11.1 16.7 7.3 12.9 1.5 12 7.3 11.1 11.1 7.3 12 1.5z"/></svg>';
+const PROMPT = "Fasse den folgenden Zeitungsartikel für eine ältere Leserin in zwei bis drei kurzen Sätzen auf Deutsch zusammen. " +
+  "Sachlich, ohne Wertung, keine Informationen, die nicht im Text stehen, keine Fremdwörter ohne Not, höchstens 45 Wörter. " +
+  "Antworte nur mit der Zusammenfassung, ohne Einleitung.";
+async function summarize(a) {
+  const cacheKey = "sum:" + orModel + ":" + a.id;
+  const cached = store.get(cacheKey, null);
+  if (cached) return cached;
+  const text = a.body.map(b => typeof b === "string" ? b : b.h).join("\n").slice(0, 8000);
+  const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + orKey, "Content-Type": "application/json", "HTTP-Referer": location.origin || "https://thunder-62.github.io", "X-Title": "Augenblick" },
+    body: JSON.stringify({ model: orModel, temperature: 0.2, max_tokens: 200,
+      messages: [{ role: "system", content: PROMPT }, { role: "user", content: a.title + "\n\n" + text }] })
+  });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  const j = await r.json();
+  const out = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content || "").trim();
+  const words = out.split(/\s+/).length;
+  if (!out || words > 70) throw new Error("unbrauchbare Antwort");
+  store.set(cacheKey, out);
+  return out;
+}
+let summarizing = false;
+async function summarizeAll() {
+  if (!orKey || summarizing || MODE !== "live") { if (!orKey) aiStatus = "Kein Schlüssel eingetragen."; return; }
+  summarizing = true;
+  let ok = 0, fail = 0, lastErr = "";
+  const todo = ARTICLES.filter(a => a.live && a.body.length > 1);
+  for (let k = 0; k < todo.length; k += 3) {
+    await Promise.all(todo.slice(k, k + 3).map(async a => {
+      try { a.sum = await summarize(a); a.ai = true; ok++; }
+      catch (e) { fail++; lastErr = e.message; }
+    }));
+    if (state.view === "overview" && sheet.hidden) { const p = state.ovPage; renderOverview(); state.ovPage = p; layout(); }
+  }
+  aiStatus = ok + " Zusammenfassungen von " + orModel + (fail ? ", " + fail + " fehlgeschlagen (" + lastErr + ")" : "") + ".";
+  summarizing = false;
+}
 async function refresh() {
-  try { finishLoad(await loadNews(), "live"); }
+  try { finishLoad(await loadNews(), "live"); summarizeAll(); }
   catch (e) { if (MODE !== "live") finishLoad(SAMPLES, "samples"); }
 }
 renderOverview();
