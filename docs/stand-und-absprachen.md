@@ -12,9 +12,10 @@ Stand: 24.10.2026
 | M1 | tagesschau und BR24, Tagesausgabe, Übersicht und Artikel, Blättern per Taste | erledigt | [001](auftraege/001-m0-m1-grundgeruest-und-lesen.md) |
 | M2 | Leserin stellt selbst ein (mit Rückfrage), Einführung in 6 Schritten, Technik-Bereich `/technik` | erledigt | [002](auftraege/002-m2-einstellungen-einfuehrung-technik.md) |
 | M3 | KI-Kurzfassungen über OpenRouter mit Funkelstern und Fallback, Interessen lernen mit Einverständnis | erledigt | [003](auftraege/003-m3-ki-und-interessen.md) |
+| – | Korrekturen aus der Durchsicht M0–M3: große Schrift, Sicherheit, Einwilligung, Interessen | erledigt | [004](auftraege/004-korrekturen-aus-durchsicht.md) |
 | M4 ff. | HTTPS, Vorlesen, weitere Quellen … | nicht begonnen | – |
 
-Geprüft wurde alles in der Entwicklungsumgebung: Lint, 146 Unit-Tests und 33 E2E-Tests (Chromium, 1280 × 800) sind grün. **Am echten Tablet und am Raspberry Pi wurde noch nichts getestet.**
+Geprüft wurde alles in der Entwicklungsumgebung: Lint, 166 Unit-Tests und 59 E2E-Tests (Chromium, 1280 × 800, alle 7 Schriftstufen) sind grün. **Am echten Tablet und am Raspberry Pi wurde noch nichts getestet.**
 
 ## Absprachen mit dem Betreuer
 
@@ -29,7 +30,8 @@ Geprüft wurde alles in der Entwicklungsumgebung: Lint, 146 Unit-Tests und 33 E2
 4. **Betrieb auf dem Windows-PC zum Ausprobieren.** Server und Web-App laufen auch unter Windows (Node.js 22, PowerShell), siehe README „Starten“. Die Skripte in `deploy/` gelten nur für Pi und Linux.
 5. **KI-Modell:** Standard ist das im Prototyp erprobte kostenlose Modell. Für den Dauerbetrieb trägt der Betreuer ein günstiges bezahltes Modell ein (Auftrag 003, offene Frage 1).
 6. **Kein Release ohne Freigabe.** Das Tag `v0.1.0`, das das Release-Paket für `install.sh`/`update.sh` erzeugt, setzt nur der Betreuer.
-7. **Arbeitsweise:** Entwickelt wird auf dem Branch `claude/claude-md-offene-auftraege-h1iuc3`. Pull Requests gibt es nur auf Wunsch. Commits sind klein und deutsch, und vor jedem Commit laufen Lint und Tests grün.
+7. **Durchsicht nach M3 (Auftrag 004):** Vor dem Gerätetest wurden die Befunde einer Durchsicht behoben, ohne neue Funktionen. Danach wird wieder angehalten; weiter erst nach dem Test am Gerät.
+8. **Arbeitsweise:** Entwickelt wird auf dem Branch `claude/claude-md-offene-auftraege-h1iuc3`. Pull Requests gibt es nur auf Wunsch. Commits sind klein und deutsch, und vor jedem Commit laufen Lint und Tests grün.
 
 ## Abgleich mit der Spec
 
@@ -68,7 +70,7 @@ Am 24.10.2026 nochmals gegen `SPEC.md` (Version 0.1) geprüft. Auf `main` gab es
 2. **OpenRouter-Schlüssel** in `.env` als `OPENROUTER_API_KEY` eintragen und einige Karten lesen. Dabei auf Ton, Länge und Schlagworte achten (Technik → Interessen).
 3. **Quellen live prüfen.** Aus der Entwicklungsumgebung waren tagesschau, BR24 und OpenRouter gesperrt. Kommen Artikel beider Quellen an, und sind die Texte sauber? Der Feed für Mittelfranken ist bekannt und Standard (ADR 010, `AUGENBLICK_RSS_FEEDS`).
 4. **Test mit der Leserin am Gerät:** Einführung, Einstellungen, Blättern, Lesen, Funkelstern. Die Beobachtungen in die offenen Fragen der Aufträge eintragen.
-5. **Pi einrichten:** `sudo ./deploy/install.sh --from-source`, bis es ein Release gibt.
+5. **Pi einrichten:** `sudo ./deploy/install.sh --from-source`, bis es ein Release gibt. Ruft man den Pi über einen Namen aus dem Router oder Tailscale auf, diesen in `AUGENBLICK_ALLOWED_HOSTS` eintragen (ADR 013).
 6. **Repo-Einstellungen:** „Secret scanning“ und „Push protection“ einschalten.
 
 ## Offene Fragen im Überblick
@@ -77,6 +79,7 @@ Die vollständigen Fragen stehen jeweils unter „Offene Fragen“ im Auftrag. A
 
 - **Erst am Gerät zu klären:**
   - wie viele Karten auf eine Übersichtsseite passen (meist nur eine bei 30 px);
+  - ob bei sehr großer Schrift (ab 60 px) die Abstufung der Karten (Kurzfassung kürzen, Titel kleiner) und die begrenzte Schrift der Tasten passen (Auftrag 004);
   - Wortlaut und Ablauf der Einführung;
   - wo die Taste „Einstellungen“ sitzt;
   - ob die Einführung nach einer Pause von selbst wiederkommen soll;

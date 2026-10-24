@@ -8,7 +8,7 @@ Ein ruhiger, sehr gut lesbarer Zeitungs-Reader für Menschen mit Makuladegenerat
 - Sanftes Vorlesen ab einem angetippten Wort – Begleitung, kein Ersatz fürs eigene Lesen
 - Leseeinstellungen ändert die Leserin selbst, mit Rückfrage vor dem dauerhaften Speichern; um die Technik kümmert sich ein Angehöriger
 
-**Status:** M0–M3 umgesetzt (Grundgerüst, tagesschau und BR24, Übersicht und Artikel, Einstellungen der Leserin mit Einführung, Technik-Bereich, KI-Zusammenfassungen über OpenRouter, Interessen lernen). Nach M3 angehalten: Als Nächstes testet der Betreuer mit der Nutzerin am Gerät.
+**Status:** M0–M3 umgesetzt (Grundgerüst, tagesschau und BR24, Übersicht und Artikel, Einstellungen der Leserin mit Einführung, Technik-Bereich, KI-Zusammenfassungen über OpenRouter, Interessen lernen). Danach Korrekturen aus der Durchsicht (Auftrag 004). Angehalten: Als Nächstes testet der Betreuer mit der Nutzerin am Gerät.
 
 - Spezifikation: [`SPEC.md`](SPEC.md)
 - Stand und Absprachen: [`docs/stand-und-absprachen.md`](docs/stand-und-absprachen.md)
@@ -43,6 +43,8 @@ Ohne Internetzugang bleibt die Übersicht leer („wird gerade zusammengestellt�
 npm run demo              # füllt data/augenblick.sqlite mit Beispielartikeln
 ```
 
+**Erlaubte Adressen:** Zum Schutz gegen DNS-Rebinding antwortet die API nur auf die IP-Adressen des Rechners, seinen Hostnamen (auch mit `.local`) und `localhost`. Wer die App über einen anderen Namen öffnet (z. B. `pi.fritz.box` oder den Tailscale-Namen), trägt ihn in `AUGENBLICK_ALLOWED_HOSTS` ein (ADR 013).
+
 **Unter Windows** geht das genauso (PowerShell, Node.js 22 LTS von nodejs.org). Für die E2E-Tests einmal `npx playwright install chromium`. Nur die Skripte in `deploy/` sind für den Raspberry Pi bzw. Linux gedacht. Um die App vom Tablet im selben WLAN zu öffnen: `http://<IP-des-PCs>:5173` – beim ersten Start fragt die Windows-Firewall nach, ob Node.js im privaten Netz erreichbar sein darf.
 
 Weitere Befehle:
@@ -58,7 +60,7 @@ Weitere Befehle:
 
 Die E2E-Tests laufen im Querformat-Viewport 1280×800 CSS-px. Die Schriftgröße stellt die Leserin in der Einführung selbst ein; die Umrechnung Millimeter → CSS-Pixel für die Tippziele in `shared/src/geometry.ts` ist ein vorsichtiger Schätzwert (eher zu große Tasten).
 
-Auf dem Raspberry Pi: `sudo ./deploy/install.sh` (Details in [`deploy/README.md`](deploy/README.md)). Releases entstehen automatisch, wenn ein Tag `v*` gepusht wird.
+Auf dem Raspberry Pi: `sudo ./deploy/install.sh` (Details in [`deploy/README.md`](deploy/README.md)). Wer schon eine ältere Fassung installiert hat, führt es nach Auftrag 004 einmal erneut aus: Das nächtliche Update läuft jetzt als eigener Benutzer ohne Root-Rechte (ADR 012). Releases entstehen automatisch, wenn ein Tag `v*` gepusht wird.
 
 ## Öffentliches Repo – Hinweise
 
