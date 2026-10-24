@@ -4,7 +4,7 @@ import { build } from 'esbuild';
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 const root = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-const version = process.env.AUGENBLICK_VERSION ?? root.version;
+const version = (process.env.AUGENBLICK_VERSION ?? root.version).replace(/^v/, '');
 
 await build({
   entryPoints: ['src/api.ts', 'src/worker.ts', 'src/seed-demo.ts'],

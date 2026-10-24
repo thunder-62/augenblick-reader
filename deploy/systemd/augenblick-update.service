@@ -1,0 +1,9 @@
+[Unit]
+Description=Augenblick nächtliches Update (neues Release laden, Healthcheck, ggf. Rückfall)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/augenblick/augenblick.env
+ExecStart=/usr/local/sbin/augenblick-update
