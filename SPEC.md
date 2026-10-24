@@ -232,6 +232,7 @@ Abstand Auge–Tablet bei der Kalibrierung und im Alltag gleich halten (Ständer
 - Tempo `ttsRate`, Lautstärke über Gerät.
 - Vorlesen stoppt beim Verlassen des Artikels.
 - **Fehlerfall:** keine de-DE-Stimme → Taste ausblenden, im Admin-Status melden.
+- **Audioausgabe über Hörgeräte:** Die Ausgabe muss direkt über per Bluetooth gekoppelte Hörgeräte funktionieren (Android-Hörgeräteunterstützung, ASHA; LE Audio, sobald Gerät und Hörgeräte es können). Die App spielt nur über die Standard-Audioausgabe des Systems ab und darf kein Ausgabegerät erzwingen. Am Gerät testen: Verzögerung bis zum ersten Wort, Abbruch und Wiederaufnahme bei getrennter Verbindung (Vorlesen pausiert, nicht über den Tablet-Lautsprecher weiter), Lautstärke. Im Admin-Status anzeigen, ob gerade über Hörgeräte oder Lautsprecher ausgegeben wird, soweit der Browser das erkennen lässt.
 
 ### 8.6 Experimente (Feature-Flags, standardmäßig aus)
 
@@ -303,6 +304,6 @@ Nach M1, M2 und M5 testet der Betreuer mit der Nutzerin am Gerät; Rückmeldunge
 
 1. Rechtliche Klärung Regionalzeitungs-ePaper (Zugang, Nutzungsbedingungen, KI-Kurzfassungen) → Voraussetzung für M7.
 2. Augenbefund (Linsentrübung? Ausfall links/rechts?) – beeinflusst Farbschema und Laufschrift-Marke. Empfehlung: Low-Vision-Beratung.
-3. Gehör der Nutzerin – entscheidet über den Wert von §8.5.
+3. Hörgeräte der Nutzerin: Unterstützen sie ASHA oder LE Audio (nicht nur „Made for iPhone")? Kopplung mit dem Tab S11 vor M5 testen.
 4. Kiosk-Lösung auf dem Tab S11: Bildschirmfixierung vs. Kiosk-Launcher.
 
