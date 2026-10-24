@@ -8,6 +8,7 @@ import type {
   SourcesConfig,
   TechnikStatus,
 } from '@augenblick/shared';
+import { t } from '../i18n.ts';
 
 export class ApiError extends Error {
   constructor(
@@ -33,8 +34,15 @@ async function call<T>(method: string, url: string, body?: unknown): Promise<T> 
     data = { message: text };
   }
   if (!res.ok) {
-    const d = (data ?? {}) as { error?: string; message?: string };
-    throw new ApiError(res.status, d.message ?? d.error ?? res.statusText);
+    const d = (data ?? {}) as {
+      error?: string;
+      message?: string;
+      code?: string;
+      params?: Record<string, string | number>;
+    };
+    // Der Server schickt Codes; übersetzt wird hier (SPEC §11).
+    const message = d.code ? t(`technik.errors.${d.code}`, d.params) : undefined;
+    throw new ApiError(res.status, message ?? d.message ?? d.error ?? res.statusText);
   }
   return data as T;
 }

@@ -202,6 +202,13 @@
   },
   "technik": {
     "title": "Augenblick – Technik",
+    "errors": {
+      "network": "Der Technik-Bereich ist nur im Heimnetz oder über Tailscale erreichbar.",
+      "feedsList": "Die Feeds müssen als Liste angegeben werden.",
+      "feedEntry": "Ungültiger Feed-Eintrag.",
+      "feedUnknown": "„{entry}“ ist weder ein bekannter Feed noch eine Adresse mit http:// oder https://.",
+      "feedsMax": "Höchstens {max} Feeds."
+    },
     "intro": "Hier ist nur Technik. Was das Lesen betrifft, entscheidet die Leserin selbst in ihren Einstellungen auf dem Tablet.",
     "tabs": {
       "status": "Status",

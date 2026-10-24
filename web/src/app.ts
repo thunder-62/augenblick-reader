@@ -99,11 +99,23 @@ export class App implements FlowHost {
       void this.refreshSettings();
       void this.refreshEdition();
     });
+    this.scheduleMidnight();
     let resizeTimer = 0;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(() => this.rerender(), 150);
     });
+  }
+
+  /** Nach Mitternacht zeigt die Übersicht das neue Datum (Auftrag 004, D12). */
+  private scheduleMidnight(): void {
+    const now = new Date();
+    const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
+    setTimeout(() => {
+      if (this.view.kind === 'overview') this.showOverview(this.view.page);
+      void this.refreshEdition();
+      this.scheduleMidnight();
+    }, next.getTime() - now.getTime());
   }
 
   // --- Daten ---------------------------------------------------------------
@@ -356,17 +368,26 @@ export class App implements FlowHost {
     try {
       article = await fetchArticle(id);
     } catch {
-      article = null;
+      // Pi nicht erreichbar (SPEC §9): ruhiger Hinweis, der Lesezustand bleibt; später erneut.
+      this.renderMissingArticle(id, 'overview.unreachable');
+      setTimeout(() => {
+        if (this.view.kind === 'article' && !this.view.article && this.view.id === id)
+          void this.openArticle(id, anchor);
+      }, RETRY_MS);
+      return;
     }
     if (!article) {
-      this.renderMissingArticle(id);
+      this.renderMissingArticle(id, 'article.notFound');
       return;
     }
     if (!this.preview) markRead(article.id);
     this.renderArticle(article, anchor);
   }
 
-  private renderMissingArticle(id: string): void {
+  private renderMissingArticle(
+    id: string,
+    reason: 'article.notFound' | 'overview.unreachable',
+  ): void {
     keepAwake(false);
     const overview = button(t('nav.overview'), 'left', 'btn-overview');
     onTap(overview, () => this.showOverview(0, id));
@@ -379,12 +400,13 @@ export class App implements FlowHost {
         'main',
         { class: 'screen article' },
         h('div', { class: 'rail' }, overview),
-        h('article', { class: 'page' }, h('p', { class: 'notice' }, t('article.notFound'))),
+        h('article', { class: 'page' }, h('p', { class: 'notice' }, t(reason))),
         h('nav', { class: 'bar' }, back, h('p', { class: 'pageinfo' }), next),
       ),
     );
     this.view = { kind: 'article', article: null, id, page: 0, pages: [] };
-    this.saveState({ view: 'overview', overviewPage: 0 });
+    // Nur wenn es den Artikel wirklich nicht mehr gibt, geht es beim nächsten Start zur Übersicht.
+    if (reason === 'article.notFound') this.saveState({ view: 'overview', overviewPage: 0 });
   }
 
   private renderArticle(article: Article, anchor: number): void {

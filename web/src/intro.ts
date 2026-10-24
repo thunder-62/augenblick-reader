@@ -287,7 +287,8 @@ export class IntroFlow {
       progress: this.progress(step),
       title: t('intro.finish.title'),
       content: [hint(t('interests.consent')), controls(yes, no), hint(values)],
-      bar: [null, null, save],
+      // Auch hier „Überspringen“ (SPEC §8.8): beendet die Einführung, ohne etwas zu speichern.
+      bar: [tapButton(t('nav.skip'), 'right', () => this.end(), 'btn-skip'), null, save],
     });
     this.host.mount(screen);
   }
@@ -311,10 +312,13 @@ export class IntroFlow {
         this.remember(STEPS.length, 'fertig');
         this.host.showOverview();
       },
-      onNo: () => {
-        this.remember(STEPS.length, 'fertig');
-        this.host.showOverview();
-      },
+      onNo: () => this.end(),
     });
+  }
+
+  /** Einführung beenden; was nicht nach der Rückfrage gespeichert wurde, bleibt, wie es war. */
+  private end(): void {
+    this.remember(STEPS.length, 'fertig');
+    this.host.showOverview();
   }
 }

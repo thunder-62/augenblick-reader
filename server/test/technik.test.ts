@@ -233,6 +233,12 @@ describe('Einstellungen der Nutzerin (SPEC §8.7)', () => {
     expect((await get()).json()).toEqual({ feeds: ['br24-mittelfranken'] });
     expect((await send({ feeds: ['javascript:alert(1)'] })).statusCode).toBe(400);
     expect((await send({ feeds: 'br24-mittelfranken' })).statusCode).toBe(400);
+    // Fehler als Code mit Werten; übersetzt wird im Technik-Bereich (SPEC §11).
+    expect((await send({ feeds: ['quatsch'] })).json()).toEqual({
+      error: 'invalid',
+      code: 'feedUnknown',
+      params: { entry: 'quatsch' },
+    });
     expect(
       (
         await send({

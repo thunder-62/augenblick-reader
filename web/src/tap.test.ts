@@ -19,6 +19,8 @@ describe('isTap (SPEC §8.1)', () => {
     expect(isTap({ ...base, dx: mm(3), dy: mm(3) })).toBe(true));
   it('Loslassen außerhalb des Ziels löst nicht aus', () =>
     expect(isTap({ ...base, inside: false })).toBe(false));
+  it('zwischendurch über 10 mm verrutscht und zurück: kein Tipp', () =>
+    expect(isTap({ ...base, movedAway: true })).toBe(false));
   it('lange Berührung löst beim Loslassen trotzdem aus (kein Long-Press-Modus)', () =>
     expect(isTap({ ...base, upAt: 3000 })).toBe(true));
 });

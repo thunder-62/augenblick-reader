@@ -104,6 +104,23 @@ test.describe('Einführung (SPEC §8.8)', () => {
     });
   });
 
+  test('auch der Fertig-Schritt lässt sich überspringen, ohne etwas zu speichern', async ({
+    page,
+    request,
+  }) => {
+    await request.put('/api/intro', { data: { state: 'pausiert', step: 6 } });
+    await page.goto('/');
+    await tap(page.locator('.btn-settings'));
+    await menu(page, 'Einführung fortsetzen');
+    await expect(page.locator('.flowtitle')).toHaveText('Fertig');
+    await checkScreen(page);
+    await tap(page.locator('button', { hasText: /^Ja$/ }));
+    await tap(page.locator('.btn-skip'));
+    await expect(page.locator('.card').first()).toBeVisible();
+    expect((await settings(page)).interestLearning).toBe(false);
+    expect((await (await request.get('/api/intro')).json()).state).toBe('fertig');
+  });
+
   test('pausieren und an derselben Stelle weitermachen', async ({ page, request }) => {
     await request.put('/api/intro', { data: { state: 'neu', step: 1 } });
     await page.goto('/');

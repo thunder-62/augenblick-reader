@@ -302,7 +302,10 @@ export function signalPoints(input: unknown): { articleId: string; points: numbe
   return { articleId: i.articleId, points: POINTS.opened + (reachedEnd ? POINTS.reachedEnd : 0) };
 }
 
-/** „Mehr davon“ (+1) / „Weniger davon“ (−1) je Thema und „Alles vergessen“. */
+/**
+ * „Mehr davon“ / „Weniger davon“ je Thema (je Tipp ±`ADJUST_STEP` = ±3 Punkte; das Tablet schickt
+ * +1/−1 als Richtung) und „Alles vergessen“.
+ */
 export function adjustInterests(
   db: Db,
   input: unknown,

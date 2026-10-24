@@ -1,12 +1,12 @@
 /** Interessen (SPEC §5.3, §10): nur die gelernten Themen-Gewichte, kein Leseprotokoll. */
 import { h } from '../dom.ts';
-import { t } from '../i18n.ts';
+import { t, i18n } from '../i18n.ts';
 import { api } from './api.ts';
 import { section } from './ui.ts';
 
 export async function interestsView(root: HTMLElement): Promise<void> {
   const { enabled, interests } = await api.interests();
-  const fmt = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
+  const fmt = new Intl.NumberFormat(i18n.locale, { maximumFractionDigits: 1 });
   root.replaceChildren(
     section(
       t('technik.tabs.interests'),

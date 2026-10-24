@@ -4,7 +4,7 @@
  */
 import type { Settings } from '@augenblick/shared';
 import { h } from '../dom.ts';
-import { t } from '../i18n.ts';
+import { t, i18n } from '../i18n.ts';
 import { api } from './api.ts';
 import { btn, formatDateTime, previewUrl, scaledPreview, section, statusLine } from './ui.ts';
 
@@ -12,7 +12,7 @@ export function valuesText(s: Settings): string {
   return t('technik.reading.valuesText', {
     font: s.fontSizePx,
     theme: t(s.theme === 'dark' ? 'technik.reading.dark' : 'technik.reading.light'),
-    lineHeight: new Intl.NumberFormat('de-DE').format(s.lineHeight),
+    lineHeight: new Intl.NumberFormat(i18n.locale).format(s.lineHeight),
     learning: t(
       s.interestLearning === true
         ? 'technik.reading.learningOn'

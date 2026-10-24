@@ -1,6 +1,6 @@
 /** Kleine Bausteine für die Formulare des Technik-Bereichs (normale Größen, SPEC §10). */
 import { h } from '../dom.ts';
-import { t } from '../i18n.ts';
+import { t, i18n } from '../i18n.ts';
 
 export function section(title: string, ...children: (Node | null)[]): HTMLElement {
   return h('section', { class: 'panel' }, h('h2', {}, title), ...children);
@@ -82,7 +82,7 @@ export function statusLine(): {
 
 export function formatDateTime(iso: string | null): string {
   if (!iso) return t('technik.common.never');
-  return new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(
+  return new Intl.DateTimeFormat(i18n.locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
     new Date(iso),
   );
 }
@@ -96,7 +96,7 @@ export function formatBytes(n: number | null): string {
     v /= 1024;
     i++;
   }
-  return `${new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 }).format(v)} ${units[i]}`;
+  return `${new Intl.NumberFormat(i18n.locale, { maximumFractionDigits: 1 }).format(v)} ${units[i]}`;
 }
 
 /** URL der Lese-App im Vorschau-Modus. */

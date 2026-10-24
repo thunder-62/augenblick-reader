@@ -21,7 +21,9 @@ import {
   setIntro,
   settingsHistory,
 } from './core/store.ts';
+import { serverT } from './core/i18n.ts';
 import { berlinDay } from './core/time.ts';
+import { FeedListError } from './sources/feeds.ts';
 import { VERSION } from './core/version.ts';
 
 type Deps = { db: Db; config: AppConfig; now: () => Date };
@@ -89,7 +91,7 @@ export function registerTechnik(app: FastifyInstance, { db, config, now }: Deps)
       return reply
         .code(403)
         .type('text/plain; charset=utf-8')
-        .send('Der Technik-Bereich ist nur im Heimnetz oder über Tailscale erreichbar.');
+        .send(serverT('technik.errors.network'));
     }
   });
 
@@ -161,9 +163,10 @@ export function registerTechnik(app: FastifyInstance, { db, config, now }: Deps)
     try {
       return saveSourcesConfig(db, req.body, config);
     } catch (err) {
-      return reply
-        .code(400)
-        .send({ error: 'invalid', message: err instanceof Error ? err.message : String(err) });
+      // Code und Werte übersetzt der Technik-Bereich selbst (SPEC §11).
+      if (err instanceof FeedListError)
+        return reply.code(400).send({ error: 'invalid', code: err.code, params: err.params });
+      throw err;
     }
   });
 

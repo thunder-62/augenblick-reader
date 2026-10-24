@@ -1,6 +1,7 @@
 /**
  * Tipp-Logik (SPEC §8.1, [R22]): Auslösen beim Loslassen, Berührungen unter 80 ms und
- * ein zweiter Tipp innerhalb von 300 ms ignorieren, Bewegung über 10 mm ist kein Tipp.
+ * ein zweiter Tipp innerhalb von 300 ms ignorieren, Bewegung über 10 mm ist kein Tipp – auch wenn
+ * der Finger danach zurückkehrt.
  */
 import {
   mm,
@@ -19,10 +20,12 @@ export type TapInput = {
   lastTapAt: number | null;
   /** Losgelassen innerhalb des Ziels? */
   inside: boolean;
+  /** Hat sich der Finger während der Berührung irgendwann weiter als 10 mm entfernt? */
+  movedAway?: boolean;
 };
 
 export function isTap(i: TapInput): boolean {
-  if (!i.inside) return false;
+  if (!i.inside || i.movedAway) return false;
   if (i.upAt - i.downAt < TAP_MIN_DURATION_MS) return false;
   if (Math.hypot(i.dx, i.dy) > mm(TAP_MOVE_MM)) return false;
   // Doppeltipps: auch wenn nach dem ersten Tipp ein neuer Bildschirm erscheint,
@@ -39,14 +42,23 @@ export function resetTapState(): void {
 }
 
 export function onTap(el: HTMLElement, handler: () => void): void {
-  let down: { id: number; t: number; x: number; y: number } | null = null;
+  let down: { id: number; t: number; x: number; y: number; moved: boolean } | null = null;
 
   el.addEventListener('pointerdown', (e) => {
     if (!e.isPrimary || down) return;
-    down = { id: e.pointerId, t: e.timeStamp, x: e.clientX, y: e.clientY };
+    down = { id: e.pointerId, t: e.timeStamp, x: e.clientX, y: e.clientY, moved: false };
     // pointerup soll auch kommen, wenn der Finger das Element verlassen hat.
     el.setPointerCapture?.(e.pointerId);
     el.classList.add('pressed');
+  });
+
+  el.addEventListener('pointermove', (e) => {
+    if (!down || e.pointerId !== down.id || down.moved) return;
+    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > mm(TAP_MOVE_MM)) {
+      // Verrutscht: kein Tipp mehr, die Taste sieht auch nicht mehr gedrückt aus.
+      down.moved = true;
+      el.classList.remove('pressed');
+    }
   });
 
   const end = (e: PointerEvent, cancelled: boolean): void => {
@@ -65,6 +77,7 @@ export function onTap(el: HTMLElement, handler: () => void): void {
       dy: e.clientY - start.y,
       lastTapAt,
       inside,
+      movedAway: start.moved,
     });
     if (!ok) return;
     lastTapAt = e.timeStamp;

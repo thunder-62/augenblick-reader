@@ -171,6 +171,21 @@ test.describe('Tipp-Logik', () => {
     expect((await pageInfo(page)).page).toBe(1);
   });
 
+  test('Finger verrutscht über 10 mm und kehrt zurück: kein Tipp', async ({ page }) => {
+    await page.goto('/');
+    const box = (await page.locator('.btn-next').boundingBox())!;
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x, y - 120, { steps: 5 });
+    await page.mouse.move(x, y, { steps: 5 });
+    await page.waitForTimeout(120);
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+    expect((await pageInfo(page)).page).toBe(1);
+  });
+
   test('keine Textauswahl, kein Zoom', async ({ page }) => {
     await page.goto('/');
     expect(await page.evaluate(() => getComputedStyle(document.body).userSelect)).toBe('none');
@@ -225,6 +240,33 @@ test.describe('Ausfälle', () => {
     await page.goto('/');
     await expect(page.locator('.notice')).toContainText('nicht erreichbar');
     await checkScreen(page);
+  });
+
+  test('Pi nicht erreichbar beim Öffnen des letzten Artikels: ruhiger Hinweis, Zustand bleibt', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await expect(page.locator('.card').first()).toBeVisible();
+    await tap(page.locator('.card').first());
+    await expect(page.locator('.prose h1')).toBeVisible();
+    await page.route('**/api/articles/**', (route) => route.abort('connectionrefused'));
+    await page.reload();
+    await expect(page.locator('.notice')).toContainText('nicht erreichbar');
+    await expect(page.locator('.notice')).not.toContainText('nicht mehr da');
+    await checkScreen(page);
+    // Nach dem Wiederkommen des Pi steht wieder der Artikel da.
+    await page.unroute('**/api/articles/**');
+    await page.reload();
+    await expect(page.locator('.prose h1')).toBeVisible();
+  });
+
+  test('nach Mitternacht zeigt die Übersicht das neue Datum', async ({ page }) => {
+    // 23:59 in Berlin (Sommerzeit, UTC+2)
+    await page.clock.install({ time: new Date('2026-10-24T21:59:00Z') });
+    await page.goto('/');
+    await expect(page.locator('.date')).toContainText('Samstag, 24. Oktober');
+    await page.clock.runFor(2 * 60 * 1000);
+    await expect(page.locator('.date')).toContainText('Sonntag, 25. Oktober');
   });
 
   test('noch keine Ausgabe: Hinweis, dass sie von selbst erscheint', async ({ page }) => {

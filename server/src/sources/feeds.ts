@@ -1,5 +1,6 @@
 /** Auflösen und Prüfen der konfigurierten RSS-Feeds (ADR 010). */
 import { FEED_CATALOG, MAX_FEEDS } from '@augenblick/shared';
+import { serverT } from '../core/i18n.ts';
 
 export type ResolvedFeed = {
   /** Eintrag aus der Konfiguration (Kurzname oder Adresse). */
@@ -44,24 +45,31 @@ export function resolveFeeds(entries: readonly string[]): ResolvedFeed[] {
   return out;
 }
 
+/** Fehler mit Code für den Technik-Bereich, der ihn übersetzt; die Meldung kommt aus der Locale. */
+export class FeedListError extends Error {
+  constructor(
+    readonly code: 'feedsList' | 'feedEntry' | 'feedUnknown' | 'feedsMax',
+    readonly params: Record<string, string | number> = {},
+  ) {
+    super(serverT(`technik.errors.${code}`, params));
+  }
+}
+
 /**
  * Prüft eine Feed-Liste aus Technik-Bereich oder Umgebung: Kurznamen oder http(s)-Adressen,
  * ohne Doppelte, höchstens MAX_FEEDS. Wirft bei ungültigen Einträgen.
  */
 export function normalizeFeedList(input: unknown): string[] {
-  if (!Array.isArray(input)) throw new Error('Die Feeds müssen als Liste angegeben werden.');
+  if (!Array.isArray(input)) throw new FeedListError('feedsList');
   const out: string[] = [];
   for (const raw of input) {
-    if (typeof raw !== 'string') throw new Error('Ungültiger Feed-Eintrag.');
+    if (typeof raw !== 'string') throw new FeedListError('feedEntry');
     const entry = raw.trim();
     if (!entry) continue;
     const f = resolveFeed(entry);
-    if (!f)
-      throw new Error(
-        `„${entry}“ ist weder ein bekannter Feed noch eine Adresse mit http:// oder https://.`,
-      );
+    if (!f) throw new FeedListError('feedUnknown', { entry });
     if (!out.includes(f.key)) out.push(f.key);
   }
-  if (out.length > MAX_FEEDS) throw new Error(`Höchstens ${MAX_FEEDS} Feeds.`);
+  if (out.length > MAX_FEEDS) throw new FeedListError('feedsMax', { max: MAX_FEEDS });
   return out;
 }

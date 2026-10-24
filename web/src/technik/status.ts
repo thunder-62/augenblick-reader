@@ -1,5 +1,5 @@
 import { h } from '../dom.ts';
-import { t, tOr } from '../i18n.ts';
+import { t, tOr, i18n } from '../i18n.ts';
 import { api } from './api.ts';
 import { btn, formatBytes, formatDateTime, section } from './ui.ts';
 
@@ -92,7 +92,7 @@ export async function statusView(root: HTMLElement): Promise<void> {
             failures: s.ai.today.failures,
             input: s.ai.today.inputTokens,
             output: s.ai.today.outputTokens,
-            cost: new Intl.NumberFormat('de-DE', {
+            cost: new Intl.NumberFormat(i18n.locale, {
               style: 'currency',
               currency: 'USD',
               maximumFractionDigits: 4,
