@@ -14,7 +14,7 @@ Stand: 24.10.2026
 | M3 | KI-Kurzfassungen über OpenRouter mit Funkelstern und Fallback, Interessen lernen mit Einverständnis | erledigt | [003](auftraege/003-m3-ki-und-interessen.md) |
 | M4 ff. | HTTPS, Vorlesen, weitere Quellen … | nicht begonnen | – |
 
-Geprüft wurde alles in der Entwicklungsumgebung: Lint, 140 Unit-Tests und 33 E2E-Tests (Chromium, 1280 × 800) sind grün. **Am echten Tablet und am Raspberry Pi wurde noch nichts getestet.**
+Geprüft wurde alles in der Entwicklungsumgebung: Lint, 146 Unit-Tests und 33 E2E-Tests (Chromium, 1280 × 800) sind grün. **Am echten Tablet und am Raspberry Pi wurde noch nichts getestet.**
 
 ## Absprachen mit dem Betreuer
 
@@ -33,11 +33,11 @@ Geprüft wurde alles in der Entwicklungsumgebung: Lint, 140 Unit-Tests und 33 E2
 
 ## Abgleich mit der Spec
 
-Am 24.10.2026 nochmals gegen `SPEC.md` (Version 0.1) geprüft. Auf `main` gab es seit der Übernahme keine Änderung.
+Am 24.10.2026 nochmals gegen `SPEC.md` (Version 0.1) geprüft. Auf `main` gab es seit der Übernahme keine Änderung; auf diesem Branch wurde §5.1 an die Feed-Liste angepasst (ADR 010).
 
 **Erfüllt** (M0–M3):
 
-- §5.1–5.3: Quellen, Pipeline, Interessen lernen.
+- §5.1–5.3: Quellen (tagesschau, Feed-Liste mit BR24 Mittelfranken als Standard), Pipeline, Interessen lernen.
 - §6: OpenRouter, Prüfung von Länge und Sprache, Fallback, Tageslimit, Funkelstern.
 - §7: Einstellungen auf dem Server; das Tablet lädt sie beim Start und alle 15 Minuten.
 - §8.1–8.4: Manifest im Querformat und Vollbild, Tipp-Logik mit 150 ms Feedback, Übersicht, Artikel, Kalibrierung in Stufen von +26 % ab 18 pt mit „Eine Stufe größer“.
