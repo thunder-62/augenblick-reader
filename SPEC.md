@@ -99,7 +99,7 @@ type Block =
 
 type Summary = {
   text: string;            // 2–3 Sätze, einfache Sprache
-  model: string;           // z. B. "claude-haiku-…"
+  model: string;           // OpenRouter-Modell-ID, z. B. "anthropic/claude-haiku-…"
   createdAt: string;
 };
 ```
@@ -151,7 +151,8 @@ Fehler einer Quelle dürfen die anderen nicht blockieren. Wenn nichts Neues komm
 Regeln:
 
 - Läuft **nur auf dem Server**, einmal pro Artikel, Ergebnis wird gespeichert. Das Tablet ruft nie eine KI auf.
-- **Provider-Abstraktion** (`SummaryProvider`), Standard: Anthropic Claude API. Modell und API-Schlüssel per `.env`. Ohne Schlüssel: Fallback auf die ersten zwei Sätze des Artikels.
+- **Anbindung über OpenRouter** (OpenAI-kompatible Chat-Completions-API). `.env`: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (Modell frei wählbar, Standard ein günstiges, gutes Modell für Deutsch), optional `OPENROUTER_FALLBACK_MODEL`. Header `HTTP-Referer`/`X-Title` mit dem Projektnamen setzen. Trotzdem hinter einer schmalen Provider-Abstraktion (`SummaryProvider`), damit ein Wechsel möglich bleibt. Ohne Schlüssel oder bei Fehler: Fallback auf den Anreißer der Quelle bzw. die ersten zwei Sätze.
+- Im Admin-Status: genutztes Modell, Aufrufe und Kosten heute (aus der OpenRouter-Antwort, soweit geliefert).
 - **Prompt** im Repo unter `/server/prompts/summary.de.md`, versioniert. Vorgaben: sachlich, keine Wertung, keine Informationen, die nicht im Text stehen, kurze Sätze, keine Fremdwörter ohne Not, max. 45 Wörter.
 - Ausgabe validieren (Länge, Sprache); bei Verstoß einmal neu, sonst Fallback.
 - Kosten begrenzen: Tageslimit an Aufrufen in der Konfiguration.
