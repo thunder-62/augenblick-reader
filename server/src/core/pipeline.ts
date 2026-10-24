@@ -1,7 +1,7 @@
-/** Verarbeitungs-Pipeline (SPEC §5.2), vorerst ohne KI. */
+/** Verarbeitungs-Pipeline (SPEC §5.2): Abholen → Bereinigen → KI → Auswahl → Aufräumen. */
 import type { Article, SectionQuota } from '@augenblick/shared';
 import type { SourceAdapter } from '../sources/types.ts';
-import { buildArticle, makeArticleId } from './article.ts';
+import { buildArticle, isAiSummary, makeArticleId } from './article.ts';
 import { htmlToBlocks } from './clean.ts';
 import {
   aiUsage,
@@ -30,6 +30,11 @@ export type PipelineOptions = {
   ranker?: InterestRanker | null;
   maxArticlesPerRun: number;
   retentionDays: number;
+  /**
+   * Läuft nach dem Abholen und vor der Auswahl – für Kurzfassungen und Schlagworte der Kandidaten,
+   * damit die Interessen schon bei der Auswahl wirken (Auftrag 004, C8).
+   */
+  beforeEdition?: () => Promise<unknown>;
   now?: () => Date;
 };
 
@@ -117,6 +122,14 @@ export async function runPipeline(
       ? r.value
       : { source: adapters[i]?.id ?? '?', listed: 0, added: 0, failed: 0, error: String(r.reason) },
   );
+  if (opts.beforeEdition) {
+    try {
+      await opts.beforeEdition();
+    } catch (err) {
+      // Ohne Kurzfassungen geht es mit dem Fallback weiter.
+      log.error('Vor der Auswahl fehlgeschlagen', err);
+    }
+  }
   const now = (opts.now ?? (() => new Date()))();
   const edition = buildEdition(db, now, opts.sections, opts.ranker ?? null);
   const removed = cleanup(db, now, opts.retentionDays);
@@ -130,23 +143,58 @@ export const MAX_SUMMARY_ATTEMPTS = 2;
 export type SummaryOptions = { provider: SummaryProvider; dailyLimit: number; now?: () => Date };
 export type SummaryReport = { created: number; failed: number; skipped: number; calls: number };
 
+/** So viele Kandidaten bekommen je Lauf höchstens eine KI-Kurzfassung (Tageslimit gilt zusätzlich). */
+export const SUMMARY_CANDIDATES_PER_RUN = 20;
+
 /**
  * KI-Kurzfassungen für die Artikel der aktuellen Ausgabe (SPEC §6): nur was gezeigt wird,
  * einmal pro Artikel, innerhalb des Tageslimits. Was nicht klappt, behält den Fallback.
  */
 export async function summarizeEdition(db: Db, opts: SummaryOptions): Promise<SummaryReport> {
+  return summarizeArticles(
+    db,
+    latestEdition(db).articles.map((c) => c.id),
+    opts,
+  );
+}
+
+/**
+ * Kurzfassungen und Schlagworte für die Kandidaten der nächsten Auswahl (SPEC §5.3): zuerst was
+ * schon in der Ausgabe steht, dann die neuesten Artikel der letzten 24 Stunden, höchstens
+ * `SUMMARY_CANDIDATES_PER_RUN` je Lauf.
+ */
+export async function summarizeCandidates(
+  db: Db,
+  opts: SummaryOptions & { maxArticles?: number },
+): Promise<SummaryReport> {
+  const now = (opts.now ?? (() => new Date()))();
+  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const shown = latestEdition(db).articles.map((c) => c.id);
+  const fresh = readyArticlesSince(db, since).map((a) => a.id);
+  const ids = [...new Set([...shown, ...fresh])]
+    .filter((id) => {
+      const a = getArticle(db, id);
+      return a && !isAiSummary(a.summary) && summaryAttempts(db, id) < MAX_SUMMARY_ATTEMPTS;
+    })
+    .slice(0, opts.maxArticles ?? SUMMARY_CANDIDATES_PER_RUN);
+  return summarizeArticles(db, ids, opts);
+}
+
+async function summarizeArticles(
+  db: Db,
+  ids: readonly string[],
+  opts: SummaryOptions,
+): Promise<SummaryReport> {
   const now = (opts.now ?? (() => new Date()))();
   const day = berlinDay(now);
   const report: SummaryReport = { created: 0, failed: 0, skipped: 0, calls: 0 };
-  const edition = latestEdition(db);
-  for (const card of edition.articles) {
-    if (card.summaryAi) continue;
-    if (summaryAttempts(db, card.id) >= MAX_SUMMARY_ATTEMPTS) {
+  for (const id of ids) {
+    const article = getArticle(db, id);
+    if (!article || isAiSummary(article.summary)) continue;
+    if (summaryAttempts(db, id) >= MAX_SUMMARY_ATTEMPTS) {
       report.skipped++;
       continue;
     }
-    const article = getArticle(db, card.id);
-    if (!article) continue;
     // Jeder Aufruf (auch der Neuversuch) zählt gegen das Tageslimit.
     let budget = opts.dailyLimit - aiUsage(db, day).calls;
     if (budget <= 0) {

@@ -8,7 +8,7 @@ import { loadConfig, loadEnvFile } from './core/config.ts';
 import { openDb } from './core/db.ts';
 import { log } from './core/log.ts';
 import { OpenRouterSummaryProvider } from './core/openrouter.ts';
-import { runPipeline, summarizeEdition } from './core/pipeline.ts';
+import { runPipeline, summarizeCandidates, summarizeEdition } from './core/pipeline.ts';
 import { loadPrompt } from './core/summary.ts';
 import { FETCH_SCHEDULES } from './core/schedule.ts';
 import { getSettings, getSourcesConfig, interestRanker } from './core/store.ts';
@@ -45,19 +45,22 @@ async function run(): Promise<void> {
   running = true;
   try {
     const settings = getSettings(db, config.settings);
+    const summaryOpts = summaryProvider
+      ? { provider: summaryProvider, dailyLimit: config.summaryDailyLimit }
+      : null;
     await runPipeline(db, adapters, {
       sections: settings.sections,
       ranker: interestRanker(db, settings, new Date()),
       maxArticlesPerRun: config.maxArticlesPerRun,
       retentionDays: config.retentionDays,
+      // Erst Kurzfassungen und Schlagworte der Kandidaten, dann die Auswahl (Auftrag 004, C8).
+      ...(summaryOpts && {
+        beforeEdition: async () =>
+          log.info('Kurzfassungen (Kandidaten)', await summarizeCandidates(db, summaryOpts)),
+      }),
     });
-    if (summaryProvider) {
-      const r = await summarizeEdition(db, {
-        provider: summaryProvider,
-        dailyLimit: config.summaryDailyLimit,
-      });
-      log.info('Kurzfassungen', r);
-    }
+    // Was dann neu in der Ausgabe steht und noch keine KI-Kurzfassung hat.
+    if (summaryOpts) log.info('Kurzfassungen (Ausgabe)', await summarizeEdition(db, summaryOpts));
   } catch (err) {
     log.error('Lauf fehlgeschlagen', err);
   } finally {

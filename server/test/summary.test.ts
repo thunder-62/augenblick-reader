@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SECTIONS, type Block } from '@augenblick/shared';
+import { DEFAULT_SECTIONS, DEFAULT_SETTINGS, type Block } from '@augenblick/shared';
 import {
   fallbackSummary,
   FALLBACK_SUMMARY_MODEL,
@@ -8,7 +8,13 @@ import {
 } from '../src/core/article.ts';
 import { OPENROUTER_URL, OpenRouterSummaryProvider } from '../src/core/openrouter.ts';
 import { aiUsage, getArticle, latestEdition, openDb } from '../src/core/db.ts';
-import { runPipeline, summarizeEdition } from '../src/core/pipeline.ts';
+import {
+  runPipeline,
+  SUMMARY_CANDIDATES_PER_RUN,
+  summarizeCandidates,
+  summarizeEdition,
+} from '../src/core/pipeline.ts';
+import { addTopicPoints, interestRanker, saveSettings } from '../src/core/store.ts';
 import {
   cleanTopics,
   createSummary,
@@ -358,5 +364,95 @@ describe('summarizeEdition', () => {
     expect(third).toMatchObject({ calls: 0, skipped: 8 });
     expect(aiUsage(db, '2026-10-24').failures).toBe(16);
     expect(latestEdition(db).articles.every((c) => !c.summaryAi && c.summary)).toBe(true);
+  });
+});
+
+describe('Schlagworte vor der Auswahl (Auftrag 004, C8)', () => {
+  const NOW = new Date('2026-10-24T06:00:00.000Z');
+  const CHOR = 'demo-chor';
+
+  /** Gibt dem Chor-Artikel das Schlagwort „Gesang“, allen anderen „Allerlei“. */
+  class TopicProvider implements SummaryProvider {
+    readonly name = 'fake';
+    readonly model = 'fake-model';
+    calls = 0;
+    async summarize(input: SummaryInput): Promise<SummaryResult> {
+      this.calls++;
+      const topic = input.title.includes('Chor') ? 'Gesang' : 'Allerlei';
+      return {
+        text: json('In der Stadt ist etwas passiert, und viele Menschen waren dabei.', [topic]),
+        model: this.model,
+        inputTokens: 100,
+        outputTokens: 20,
+        costUsd: 0,
+      };
+    }
+  }
+
+  /** Leserin hat eingewilligt und liest gern über Gesang. */
+  const withInterest = () => {
+    const db = openDb(':memory:');
+    const settings = saveSettings(
+      db,
+      { interestLearning: true },
+      DEFAULT_SETTINGS,
+      NOW.toISOString(),
+      'einfuehrung',
+    );
+    addTopicPoints(db, ['Gesang'], 9, NOW);
+    return { db, ranker: interestRanker(db, settings, NOW) };
+  };
+
+  const run = (db: ReturnType<typeof openDb>, opts: object) =>
+    runPipeline(db, [new DemoAdapter(() => NOW)], {
+      sections: DEFAULT_SECTIONS,
+      maxArticlesPerRun: 20,
+      retentionDays: 7,
+      now: () => NOW,
+      ...opts,
+    });
+
+  it('ein Kandidat mit Lieblings-Schlagwort rückt in der neuen Ausgabe vor', async () => {
+    // Ohne Kurzfassung vor der Auswahl kennt die Auswahl das Schlagwort noch nicht.
+    const before = withInterest();
+    await run(before.db, { ranker: before.ranker });
+    const late = latestEdition(before.db).articles.map((c) => c.id);
+
+    const after = withInterest();
+    const provider = new TopicProvider();
+    await run(after.db, {
+      ranker: after.ranker,
+      beforeEdition: () =>
+        summarizeCandidates(after.db, { provider, dailyLimit: 40, now: () => NOW }),
+    });
+    const early = latestEdition(after.db).articles.map((c) => c.id);
+
+    // Zwei feste Plätze vorn, danach das Lieblingsthema.
+    expect(early.indexOf(CHOR)).toBe(2);
+    expect(late.indexOf(CHOR)).toBeGreaterThan(2);
+    expect(getArticle(after.db, CHOR)?.topics).toEqual(['Gesang']);
+    expect(latestEdition(after.db).articles.every((c) => c.summaryAi)).toBe(true);
+  });
+
+  it('beachtet die Obergrenze je Lauf und das Tageslimit', async () => {
+    const { db } = withInterest();
+    await run(db, {});
+    const provider = new TopicProvider();
+    const r = await summarizeCandidates(db, {
+      provider,
+      dailyLimit: 40,
+      maxArticles: 3,
+      now: () => NOW,
+    });
+    expect(r.calls).toBe(3);
+    expect(SUMMARY_CANDIDATES_PER_RUN).toBe(20);
+    const limited = await summarizeCandidates(db, { provider, dailyLimit: 4, now: () => NOW });
+    expect(limited.calls).toBe(1);
+  });
+
+  it('ohne KI-Schlüssel bleibt es beim Ranking nach Rubrik', async () => {
+    const { db, ranker } = withInterest();
+    await run(db, { ranker });
+    expect(latestEdition(db).articles.some((c) => c.summaryAi)).toBe(false);
   });
 });
