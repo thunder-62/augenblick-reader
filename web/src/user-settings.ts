@@ -174,7 +174,8 @@ export class SettingsFlow {
     confirmScreen(this.host, {
       preview: { ...this.host.settings, fontSizePx },
       extra: toggle,
-      onYes: () => this.save({ fontSizePx }, 'kalibrierung'),
+      // Eine Einzeländerung der Leserin, keine gemeinsame Kalibrierung (Auftrag 004, B6).
+      onYes: () => this.save({ fontSizePx }, 'nutzerin'),
       onNo: () => this.showMenu(),
     });
   }
@@ -266,7 +267,7 @@ export class SettingsFlow {
 
   // --- Rückfrage und Speichern ----------------------------------------------------------
 
-  private confirm(change: Partial<Settings>, source: 'nutzerin' | 'kalibrierung'): void {
+  private confirm(change: Partial<Settings>, source: 'nutzerin'): void {
     confirmScreen(this.host, {
       preview: { ...this.host.settings, ...change },
       onYes: async () => {
@@ -306,10 +307,13 @@ export class SettingsFlow {
       }),
     );
     const no = tapButton(t('interests.no'), 'left', () => {
-      // Noch nie gefragt: die Antwort merken; sonst bleibt alles, wie es ist.
-      if (this.host.settings.interestLearning === null)
-        void this.save({ interestLearning: false }, 'nutzerin');
-      else this.showMenu();
+      // Noch nie gefragt: die Antwort nach Rückfrage merken (SPEC §5.3); sonst bleibt alles, wie es ist.
+      if (this.host.settings.interestLearning !== null) return this.showMenu();
+      confirmScreen(this.host, {
+        description: t('confirm.decline'),
+        onYes: () => this.save({ interestLearning: false }, 'nutzerin'),
+        onNo: () => this.showMenu(),
+      });
     });
     const { screen } = flowScreen({
       rail: this.overviewButton(),

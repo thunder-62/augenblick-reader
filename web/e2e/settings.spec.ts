@@ -144,6 +144,12 @@ test.describe('Einstellungen der Nutzerin (SPEC §8.7)', () => {
     await tap(page.locator('.btn-yes'));
     expect((await settings(page)).fontSizePx).toBe(CALIBRATION_SIZES_PX[2]);
     await expect(page.locator('body')).toHaveCSS('font-size', `${CALIBRATION_SIZES_PX[2]}px`);
+    // Eine Einzeländerung der Leserin, keine Kalibrierung: „Wie am Anfang“ bleibt (Auftrag 004, B6).
+    const view = await (await page.request.get('/api/technik/settings')).json();
+    expect(view.history[0].source).toBe('nutzerin');
+    expect((await (await page.request.get('/api/settings/baseline')).json()).fontSizePx).toBe(
+      DEFAULT_SETTINGS.fontSizePx,
+    );
   });
 
   test('„Nein, wie vorher“ und Verlassen über „Übersicht“ ändern nichts', async ({ page }) => {
@@ -222,6 +228,25 @@ test.describe('Was ich gern lese (SPEC §5.3)', () => {
     await tap(page.locator('.btn-yes'));
     const list = await (await request.get('/api/interests')).json();
     expect(list[0]).toMatchObject({ topic: 'Region', weight: 7 });
+  });
+
+  test('„Nein, lieber nicht“ läuft ebenfalls über die Rückfrage', async ({ page, request }) => {
+    // Noch nie gefragt.
+    await request.put('/api/settings', {
+      data: { source: 'nutzerin', settings: { interestLearning: null } },
+    });
+    await openSettings(page);
+    await menu(page, 'Was ich gern lese');
+    await tap(page.locator('button', { hasText: 'Nein, lieber nicht' }));
+    await expect(page.locator('.flowtitle')).toHaveText('Soll das ab jetzt immer so bleiben?');
+    await checkScreen(page);
+    expect((await settings(page)).interestLearning).toBe(null);
+    await tap(page.locator('.btn-no'));
+    expect((await settings(page)).interestLearning).toBe(null);
+    await menu(page, 'Was ich gern lese');
+    await tap(page.locator('button', { hasText: 'Nein, lieber nicht' }));
+    await tap(page.locator('.btn-yes'));
+    expect((await settings(page)).interestLearning).toBe(false);
   });
 });
 

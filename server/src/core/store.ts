@@ -94,7 +94,10 @@ export function settingsHistory(
   }));
 }
 
-/** Zurück auf eine frühere Fassung (Technik-Bereich, SPEC §10) – als neue Fassung gespeichert. */
+/**
+ * Zurück auf eine frühere Fassung (Technik-Bereich, SPEC §10) – als neue Fassung gespeichert.
+ * Lese-Werte, Anrede und Rubriken kommen zurück, das Einverständnis zum Lernen bleibt, wie es ist.
+ */
 export function restoreVersion(
   db: Db,
   id: number,
@@ -106,12 +109,18 @@ export function restoreVersion(
     .prepare('SELECT json FROM settings_history WHERE id = ? AND device = ?')
     .get(id, device) as { json: string } | undefined;
   if (!row) return null;
-  return saveSettings(db, JSON.parse(row.json), defaults, now, 'technik', device);
+  // Das Einverständnis gibt nur die Leserin selbst (SPEC §5.3); der Betreuer setzt es nie zurück.
+  const restored = {
+    ...JSON.parse(row.json),
+    ...pick(getSettings(db, defaults, device), ['interestLearning']),
+  };
+  return saveSettings(db, restored, defaults, now, 'technik', device);
 }
 
 /**
- * „Wie am Anfang“ (SPEC §8.7): die zuletzt gemeinsam kalibrierten Lese-Werte (aus Einführung oder
- * „Schrift einstellen“), sonst die Anfangswerte. Einverständnis, Anrede und Technik bleiben.
+ * „Wie am Anfang“ (SPEC §8.7): die zuletzt gemeinsam kalibrierten Lese-Werte, sonst die Anfangswerte.
+ * Gemeinsam kalibriert heißt: aus der Einführung (`einfuehrung`) oder ausdrücklich als `kalibrierung`
+ * gespeichert – nicht „Schrift einstellen“ allein (`nutzerin`). Einverständnis, Anrede und Technik bleiben.
  */
 export function baselineSettings(db: Db, defaults: Settings, device = DEFAULT_DEVICE): Settings {
   const current = getSettings(db, defaults, device);

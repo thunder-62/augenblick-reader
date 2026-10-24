@@ -149,6 +149,63 @@ describe('Einstellungen der Nutzerin (SPEC §8.7)', () => {
     expect(after.history[0].source).toBe('technik');
   });
 
+  it('Zurücksetzen durch den Betreuer lässt das Einverständnis der Leserin, wie es ist', async () => {
+    const restore = async (app: ReturnType<typeof setup>['app'], id: number) =>
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/api/technik/settings/restore',
+          remoteAddress: LAN,
+          payload: { id },
+        })
+      ).json();
+    const history = async (app: ReturnType<typeof setup>['app']) =>
+      (await app.inject({ url: '/api/technik/settings', remoteAddress: LAN })).json().history;
+
+    // Früher eingewilligt, inzwischen zurückgezogen → bleibt zurückgezogen.
+    const { app } = setup();
+    await put(app, { fontSizePx: 38, interestLearning: true }, 'einfuehrung');
+    await put(app, { fontSizePx: 60, interestLearning: false });
+    const withConsent = (await history(app))[1].id;
+    const restored = await restore(app, withConsent);
+    expect(restored).toMatchObject({ fontSizePx: 38, interestLearning: false });
+
+    // Früher abgelehnt bzw. nie gefragt, inzwischen eingewilligt → bleibt eingewilligt.
+    const b = setup().app;
+    await put(b, { fontSizePx: 38 }, 'einfuehrung');
+    await put(b, { interestLearning: true });
+    const before = (await history(b))[1].id;
+    expect(await restore(b, before)).toMatchObject({ fontSizePx: 38, interestLearning: true });
+    expect((await b.inject('/api/settings')).json().interestLearning).toBe(true);
+  });
+
+  it('Zurücksetzen holt Anrede und Rubriken als Technik zurück', async () => {
+    const { app } = setup();
+    await put(app, { fontSizePx: 38 }, 'einfuehrung');
+    const first = (await app.inject({ url: '/api/technik/settings', remoteAddress: LAN })).json()
+      .history[0].id;
+    await app.inject({
+      method: 'PUT',
+      url: '/api/technik/settings',
+      remoteAddress: LAN,
+      payload: { salutation: 'du' },
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/technik/settings/restore',
+      remoteAddress: LAN,
+      payload: { id: first },
+    });
+    expect(res.json().salutation).toBe('sie');
+  });
+
+  it('„Schrift einstellen“ allein ändert „Wie am Anfang“ nicht', async () => {
+    const { app } = setup();
+    await put(app, { fontSizePx: 38 }, 'einfuehrung');
+    await put(app, { fontSizePx: 76 }, 'nutzerin');
+    expect((await app.inject('/api/settings/baseline')).json().fontSizePx).toBe(38);
+  });
+
   it('Technik-Bereich: Anrede und Rubriken-Mix beim Einrichten', async () => {
     const { app } = setup();
     const res = await app.inject({
