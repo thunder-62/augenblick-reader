@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Beispiel-Feed</title>
+    <link>https://example.org/</link>
+    <description>Selbst geschriebener Test-Feed</description>
+    <item>
+      <title>Freibad in Musterdorf bekommt neues Becken &amp; Rutsche</title>
+      <link>https://example.org/nachrichten/freibad-musterdorf,ABC123</link>
+      <guid isPermaLink="false">beispiel-guid-1</guid>
+      <pubDate>Sat, 24 Oct 2026 05:45:00 +0200</pubDate>
+      <category>Region</category>
+      <description><![CDATA[<p>Kurzer Anreißer.</p>]]></description>
+    </item>
+    <item>
+      <title>Heimsieg für den Beispielverein</title>
+      <link>https://example.org/nachrichten/sport/heimsieg,DEF456</link>
+      <guid>beispiel-guid-2</guid>
+      <pubDate>Sat, 24 Oct 2026 06:15:00 +0200</pubDate>
+      <category>Sport</category>
+    </item>
+    <item>
+      <title></title>
+      <link>https://example.org/ohne-titel</link>
+    </item>
+  </channel>
+</rss>

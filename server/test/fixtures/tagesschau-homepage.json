@@ -1,0 +1,59 @@
+{
+  "news": [
+    {
+      "sophoraId": "beispiel-brueckenbau-100",
+      "externalId": "tagesschau_fm-story-beispiel-1",
+      "title": "Neue Brücke über den Fluss freigegeben",
+      "topline": "Verkehr",
+      "date": "2026-10-24T05:10:00.000+02:00",
+      "ressort": "inland",
+      "type": "story",
+      "shareURL": "https://example.org/inland/bruecke-100.html",
+      "details": "https://example.org/api2u/inland/bruecke-100.json",
+      "content": [
+        {
+          "type": "text",
+          "value": "<strong>Nach zwei Jahren Bauzeit ist die neue Brücke in Beispielstadt für den Verkehr freigegeben worden.</strong> Autos, Busse und Fahrräder können den Fluss jetzt wieder ohne Umweg überqueren."
+        },
+        { "type": "box", "box": { "title": "Hintergrund", "text": "Kasten, der entfällt." } },
+        {
+          "type": "text",
+          "value": "Die alte Brücke war marode und musste abgerissen werden. Der Neubau kostete nach Angaben der Stadt rund 40 Mio. Euro. Er ist breiter und hat einen eigenen Radweg."
+        },
+        { "type": "headline", "value": "<h2>Weniger Stau erwartet</h2>" },
+        {
+          "type": "text",
+          "value": "Pendler hoffen nun auf kürzere Wege. Während der Bauzeit hatten sich morgens oft lange Staus gebildet. Ein Sprecher der Polizei sagte, man rechne mit einer deutlichen Entlastung."
+        },
+        { "type": "quotation", "quotation": { "text": "Zitat-Kasten, der entfällt." } },
+        { "type": "related", "related": [] },
+        {
+          "type": "text",
+          "value": "<strong>Mehr zum Thema:</strong> <a href=\"#\">Verkehr in der Region</a>"
+        },
+        {
+          "type": "text",
+          "value": "Über dieses Thema berichtete die Sendung am 24. Oktober 2026 um 06:00 Uhr."
+        }
+      ]
+    },
+    {
+      "sophoraId": "beispiel-video-101",
+      "externalId": "tagesschau_fm-video-beispiel-2",
+      "title": "Ein Video ohne Text",
+      "date": "2026-10-24T05:20:00.000+02:00",
+      "type": "video"
+    },
+    {
+      "sophoraId": "beispiel-ohne-inhalt-102",
+      "externalId": "tagesschau_fm-story-beispiel-3",
+      "title": "Meldung mit Detail-Abruf",
+      "date": "2026-10-24T05:30:00.000+02:00",
+      "ressort": "ausland",
+      "type": "story",
+      "details": "https://example.org/api2u/ausland/detail-102.json",
+      "shareURL": "https://example.org/ausland/detail-102.html"
+    }
+  ],
+  "regional": []
+}
