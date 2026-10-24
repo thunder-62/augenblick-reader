@@ -476,7 +476,7 @@ function renderOverview() {
     html += '<article class="card" data-act="open" data-id="' + a.id + '" role="button" tabindex="0" aria-label="' + esc(a.title) + ' öffnen">' +
       '<div class="meta"><span class="sec">' + esc(a.sec) + '</span><span>' + (readSet.has(a.id) ? "✓ gelesen · " : "") + "ca. " + minutes(a) + " Min.</span></div>" +
       "<h2>" + esc(a.title) + "</h2>" +
-      '<p class="sum"><b>Zusammenfassung:</b> ' + esc(a.sum) + "</p></article>";
+      '<p class="sum">' + esc(a.sum) + "</p></article>";
   }
   flow.innerHTML = html + '<span class="end"></span>';
   layout();
