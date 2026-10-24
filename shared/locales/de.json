@@ -1,0 +1,50 @@
+{
+  "app": {
+    "name": "Augenblick"
+  },
+  "nav": {
+    "overview": "Übersicht",
+    "back": "Zurück",
+    "next": "Weiter",
+    "nextArticle": "Nächster Artikel"
+  },
+  "pager": {
+    "pageOf": "Seite {page} von {total}"
+  },
+  "card": {
+    "readingTime": {
+      "one": "ca. 1 Minute",
+      "other": "ca. {count} Minuten"
+    },
+    "read": "gelesen",
+    "summaryLabel": "Kurzfassung"
+  },
+  "article": {
+    "source": "Quelle: {source}",
+    "notFound": "Dieser Artikel ist nicht mehr da. Über die Taste „Übersicht“ geht es zur heutigen Zeitung.",
+    "end": "Ende des Artikels"
+  },
+  "overview": {
+    "empty": "Die heutige Zeitung wird gerade zusammengestellt. Sie erscheint hier von selbst.",
+    "unreachable": "Die Zeitung ist gerade nicht erreichbar. Sie erscheint hier von selbst, sobald die Verbindung wieder steht."
+  },
+  "state": {
+    "loading": "Die Zeitung wird geladen …"
+  },
+  "sources": {
+    "tagesschau": "tagesschau",
+    "br24": "BR24",
+    "demo": "Beispieltext"
+  },
+  "sections": {
+    "region": "Region",
+    "inland": "Inland",
+    "ausland": "Ausland",
+    "wirtschaft": "Wirtschaft",
+    "sport": "Sport",
+    "wissen": "Wissen",
+    "kultur": "Kultur",
+    "vermischtes": "Vermischtes",
+    "nachrichten": "Nachrichten"
+  }
+}

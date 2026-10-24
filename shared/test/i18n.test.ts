@@ -1,0 +1,46 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+import de from '../locales/de.json';
+import { createTranslator, flattenMessages } from '../src/index.ts';
+
+const messages = flattenMessages(de);
+
+function sources(dir: string): string[] {
+  return readdirSync(dir).flatMap((f) => {
+    const p = path.join(dir, f);
+    if (statSync(p).isDirectory()) return sources(p);
+    return /\.ts$/.test(f) && !/\.test\.ts$/.test(f) ? [p] : [];
+  });
+}
+
+describe('i18n', () => {
+  const t = createTranslator(messages, 'de');
+
+  it('setzt Parameter ein', () => {
+    expect(t.t('pager.pageOf', { page: 2, total: 5 })).toBe('Seite 2 von 5');
+  });
+
+  it('wählt Pluralformen', () => {
+    expect(t.tp('card.readingTime', 1)).toBe('ca. 1 Minute');
+    expect(t.tp('card.readingTime', 4)).toBe('ca. 4 Minuten');
+  });
+
+  it('meldet fehlende Schlüssel', () => {
+    expect(() => t.t('gibt.es.nicht')).toThrow();
+  });
+
+  it('jeder im Web-Code benutzte Schlüssel steht in de.json', () => {
+    const root = path.resolve(import.meta.dirname, '../../web/src');
+    const used = new Set<string>();
+    for (const file of sources(root)) {
+      const code = readFileSync(file, 'utf8');
+      for (const m of code.matchAll(/\bt[p]?\('([\w.]+)'/g)) if (m[1]) used.add(m[1]);
+    }
+    expect(used.size).toBeGreaterThan(5);
+    for (const key of used) {
+      const exists = key in messages || `${key}.other` in messages;
+      expect(exists, key).toBe(true);
+    }
+  });
+});
