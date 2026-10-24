@@ -1,25 +1,45 @@
 /** Quellen und Rubriken-Mix (SPEC §5.2, §10). */
-import { MAX_EDITION_ARTICLES, type SectionQuota } from '@augenblick/shared';
+import { FEED_CATALOG, MAX_EDITION_ARTICLES, type SectionQuota } from '@augenblick/shared';
 import { h } from '../dom.ts';
 import { t } from '../i18n.ts';
 import { api } from './api.ts';
-import { btn, field, section, statusLine } from './ui.ts';
+import { btn, checkbox, field, section, statusLine } from './ui.ts';
 
 export async function sourcesView(root: HTMLElement): Promise<void> {
   const [sources, { current: settings }] = await Promise.all([api.sources(), api.settings()]);
 
-  // BR24-Feed
-  const feed = h('input', {
-    type: 'url',
-    name: 'br24FeedUrl',
-    value: sources.br24FeedUrl,
-    required: true,
+  // RSS-Feeds (ADR 010): Katalog zum Ankreuzen, eigene Adressen zeilenweise
+  const active = new Set(sources.feeds);
+  const boxes = FEED_CATALOG.map((f) => {
+    const box = checkbox('feed', active.has(f.id));
+    box.value = f.id;
+    const state = f.checked
+      ? t('technik.sources.checkedOn', { date: f.checked })
+      : t('technik.sources.unchecked');
+    return {
+      box,
+      el: h(
+        'label',
+        { class: 'check' },
+        box,
+        h('span', {}, `${f.name} `, h('small', {}, `(${state})`)),
+      ),
+    };
   });
+  const custom = h('textarea', {
+    name: 'customFeeds',
+    rows: 3,
+    spellcheck: false,
+    placeholder: 'https://…',
+  });
+  custom.value = sources.feeds.filter((k) => !FEED_CATALOG.some((f) => f.id === k)).join('\n');
   const feedStatus = statusLine();
   const feedForm = h(
     'form',
     {},
-    field(t('technik.sources.br24'), feed, t('technik.sources.br24Hint')),
+    h('p', { class: 'hint' }, t('technik.sources.feedsHint')),
+    ...boxes.map((b) => b.el),
+    field(t('technik.sources.custom'), custom, t('technik.sources.customHint')),
     h(
       'div',
       { class: 'actions' },
@@ -29,8 +49,14 @@ export async function sourcesView(root: HTMLElement): Promise<void> {
   );
   feedForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const feeds = [
+      ...boxes.filter((b) => b.box.checked).map((b) => b.box.value),
+      ...custom.value.split(/\s+/).filter(Boolean),
+    ];
     try {
-      feed.value = (await api.saveSources({ br24FeedUrl: feed.value })).br24FeedUrl;
+      const saved = await api.saveSources({ feeds });
+      for (const b of boxes) b.box.checked = saved.feeds.includes(b.box.value);
+      custom.value = saved.feeds.filter((k) => !FEED_CATALOG.some((f) => f.id === k)).join('\n');
       feedStatus.ok();
     } catch (err) {
       feedStatus.error(err);
@@ -146,7 +172,7 @@ export async function sourcesView(root: HTMLElement): Promise<void> {
   });
 
   root.replaceChildren(
-    section(t('technik.sources.br24'), feedForm),
+    section(t('technik.sources.feeds'), feedForm),
     section(t('technik.sources.sections'), mixForm),
   );
 }

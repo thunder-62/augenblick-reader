@@ -1,6 +1,6 @@
 # 002 – BR24: RSS-Feed und Volltext von der Artikelseite
 
-**Status:** angenommen (M1), Feed für Franken offen · **Datum:** 24.10.2026
+**Status:** angenommen (M1), erweitert durch [ADR 010](010-feed-liste.md): Feed für Mittelfranken gefunden, mehrere Feeds, RDF · **Datum:** 24.10.2026
 
 ## Kontext
 

@@ -140,14 +140,25 @@ describe('Einstellungen der Nutzerin (SPEC §8.7)', () => {
     });
   });
 
-  it('Quellen: Feed-Adresse ändern, ungültige abweisen', async () => {
+  it('Quellen: Feed-Liste ändern, ungültige abweisen', async () => {
     const { app } = setup();
     const send = (payload: object) =>
       app.inject({ method: 'PUT', url: '/api/technik/sources', remoteAddress: LAN, payload });
-    expect((await send({ br24FeedUrl: 'javascript:alert(1)' })).statusCode).toBe(400);
-    expect((await send({ br24FeedUrl: 'https://example.org/franken.xml' })).json()).toEqual({
-      br24FeedUrl: 'https://example.org/franken.xml',
-    });
+    const get = () => app.inject({ url: '/api/technik/sources', remoteAddress: LAN });
+    expect((await get()).json()).toEqual({ feeds: ['br24-mittelfranken'] });
+    expect((await send({ feeds: ['javascript:alert(1)'] })).statusCode).toBe(400);
+    expect((await send({ feeds: 'br24-mittelfranken' })).statusCode).toBe(400);
+    expect(
+      (
+        await send({
+          feeds: ['br24-mittelfranken', ' https://example.org/franken.xml ', 'br24-mittelfranken'],
+        })
+      ).json(),
+    ).toEqual({ feeds: ['br24-mittelfranken', 'https://example.org/franken.xml'] });
+    // Katalog-Adresse wird auf den Kurznamen abgebildet
+    expect(
+      (await send({ feeds: ['https://nachrichtenfeeds.br.de/rdf/boards/UZlJdUE'] })).json(),
+    ).toEqual({ feeds: ['br24-oberbayern'] });
   });
 });
 

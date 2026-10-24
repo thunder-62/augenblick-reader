@@ -11,6 +11,7 @@ import {
   type SourcesConfig,
 } from '@augenblick/shared';
 import de from '@augenblick/shared/locales/de.json';
+import { isHttpUrl, normalizeFeedList, resolveFeed } from '../sources/feeds.ts';
 import type { InterestRanker } from './selection.ts';
 import type { Db } from './db.ts';
 
@@ -164,34 +165,36 @@ export function setIntro(db: Db, intro: IntroState, device = DEFAULT_DEVICE): vo
 
 // --- Quellen ----------------------------------------------------------------------
 
-export type SourcesDefaults = { br24FeedUrl: string };
+export type SourcesDefaults = { rssFeeds: readonly string[] };
 
+/**
+ * Aktive Feeds: im Technik-Bereich gespeicherte Liste, sonst die aus der Umgebung.
+ * Aus M1 übernommen: eine dort gespeicherte einzelne BR24-Adresse gilt als Liste mit einem Eintrag.
+ */
 export function getSourcesConfig(db: Db, defaults: SourcesDefaults): SourcesConfig {
-  return { br24FeedUrl: getConfig(db, 'br24_feed_url') ?? defaults.br24FeedUrl };
-}
-
-export function isHttpUrl(value: string): boolean {
-  try {
-    const u = new URL(value);
-    return u.protocol === 'https:' || u.protocol === 'http:';
-  } catch {
-    return false;
+  const raw = getConfig(db, 'rss_feeds');
+  if (raw) {
+    try {
+      return { feeds: normalizeFeedList(JSON.parse(raw)) };
+    } catch {
+      // unlesbar: Standard verwenden
+    }
   }
+  const legacy = getConfig(db, 'br24_feed_url');
+  if (legacy && isHttpUrl(legacy)) return { feeds: [resolveFeed(legacy)?.key ?? legacy] };
+  return { feeds: [...defaults.rssFeeds] };
 }
 
-/** Speichert geänderte Felder; ungültige Feed-URLs werden abgewiesen. */
+export { isHttpUrl };
+
+/** Speichert die Feed-Liste; ungültige Einträge werden abgewiesen. */
 export function saveSourcesConfig(
   db: Db,
   input: unknown,
   defaults: SourcesDefaults,
 ): SourcesConfig {
   const i = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
-  if (typeof i.br24FeedUrl === 'string') {
-    const url = i.br24FeedUrl.trim();
-    if (!isHttpUrl(url))
-      throw new Error('Die Feed-Adresse muss mit http:// oder https:// beginnen.');
-    setConfig(db, 'br24_feed_url', url);
-  }
+  if ('feeds' in i) setConfig(db, 'rss_feeds', JSON.stringify(normalizeFeedList(i.feeds)));
   return getSourcesConfig(db, defaults);
 }
 

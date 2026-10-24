@@ -66,7 +66,7 @@ Am 24.10.2026 nochmals gegen `SPEC.md` (Version 0.1) geprüft. Auf `main` gab es
 
 1. **Ausprobieren:** auf dem PC oder Pi `npm install`, `.env` anlegen, `npm run dev` (README „Starten“). Am Tablet `http://<IP>:5173` öffnen.
 2. **OpenRouter-Schlüssel** in `.env` als `OPENROUTER_API_KEY` eintragen und einige Karten lesen. Dabei auf Ton, Länge und Schlagworte achten (Technik → Interessen).
-3. **Quellen live prüfen.** Aus der Entwicklungsumgebung waren tagesschau, BR24 und OpenRouter gesperrt. Kommen Artikel beider Quellen an, und sind die Texte sauber? Wie lautet die Feed-Adresse für Franken (`BR24_FEED_URL`)?
+3. **Quellen live prüfen.** Aus der Entwicklungsumgebung waren tagesschau, BR24 und OpenRouter gesperrt. Kommen Artikel beider Quellen an, und sind die Texte sauber? Der Feed für Mittelfranken ist bekannt und Standard (ADR 010, `AUGENBLICK_RSS_FEEDS`).
 4. **Test mit der Leserin am Gerät:** Einführung, Einstellungen, Blättern, Lesen, Funkelstern. Die Beobachtungen in die offenen Fragen der Aufträge eintragen.
 5. **Pi einrichten:** `sudo ./deploy/install.sh --from-source`, bis es ein Release gibt.
 6. **Repo-Einstellungen:** „Secret scanning“ und „Push protection“ einschalten.

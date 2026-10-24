@@ -23,7 +23,14 @@ describe('Konfiguration', () => {
     expect(c.settings.fontSizePx).toBe(MIN_FONT_SIZE_PX);
     expect(c.settings.theme).toBe('light');
     expect(c.tagesschauHourlyLimit).toBeLessThan(60);
-    expect(c.br24FeedUrl).toBe('https://feeds.br24.de/rss/nachrichten');
+    expect(c.rssFeeds).toEqual(['br24-mittelfranken']);
+    expect(loadConfig({ BR24_FEED_URL: 'https://example.org/alt.xml' }).rssFeeds).toEqual([
+      'https://example.org/alt.xml',
+    ]);
+    expect(
+      loadConfig({ AUGENBLICK_RSS_FEEDS: 'br24-mittelfranken, https://example.org/b.xml' })
+        .rssFeeds,
+    ).toEqual(['br24-mittelfranken', 'https://example.org/b.xml']);
   });
 
   it('Zeitplan: alle 30 Minuten von 5:00 bis 22:00', () => {

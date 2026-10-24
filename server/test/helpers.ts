@@ -48,7 +48,7 @@ export function testConfig(over: Partial<AppConfig> = {}): AppConfig {
   return {
     settings: DEFAULT_SETTINGS,
     technikNetworks: DEFAULT_TECHNIK_NETWORKS,
-    br24FeedUrl: 'https://example.org/feed.xml',
+    rssFeeds: ['br24-mittelfranken'],
     dbPath: ':memory:',
     dataDir: '.',
     openrouterApiKey: null,

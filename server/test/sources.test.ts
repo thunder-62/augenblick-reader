@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { htmlToBlocks } from '../src/core/clean.ts';
 import { RateLimiter } from '../src/core/ratelimit.ts';
-import { Br24Adapter, br24Section, parseFeed } from '../src/sources/br24.ts';
+import { Br24Adapter, br24Section, parseFeed, RssAdapter } from '../src/sources/br24.ts';
+import { normalizeFeedList, resolveFeeds } from '../src/sources/feeds.ts';
+import { createAdapters } from '../src/sources/index.ts';
 import { contentToHtml, TagesschauAdapter, tagesschauSection } from '../src/sources/tagesschau.ts';
 import { fakeFetch, fixture } from './helpers.ts';
 
@@ -148,5 +150,82 @@ describe('RateLimiter', () => {
     expect(r.take()).toBe(false);
     now = 1001;
     expect(r.take()).toBe(true);
+  });
+});
+
+describe('RSS-Feeds (ADR 010)', () => {
+  it('liest RDF-Feeds (RSS 1.0, z. B. BR24 Mittelfranken)', () => {
+    const items = parseFeed(fixture('rdf-feed.xml'), 'region');
+    expect(items).toHaveLength(2);
+    expect(items[0]?.title).toBe('Neuer Brunnen auf dem Marktplatz');
+    expect(items[0]?.url).toBe('https://example.org/nachrichten/marktplatz,R1');
+    expect(items[0]?.publishedAt).toBe('2026-10-24T05:30:00.000Z');
+    expect((items[0]?.payload as { teaser: string }).teaser).toBe(
+      'Der Brunnen soll im Frühjahr fertig sein.',
+    );
+    expect(items[0]?.section).toBe('region');
+    // ohne <link>: Adresse aus rdf:about, Sport-Kategorie aus dc:subject
+    expect(items[1]?.url).toBe('https://example.org/nachrichten/kegeln,R2');
+    expect(items[1]?.section).toBe('sport');
+  });
+
+  it('liest Atom-Feeds', () => {
+    const [item] = parseFeed(fixture('atom-feed.xml'), 'nachrichten');
+    expect(item?.title).toBe('Bücherei verleiht Lesegeräte & Lupen');
+    expect(item?.url).toBe('https://example.org/buecherei,A1');
+    expect(item?.section).toBe('nachrichten');
+    expect(item?.publishedAt).toBe('2026-10-24T06:00:00.000Z');
+  });
+
+  it('Rubrik des Feeds gilt, solange keine Sport-Kategorie kommt', () => {
+    expect(br24Section(['Wirtschaft'], 'wirtschaft')).toBe('wirtschaft');
+    expect(br24Section(['Bundesliga'], 'wirtschaft')).toBe('sport');
+  });
+
+  it('löst Kurznamen und Adressen auf, prüft die Liste', () => {
+    const feeds = resolveFeeds([
+      'br24-mittelfranken',
+      'https://example.org/eigener.xml',
+      'gibt-es-nicht',
+      'https://nachrichtenfeeds.br.de/rdf/boards/UZlNk5T',
+    ]);
+    expect(feeds.map((f) => [f.key, f.source, f.section])).toEqual([
+      ['br24-mittelfranken', 'br24', 'region'],
+      ['https://example.org/eigener.xml', 'rss', 'nachrichten'],
+    ]);
+    expect(() => normalizeFeedList(['ftp://example.org/x'])).toThrow();
+    expect(() =>
+      normalizeFeedList(Array.from({ length: 11 }, (_, i) => `https://e.org/${i}`)),
+    ).toThrow();
+    expect(normalizeFeedList(['', ' br24-oberbayern '])).toEqual(['br24-oberbayern']);
+  });
+
+  it('mehrere Feeds: ein Ausfall stört die anderen nicht, alle aus = Fehler', async () => {
+    const a = {
+      key: 'a',
+      name: 'A',
+      url: 'https://example.org/a.xml',
+      source: 'br24',
+      section: 'region',
+    };
+    const b = { ...a, key: 'b', url: 'https://example.org/b.xml' };
+    const ok = new RssAdapter({
+      id: 'br24',
+      feeds: () => [a, b],
+      fetch: fakeFetch({ [b.url]: fixture('rdf-feed.xml') }),
+    });
+    expect(await ok.fetchList()).toHaveLength(2);
+    const down = new RssAdapter({ id: 'br24', feeds: () => [a], fetch: fakeFetch({}) });
+    await expect(down.fetchList()).rejects.toThrow();
+    const none = new RssAdapter({ id: 'rss', feeds: () => [], fetch: fakeFetch({}) });
+    expect(await none.fetchList()).toEqual([]);
+  });
+
+  it('verteilt Katalog-Feeds auf „br24“ und eigene Adressen auf „rss“', () => {
+    const adapters = createAdapters(
+      { tagesschauBaseUrl: BASE, tagesschauHourlyLimit: 50, rssFeeds: [] },
+      () => ['br24-mittelfranken', 'https://example.org/eigener.xml'],
+    );
+    expect(adapters.map((x) => x.id)).toEqual(['tagesschau', 'br24', 'rss']);
   });
 });
