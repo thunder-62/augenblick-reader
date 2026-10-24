@@ -132,10 +132,21 @@ interface SourceAdapter {
 2. **Bereinigen:** Werbung, Bildunterschriften, „Mehr zum Thema", Links, Social-Embeds, Bildnachweise entfernen. Zwischenüberschriften behalten. Ergebnis als `Block[]`.
 3. **Sätze trennen:** deutscher Satztrenner mit Abkürzungsliste (z. B., Dr., Nr., …). Satzgrenzen sind Grundlage für das Vorlesen.
 4. **KI-Kurzfassung** (§6).
-5. **Auswahl für die Ausgabe:** maximal 12 Artikel pro Tag in der Übersicht, Mischung nach konfigurierbaren Rubriken (z. B. 4× Region aus BR24, 4× Deutschland/Welt aus tagesschau, 2× Vermischtes, 2× Sport). Dubletten (gleiches Thema) zusammenfassen.
+5. **Auswahl für die Ausgabe** (Reihenfolge siehe §5.3): maximal 12 Artikel pro Tag in der Übersicht, Mischung nach konfigurierbaren Rubriken (z. B. 4× Region aus BR24, 4× Deutschland/Welt aus tagesschau, 2× Vermischtes, 2× Sport). Dubletten (gleiches Thema) zusammenfassen.
 6. **Aufräumen:** Artikel älter als 7 Tage löschen.
 
 Fehler einer Quelle dürfen die anderen nicht blockieren. Wenn nichts Neues kommt, bleibt die letzte Ausgabe sichtbar.
+
+### 5.3 Interessen lernen
+
+Ziel: Themen, die die Nutzerin gern liest, rücken in der Übersicht nach vorn. Es geht ums Lernen für sie, nicht um Überwachung.
+
+- **Signale:** Artikel geöffnet, bis zum Ende gelesen bzw. vorgelesen, schnell wieder verlassen. Je Artikel werden daraus Punkte für seine **Themen** (Rubrik plus von der KI vergebene Schlagworte, z. B. „Region“, „Garten“, „Sport“, „Politik“).
+- **Gespeichert** werden nur Themen-Gewichte mit langsamem Vergessen (z. B. Halbwertszeit 30 Tage), keine Liste gelesener Artikel. Alles bleibt auf dem Pi.
+- **Reihenfolge:** Wichtigste Meldungen des Tages bleiben vorn (2 feste Plätze), danach nach Interesse sortiert. **Kein Filtern:** Mindestens 3 der 12 Plätze gehen an Themen außerhalb der Favoriten, damit die Zeitung abwechslungsreich bleibt.
+- **Transparenz:** In ihren Einstellungen (§8.7) gibt es „Was ich gern lese“: die gelernten Themen groß als Liste, je Thema „mehr davon“ / „weniger davon“ und „Alles vergessen“. Änderungen mit zweistufigem Speichern.
+- **Einverständnis:** In der Einführung (§8.8, Schritt 7) einmal fragen: „Augenblick merkt sich, welche Themen Sie gern lesen, und zeigt sie weiter vorn. Einverstanden?“ – „Ja“ / „Nein, lieber nicht“. Jederzeit in den Einstellungen änderbar. Ohne Einverständnis bleibt die Reihenfolge redaktionell.
+- **Umsetzung:** ab M3 (Themen-Schlagworte entstehen zusammen mit der KI-Kurzfassung).
 
 ## 6. KI-Einsatz
 
@@ -143,6 +154,7 @@ Fehler einer Quelle dürfen die anderen nicht blockieren. Wenn nichts Neues komm
 |---|---|---|
 | Kurzfassung 2–3 Sätze, einfache Sprache | Ja | 1 |
 | Rubrik normalisieren, Dubletten erkennen | Ja (günstiges Modell) | 1 |
+| Themen-Schlagworte je Artikel (für §5.3) | Ja (zusammen mit der Kurzfassung) | 1 |
 | Bereinigung schwieriger Quellen | Optional | 2 |
 | Vereinfachte Fassung (Einfache Sprache) des ganzen Artikels | Option, Feature-Flag | später |
 | Übersetzung | Nein | später |
@@ -272,7 +284,7 @@ Eine geführte Einführung, mit der die Nutzerin selbst einstellt und übt. Ersc
   4. **Blättern üben:** ein kurzer Übungstext über zwei Seiten; Aufgabe „Tippen Sie auf Weiter“. Gelingt es, kurze ruhige Bestätigung und weiter.
   5. **Artikel öffnen und zurück:** eine Übungs-Übersicht mit zwei Karten; Karte antippen, danach „◂ Übersicht“.
   6. **Vorlesen** (nur wenn aktiv): „Tippen Sie auf einen Satz“ – Vorlesen startet, erneutes Tippen hält an. Hinweis auf Hörgeräte, falls gekoppelt.
-  7. **Fertig:** Zusammenfassung der gewählten Werte, zweistufiges Speichern wie in §8.7. Hinweis, wo die Einführung wiederholt werden kann.
+  7. **Fertig:** Frage nach dem Einverständnis zum Interessen-Lernen (§5.3), Zusammenfassung der gewählten Werte, zweistufiges Speichern wie in §8.7. Hinweis, wo die Einführung wiederholt werden kann.
 - **Übungstexte** sind eigene, kurze, freundliche Texte (keine echten Nachrichten), damit nichts ablenkt.
 - **Würdevoll:** keine Kinder-Sprache, kein Konfetti, kein Lob-Überschwang. Bestätigung schlicht („Gut, das war es schon.“).
 - **Fehlertolerant:** Falsch getippt ist nie ein Fehler; der Schritt wiederholt die Aufgabe freundlich. Jeder Schritt kann übersprungen werden.
@@ -298,7 +310,7 @@ Erreichbar unter `/technik`, für Smartphone/PC des Betreuers gestaltet (normale
 - Aktuelle Leseeinstellungen ansehen, Verlauf der gespeicherten Fassungen, auf eine frühere zurücksetzen.
 - Quellen und Rubriken-Mix.
 - Status: letzter Abruf je Quelle, Fehler, KI-Verbrauch heute, verfügbare TTS-Stimmen (vom Tablet gemeldet), Speicher, Version.
-- **Nutzungsprotokoll** (nur lokal auf dem Pi, keine Weitergabe, **standardmäßig aus**): geöffnete Artikel, Seiten, Lesedauer, Taste „Vorlesen“ benutzt. Nur mit Wissen und Zustimmung der Nutzerin einschalten; ist es an, steht das in ihren Einstellungen.
+- **Interessen** (§5.3): Der Betreuer sieht nur die gelernten Themen-Gewichte, kein Leseprotokoll einzelner Artikel.
 - Text des gedruckten Spickzettels als druckbare Seite (A4, Großdruck) generieren. [R28]
 
 ## 11. Sprache und Erweiterbarkeit
@@ -333,7 +345,7 @@ Verlage oder Sender sollen Augenblick mit eigenem Branding nutzen können. Desha
 | M0 | Repo-Gerüst, CI (Lint, Tests, Release-Paket), lokaler Start per `npm run dev` | `npm run dev` liefert leere Übersicht |
 | M1 | tagesschau- und BR24-Adapter, Bereinigung, Satztrennung, Übersicht + Artikel statisch, ohne KI | Artikel lesbar, Regeln §8.1–8.3 erfüllt, Playwright-Tests grün |
 | M2 | Einstellungen der Nutzerin mit zweistufigem Speichern (§8.7), Einführung (§8.8), Kalibrierung, Technik-Bereich | Nutzerin ändert Größe/Schema selbst, Bestätigungsschritt greift, Betreuer kann auf frühere Fassung zurücksetzen |
-| M3 | KI-Kurzfassungen inkl. Fallback und Tageslimit | Jede Karte hat Kurzfassung ≤ 45 Wörter |
+| M3 | KI-Kurzfassungen inkl. Fallback und Tageslimit, Themen-Schlagworte, Interessen lernen (§5.3) | Jede Karte hat Kurzfassung ≤ 45 Wörter |
 | M4 | HTTPS, Pi-Deployment-Skript, nächtliche Updates | Pi neu gestartet → Tablet zeigt wieder aktuelle Ausgabe ohne Eingriff |
 | M5 | Vorlesen (§8.5) | Tipp auf Wort startet ab Satz, Hervorhebung, Pause |
 | M6 | Experimente (§8.6) hinter Flags | Je Flag einzeln an-/abschaltbar |
