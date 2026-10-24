@@ -12,7 +12,7 @@ Das Produkt besteht aus zwei Teilen:
 - **Server** (läuft auf einem Raspberry Pi im Heimnetz der Nutzerin): holt Artikel ab, bereinigt sie, erzeugt Kurzfassungen per KI, speichert alles und liefert die Web-App aus.
 - **Web-App / PWA** (läuft im Vollbild auf einem Samsung Galaxy Tab S11, 11", AMOLED, Android): Übersicht → Artikel. Sonst fast nichts.
 
-Ein Angehöriger („Betreuer") richtet alles ein und wartet es aus der Ferne. Die Nutzerin stellt nie etwas ein.
+Ein Angehöriger („Betreuer") richtet alles ein und wartet es. Die Nutzerin stellt nie etwas ein.
 
 ### Leitsätze (gelten für jede Entscheidung)
 
@@ -28,7 +28,8 @@ Ein Angehöriger („Betreuer") richtet alles ein und wartet es aus der Ferne. D
 - Keine Mehrbenutzerfähigkeit, keine Konten, kein Login für die Nutzerin.
 - Keine Kommentare, Teilen-Funktionen, Werbung, Push-Benachrichtigungen.
 - Kein Nachbau des ePaper-Seitenlayouts. Text wird immer als einspaltiger Fließtext dargestellt. [R5]
-- Keine native Android-App (PWA reicht; Kiosk-Betrieb über Android-Bordmittel bzw. Launcher, siehe §9).
+- Keine native Android-App (Web-App reicht).
+- Kein Kiosk-Modus, kein Offline-Modus, Fernwartung nur optional (Entscheidung des Betreuers).
 - Keine Übersetzung, kein RSVP [R11].
 
 ## 3. Architektur
@@ -250,11 +251,11 @@ Jedes Experiment protokolliert lokal anonyme Nutzung (siehe §10), damit der Bet
 
 - **Raspberry Pi 5** (4 GB reicht), **SSD statt SD-Karte**, Raspberry Pi OS Lite (64 bit), Node.js 22 LTS. Zwei systemd-Dienste mit `Restart=always`, eigener Systembenutzer `augenblick`, Daten unter `/var/lib/augenblick`, Programm unter `/opt/augenblick`. Hardware-Watchdog an.
 - **`deploy/install.sh`** richtet alles auf einem frischen Pi ein (Benutzer, Verzeichnisse, Node, Dienste, Tailscale-Hinweise, `.env` aus Vorlage). Idempotent, mehrfach ausführbar.
-- **Tailscale** auf dem Pi und den Geräten des Betreuers. Das Tablet erreicht den Pi über dessen Tailscale-Namen; HTTPS-Zertifikat per `tailscale cert`. Ohne gültiges HTTPS keine Service Worker → Pflicht.
-- **Admin-Bereich** nur über Tailscale erreichbar **und** zusätzlich PIN-geschützt.
+- **HTTPS** im Heimnetz ist nötig, weil der Browser Bildschirm-wach-Halten (Wake Lock) und die Installation als App nur über HTTPS erlaubt. Einfachster Weg: Tailscale auf Pi und Tablet, Zertifikat per `tailscale cert`. Tailscale ermöglicht nebenbei optional den Fernzugriff des Betreuers.
+- **Admin-Bereich** im Heimnetz (bzw. über Tailscale) erreichbar und PIN-geschützt.
 - **Updates:** CI erstellt bei jedem Release ein fertiges Paket (gebaute Web-App + Server, ohne `node_modules`) als GitHub-Release-Asset. `deploy/update.sh` läuft nachts (03:00, systemd-Timer): neues Release laden → nach `/opt/augenblick/releases/<version>` entpacken → `npm ci --omit=dev` → Symlink `current` umstellen → Dienste neu starten → Healthcheck (`/health`). Schlägt er fehl, Symlink zurück auf die vorige Version und erneut starten. Die letzten 3 Versionen bleiben liegen. Native Abhängigkeiten (`better-sqlite3`) nutzen die arm64-Prebuilds; falls keine passen, wird auf dem Pi gebaut (`build-essential` in `install.sh`).
-- **Offline:** Service Worker speichert die aktuelle Ausgabe (Übersicht + alle Artikel) auf dem Tablet. Fällt Pi oder Internet aus, bleibt die letzte Ausgabe lesbar, mit dezentem Hinweis „Stand: heute 6:30 Uhr" statt Fehlermeldung.
-- **Tablet:** Chrome, PWA installiert, Bildschirmfixierung oder Kiosk-Launcher (Entscheidung beim Einrichten, in README dokumentieren), Benachrichtigungen aus, Systemschrift groß, Helligkeit hoch.
+- **Kein Offline-Modus.** Ist der Pi nicht erreichbar, zeigt die App einen ruhigen Hinweis in großer Schrift („Die Zeitung ist gerade nicht erreichbar. Bitte später noch einmal öffnen.“) statt einer technischen Fehlermeldung.
+- **Tablet:** Chrome, Augenblick als App bzw. Verknüpfung auf dem Startbildschirm, Benachrichtigungen aus, Systemschrift groß, Helligkeit hoch. Kein Kiosk-Modus.
 - **Backup:** SQLite und Settings täglich auf einen konfigurierbaren WebDAV-Pfad (z. B. Nextcloud).
 
 ## 10. Admin-Bereich (Betreuer)
@@ -301,7 +302,7 @@ Verlage oder Sender sollen Augenblick mit eigenem Branding nutzen können. Desha
 | M1 | tagesschau- und BR24-Adapter, Bereinigung, Satztrennung, Übersicht + Artikel statisch, ohne KI | Artikel lesbar, Regeln §8.1–8.3 erfüllt, Playwright-Tests grün |
 | M2 | Admin-Bereich, Settings, Kalibrierung | Größe/Schema per Kalibrierung gesetzt und auf dem Tablet wirksam |
 | M3 | KI-Kurzfassungen inkl. Fallback und Tageslimit | Jede Karte hat Kurzfassung ≤ 45 Wörter |
-| M4 | PWA offline, Tailscale-HTTPS, Pi-Deployment-Skript, nächtliche Updates | Pi neu gestartet → Tablet zeigt wieder aktuelle Ausgabe ohne Eingriff |
+| M4 | HTTPS, Pi-Deployment-Skript, nächtliche Updates | Pi neu gestartet → Tablet zeigt wieder aktuelle Ausgabe ohne Eingriff |
 | M5 | Vorlesen (§8.5) | Tipp auf Wort startet ab Satz, Hervorhebung, Pause |
 | M6 | Experimente (§8.6) hinter Flags | Je Flag einzeln an-/abschaltbar |
 | M7 | Regionalzeitungs-Adapter | **Erst nach schriftlicher Freigabe durch den Betreuer** |
@@ -310,7 +311,7 @@ Nach M1, M2 und M5 testet der Betreuer mit der Nutzerin am Gerät; Rückmeldunge
 
 ## 14. Qualitätsanforderungen
 
-- **E2E-Tests** im Viewport des Tab S11 (Querformat; tatsächliche CSS-Auflösung am Gerät ermitteln und eintragen) für: Übersicht blättern, Artikel öffnen, blättern, zurück, Zustand nach Neuladen, Offline-Modus.
+- **E2E-Tests** im Viewport des Tab S11 (Querformat; tatsächliche CSS-Auflösung am Gerät ermitteln und eintragen) für: Übersicht blättern, Artikel öffnen, blättern, zurück, Zustand nach Neuladen, Hinweis bei nicht erreichbarem Server.
 - **Automatischer Check** in CI: Kontrast ≥ 7:1 für beide Schemata, Tippziele ≥ Minimalgröße, maximal 6 Tippziele pro Bildschirm, keine Scrollbalken in Übersicht/Artikel.
 - **Performance:** Übersicht in < 1 s aus dem Cache, Seitenwechsel < 100 ms.
 - **Robustheit:** Ein kaputter Artikel darf die Übersicht nicht verhindern; Quelle down → letzte Ausgabe bleibt.
@@ -320,5 +321,4 @@ Nach M1, M2 und M5 testet der Betreuer mit der Nutzerin am Gerät; Rückmeldunge
 1. Rechtliche Klärung Regionalzeitungs-ePaper (Zugang, Nutzungsbedingungen, KI-Kurzfassungen) → Voraussetzung für M7.
 2. Augenbefund (Linsentrübung? Ausfall links/rechts?) – beeinflusst Farbschema und Laufschrift-Marke. Empfehlung: Low-Vision-Beratung.
 3. Hörgeräte der Nutzerin: Unterstützen sie ASHA oder LE Audio (nicht nur „Made for iPhone")? Kopplung mit dem Tab S11 vor M5 testen.
-4. Kiosk-Lösung auf dem Tab S11: Bildschirmfixierung vs. Kiosk-Launcher.
 
