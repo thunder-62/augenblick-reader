@@ -18,7 +18,7 @@ Jede Karte hat eine kurze, sachliche Zusammenfassung; ist sie von der KI, steht 
 
 ## Nicht in diesem Auftrag
 
-Rubriken/Dubletten per KI (SPEC §6, optional), Einfache-Sprache-Fassung ganzer Artikel (später), Vorlesen als Signal (M5).
+Rubriken/Dubletten per KI (SPEC §6 Phase 1; in M3 nicht abgenommen, bleibt vorerst ohne KI – siehe `docs/stand-und-absprachen.md`), Einfache-Sprache-Fassung ganzer Artikel (später), Vorlesen als Signal (M5).
 
 ## Abnahme
 
