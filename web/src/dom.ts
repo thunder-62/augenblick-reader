@@ -1,3 +1,5 @@
+import { t } from './i18n.ts';
+
 type Attrs = Record<string, string | number | boolean | undefined>;
 type Child = Node | string | null | undefined | false;
 
@@ -103,3 +105,69 @@ export function measureBox(like: HTMLElement): HTMLElement {
 }
 
 export const fitsIn = (box: HTMLElement): boolean => box.scrollHeight <= box.clientHeight + 0.5;
+
+/**
+ * Seitenangabe („Seite 2 von 8“, „Stufe 3 von 7“) nie umbrechen: Passt sie nicht in die Leiste,
+ * steht dort die Kurzform „2 / 8“; die Langform bleibt für Screenreader (Auftrag 004, A1).
+ */
+export function fitPageInfo(el: HTMLElement): void {
+  // Steht noch die eigene Kurzform da, gilt die Langform aus dem aria-label; sonst der neue Text.
+  const text = el.textContent ?? '';
+  const full = text === el.dataset.short ? (el.getAttribute('aria-label') ?? text) : text;
+  el.textContent = full;
+  el.style.removeProperty('font-size');
+  el.removeAttribute('aria-label');
+  delete el.dataset.short;
+  if (!el.isConnected || el.scrollWidth <= el.clientWidth + 1) return;
+  const [page, total] = full.match(/\d+/g) ?? [];
+  if (page === undefined || total === undefined) return;
+  el.setAttribute('aria-label', full);
+  el.textContent = t('pager.short', { page, total });
+  el.dataset.short = el.textContent;
+  // Passt auch die Kurzform nicht, wird sie kleiner (nie unter 18 pt) statt abgeschnitten.
+  el.style.removeProperty('font-size');
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  while (size > MIN_HINT_PX && el.scrollWidth > el.clientWidth + 1) {
+    size = Math.max(MIN_HINT_PX, Math.floor(size * 0.9));
+    el.style.fontSize = `${size}px`;
+  }
+}
+
+/** Kleinste Schrift für Anleitungen auf Einstellungs- und Einführungsseiten: 18 pt (SPEC §7). */
+const MIN_HINT_PX = 24;
+
+/**
+ * Passt eine Seite der Einstellungen oder Einführung bei großer Schrift nicht, werden nur die
+ * Anleitungstexte schrittweise kleiner (Auftrag 004, A1) – nicht Vorschau, Titel oder Tasten.
+ */
+export function fitFlowPage(page: HTMLElement): void {
+  page.style.removeProperty('--hint-fit');
+  const hints = Array.from(page.querySelectorAll<HTMLElement>('.flowhint'));
+  for (const el of hints) el.hidden = false;
+  const first = hints[0];
+  if (!first || !overflows(page)) return;
+  let size = parseFloat(getComputedStyle(first).fontSize);
+  while (size > MIN_HINT_PX && overflows(page)) {
+    size = Math.max(MIN_HINT_PX, Math.floor(size * 0.9));
+    page.style.setProperty('--hint-fit', `${size}px`);
+  }
+  // Letzte Stufe: reine Bedienhinweise weglassen; die Tasten sagen, was zu tun ist.
+  for (const el of hints.filter((e) => e.classList.contains('optional'))) {
+    if (!overflows(page)) break;
+    el.hidden = true;
+  }
+}
+
+/** Genau messen: auch ein Bruchteil eines Pixels Überlauf rückt Tasten zu nah an die Leiste. */
+function overflows(page: HTMLElement): boolean {
+  if (page.scrollHeight > page.clientHeight) return true;
+  const outside = (box: Element, children: Element[]): boolean => {
+    const bottom = box.getBoundingClientRect().bottom;
+    return children.some((c) => c.getBoundingClientRect().bottom > bottom + 0.01);
+  };
+  if (outside(page, Array.from(page.children))) return true;
+  // Auch Karten in einem schrumpfenden Kartenbereich (Übungs-Übersicht der Einführung).
+  return Array.from(page.querySelectorAll('.cards')).some((c) =>
+    outside(c, Array.from(c.children)),
+  );
+}

@@ -14,7 +14,8 @@
     "save": "Speichern"
   },
   "pager": {
-    "pageOf": "Seite {page} von {total}"
+    "pageOf": "Seite {page} von {total}",
+    "short": "{page} / {total}"
   },
   "card": {
     "readingTime": {

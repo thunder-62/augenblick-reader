@@ -4,7 +4,7 @@
  */
 import { CALIBRATION_SIZES_PX, type Interest, type Settings } from '@augenblick/shared';
 import { fetchBaseline, fetchInterests, saveInterests, saveSettings } from './api.ts';
-import { fitsIn, h, icons, measureBox, setButton } from './dom.ts';
+import { fitPageInfo, fitsIn, h, icons, measureBox, setButton } from './dom.ts';
 import {
   confirmScreen,
   controls,
@@ -93,6 +93,7 @@ export class SettingsFlow {
         }),
       );
       info.textContent = t('pager.pageOf', { page: current + 1, total: pages.length });
+      fitPageInfo(info);
       setButton(back, t('nav.back'), 'left', { inactive: current === 0 });
       setButton(next, t('nav.next'), 'right', { inactive: current >= pages.length - 1 });
     };
@@ -140,7 +141,7 @@ export class SettingsFlow {
       const { screen } = flowScreen({
         rail: this.overviewButton(),
         title: t('settings.menu.font'),
-        content: [hint(t('settings.font.hint')), sample.el, controls(smaller, larger)],
+        content: [hint(t('settings.font.hint'), true), sample.el, controls(smaller, larger)],
         bar: [
           this.backToMenu(),
           h(
@@ -201,7 +202,7 @@ export class SettingsFlow {
       const { screen } = flowScreen({
         rail: this.overviewButton(),
         title: t('settings.menu.colors'),
-        content: [hint(t('settings.colors.hint')), sample.el, controls(light, dark)],
+        content: [hint(t('settings.colors.hint'), true), sample.el, controls(light, dark)],
         bar: [
           this.backToMenu(),
           null,
@@ -237,7 +238,7 @@ export class SettingsFlow {
       const { screen } = flowScreen({
         rail: this.overviewButton(),
         title: t('settings.menu.lineHeight'),
-        content: [hint(t('settings.lineHeight.hint')), sample.el, controls(less, more)],
+        content: [hint(t('settings.lineHeight.hint'), true), sample.el, controls(less, more)],
         bar: [
           this.backToMenu(),
           null,

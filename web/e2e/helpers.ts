@@ -24,7 +24,9 @@ export async function withSettings(page: Page, patch: Record<string, unknown>): 
 }
 
 export async function pageInfo(page: Page): Promise<{ page: number; total: number }> {
-  const text = (await page.locator('.pageinfo').textContent()) ?? '';
+  const el = page.locator('.pageinfo');
+  // Langform, oder bei Platzmangel „2 / 8“ mit der Langform als aria-label (Auftrag 004, A1).
+  const text = (await el.getAttribute('aria-label')) ?? (await el.textContent()) ?? '';
   const m = /Seite (\d+) von (\d+)/.exec(text);
   expect(m, `Seitenangabe „${text}“`).not.toBeNull();
   return { page: Number(m?.[1]), total: Number(m?.[2]) };
@@ -98,7 +100,58 @@ export async function checkScreen(page: Page): Promise<void> {
       })
       .map((el) => el.tagName + '.' + el.className);
 
+    // Keine Überlappung: Bereiche des Bildschirms, Elemente der Leiste, Karten im Kartenbereich.
+    const box = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return {
+        l: r.left,
+        t: r.top,
+        r: r.right,
+        b: r.bottom,
+        name: `${el.tagName}.${el.className}`,
+      };
+    };
+    const overlaps: string[] = [];
+    const pairwise = (els: Element[]) => {
+      const bs = els.map(box).filter((b) => b.r - b.l > 0 && b.b - b.t > 0);
+      bs.forEach((a, i) =>
+        bs.slice(i + 1).forEach((c) => {
+          if (a.l < c.r - 1 && c.l < a.r - 1 && a.t < c.b - 1 && c.t < a.b - 1)
+            overlaps.push(`${a.name} ↔ ${c.name}`);
+        }),
+      );
+    };
+    const screen = document.querySelector('.screen');
+    if (screen) {
+      pairwise(Array.from(screen.children));
+      for (const el of Array.from(screen.children)) {
+        const b = box(el);
+        if (b.b > vh + 1 || b.r > vw + 1) overlaps.push(`${b.name} ragt aus dem Bildschirm`);
+      }
+    }
+    for (const bar of Array.from(document.querySelectorAll('.bar')))
+      pairwise(Array.from(bar.children));
+    for (const cards of Array.from(document.querySelectorAll('.cards'))) {
+      if (cards.closest('.measure')) continue;
+      const outer = box(cards);
+      for (const c of Array.from(cards.children)) {
+        const b = box(c);
+        if (b.t < outer.t - 1 || b.b > outer.b + 1) overlaps.push(`${b.name} außerhalb von .cards`);
+      }
+    }
+    // Seitenangaben nie buchstabenweise umbrochen (eine Zeile).
+    const wrapped = Array.from(document.querySelectorAll<HTMLElement>('.pageinfo'))
+      .filter(
+        (el) =>
+          el.textContent &&
+          (el.getBoundingClientRect().height > parseFloat(getComputedStyle(el).lineHeight) * 1.5 ||
+            el.scrollWidth > el.clientWidth + 1),
+      )
+      .map((el) => el.textContent ?? '');
+
     return {
+      overlaps,
+      wrapped,
       vw,
       vh,
       docScroll: { w: doc.scrollWidth, h: doc.scrollHeight },
@@ -108,6 +161,9 @@ export async function checkScreen(page: Page): Promise<void> {
       scrollable,
     };
   });
+
+  expect(result.overlaps, 'Überlappungen').toEqual([]);
+  expect(result.wrapped, 'umbrochene oder abgeschnittene Seitenangaben').toEqual([]);
 
   // Keine Scrollbalken, nichts abgeschnitten
   expect(result.docScroll.w, 'Seite breiter als der Bildschirm').toBeLessThanOrEqual(result.vw);

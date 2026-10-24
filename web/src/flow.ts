@@ -55,8 +55,12 @@ export function flowScreen(opts: {
   return { screen, page };
 }
 
-export function hint(text: string): HTMLElement {
-  return h('p', { class: 'flowhint' }, text);
+/**
+ * Anleitungstext. `optional`: reiner Bedienhinweis, den die beschrifteten Tasten ersetzen –
+ * er darf bei sehr großer Schrift entfallen, wenn die Seite sonst überliefe (Auftrag 004, A1).
+ */
+export function hint(text: string, optional = false): HTMLElement {
+  return h('p', { class: optional ? 'flowhint optional' : 'flowhint' }, text);
 }
 
 /** Taste mit Tipp-Logik. */

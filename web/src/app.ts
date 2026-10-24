@@ -10,7 +10,16 @@ import {
   type Settings,
 } from '@augenblick/shared';
 import { fetchArticle, fetchEdition, fetchIntro, fetchSettings } from './api.ts';
-import { button, fitsIn, h, icons, measureBox, setButton } from './dom.ts';
+import {
+  button,
+  fitFlowPage,
+  fitPageInfo,
+  fitsIn,
+  h,
+  icons,
+  measureBox,
+  setButton,
+} from './dom.ts';
 import { setLocale, t, tOr, tp } from './i18n.ts';
 import { packPages, pageForAnchor, paginate, type Page, type PageItem } from './paginate.ts';
 import { applySettings, calibrateCharWidth, layoutKey } from './settings.ts';
@@ -27,13 +36,36 @@ const SETTINGS_REFRESH_MS = 15 * 60 * 1000;
 const EDITION_REFRESH_MS = 5 * 60 * 1000;
 const RETRY_MS = 30 * 1000;
 
-/** Abstufungen einer Karte, falls sie bei großer Schrift allein nicht auf die Seite passt. */
-type CardDetail = 'full' | 'short' | 'title';
-const CARD_DETAILS: CardDetail[] = ['full', 'short', 'title'];
+/**
+ * Abstufungen einer Karte, falls sie bei großer Schrift allein nicht auf die Seite passt
+ * (Auftrag 004, A1): erst die Kurzfassung satzweise kürzen („…“), dann weglassen, dann die
+ * Lesezeit, dann die Titelschrift verkleinern (nie unter die Schrift der Bedienelemente), zuletzt
+ * die Rubrik. Der Titel wird nie abgeschnitten.
+ */
+type CardDetail = { sentences: number | null; time: boolean; titleScale: number; rubric: boolean };
+const FULL: CardDetail = { sentences: null, time: true, titleScale: 1, rubric: true };
+const TITLE_SCALES = [0.85, 0.7, 0.55, 0];
 
-function firstSentence(text: string): string {
-  const m = /^.+?[.!?](?=\s+\p{Lu})/u.exec(text);
-  return m ? m[0] : text;
+function splitSentences(text: string): string[] {
+  return text.match(/[^.!?]+(?:[.!?]+(?=\s+\p{Lu}|\s*$)|$)/gu)?.map((x) => x.trim()) ?? [text];
+}
+
+function cardDetails(summary: string | undefined): CardDetail[] {
+  const n = summary ? splitSentences(summary).length : 0;
+  const out: CardDetail[] = [FULL];
+  for (let k = n - 1; k >= 0; k--) out.push({ ...FULL, sentences: k });
+  const bare = { ...FULL, sentences: 0, time: false };
+  out.push(bare);
+  for (const titleScale of TITLE_SCALES) out.push({ ...bare, titleScale });
+  out.push({ ...bare, titleScale: 0, rubric: false });
+  return out;
+}
+
+function shortenSummary(summary: string | undefined, sentences: number | null): string | undefined {
+  if (!summary || sentences === null) return summary;
+  if (sentences === 0) return undefined;
+  const parts = splitSentences(summary);
+  return parts.length > sentences ? `${parts.slice(0, sentences).join(' ')} …` : summary;
 }
 
 export type Preview = { settings: unknown; articleId?: string };
@@ -192,6 +224,8 @@ export class App implements FlowHost {
     this.screen?.remove();
     this.screen = screen;
     this.root.append(screen);
+    screen.querySelectorAll<HTMLElement>('.pageinfo').forEach(fitPageInfo);
+    screen.querySelectorAll<HTMLElement>('.flowpage').forEach(fitFlowPage);
     if (screen.classList.contains('flow')) {
       this.view = { kind: 'flow' };
       keepAwake(false);
@@ -284,11 +318,12 @@ export class App implements FlowHost {
     // Passt eine Karte allein nicht, wird ihre Kurzfassung gekürzt statt abgeschnitten.
     const detail = new Map<string, CardDetail>();
     for (const c of cards) {
-      const level = CARD_DETAILS.find((d) => {
+      const levels = cardDetails(c.summary);
+      const level = levels.find((d) => {
         box.replaceChildren(this.card(c, read.has(c.id), d));
         return fitsIn(box);
       });
-      detail.set(c.id, level ?? 'title');
+      detail.set(c.id, level ?? levels[levels.length - 1] ?? FULL);
     }
     const cardFor = (c: ArticleCard): HTMLButtonElement =>
       this.card(c, read.has(c.id), detail.get(c.id));
@@ -316,37 +351,40 @@ export class App implements FlowHost {
       info.textContent = t('pager.pageOf', { page: current + 1, total });
       setButton(back, t('nav.back'), 'left', { inactive: current === 0 });
       setButton(next, t('nav.next'), 'right', { inactive: current >= total - 1 });
+      fitPageInfo(info);
     };
     onTap(back, () => go((this.view.kind === 'overview' ? this.view.page : 0) - 1));
     onTap(next, () => go((this.view.kind === 'overview' ? this.view.page : 0) + 1));
     go(page);
   }
 
-  private card(c: ArticleCard, isRead: boolean, detail: CardDetail = 'full'): HTMLButtonElement {
-    const summary =
-      detail === 'full'
-        ? c.summary
-        : detail === 'short'
-          ? firstSentence(c.summary ?? '')
-          : undefined;
+  private card(c: ArticleCard, isRead: boolean, detail: CardDetail = FULL): HTMLButtonElement {
+    const summary = shortenSummary(c.summary, detail.sentences);
+    // Kleinste Stufe: Titelschrift so groß wie die Bedienelemente.
+    const titleStyle =
+      detail.titleScale === 1
+        ? undefined
+        : `font-size: max(var(--ui), calc(var(--fs) * ${detail.titleScale}))`;
     const rubric = `${tOr(`sections.${c.section ?? 'nachrichten'}`, 'sections.nachrichten')} · ${tOr(`sources.${c.source}`, 'sources.demo')}`;
     return h(
       'button',
       { type: 'button', class: `card${isRead ? ' is-read' : ''}`, lang: c.lang, 'data-id': c.id },
-      h(
-        'span',
-        { class: 'rubric' },
-        h('span', {}, rubric),
-        isRead
-          ? h(
-              'span',
-              { class: 'read' },
-              icons.check(),
-              h('span', { class: 'sr-only' }, t('card.read')),
-            )
-          : null,
-      ),
-      h('span', { class: 'title' }, c.title),
+      detail.rubric &&
+        h(
+          'span',
+          // Bei verkleinertem Titel nicht größer als nötig: 0,7 × Lesegröße (SPEC §8.2).
+          { class: 'rubric', style: detail.titleScale === 1 ? undefined : 'font-size: 0.7em' },
+          h('span', {}, rubric),
+          isRead
+            ? h(
+                'span',
+                { class: 'read' },
+                icons.check(),
+                h('span', { class: 'sr-only' }, t('card.read')),
+              )
+            : null,
+        ),
+      h('span', { class: 'title', style: titleStyle }, c.title),
       summary
         ? h(
             'span',
@@ -357,7 +395,7 @@ export class App implements FlowHost {
             App.glue(summary),
           )
         : null,
-      h('span', { class: 'time' }, tp('card.readingTime', c.readingMinutes)),
+      detail.time ? h('span', { class: 'time' }, tp('card.readingTime', c.readingMinutes)) : null,
     );
   }
 
@@ -433,6 +471,17 @@ export class App implements FlowHost {
       if (b.type === 'paragraph') count += b.sentences.length;
     }
     const box = measureBox(pageEl);
+    // Ein sehr langer Titel bei großer Schrift muss allein auf Seite 1 passen (Auftrag 004, A1):
+    // dann wird nur die Titelschrift kleiner, höchstens bis zur Schrift der Bedienelemente.
+    box.replaceChildren(...this.renderItems(article, [{ kind: 'head' }], offsets));
+    const minTitle = parseFloat(getComputedStyle(box).getPropertyValue('--ui')) || 0;
+    while (!fitsIn(box)) {
+      const h1 = box.querySelector('h1');
+      if (!h1) break;
+      const size = Math.floor(parseFloat(getComputedStyle(h1).fontSize) * 0.9);
+      if (size < minTitle) break;
+      for (const el of [box, pageEl]) el.style.setProperty('--h1-fit', `${size}px`);
+    }
     const pages = paginate(article.blocks, (items) => {
       box.replaceChildren(...this.renderItems(article, items, offsets));
       return fitsIn(box);
@@ -458,6 +507,7 @@ export class App implements FlowHost {
       if (last && nextCard) setButton(next, t('nav.nextArticle'), 'right', { sub: nextCard.title });
       else setButton(next, t('nav.next'), 'right', { inactive: last });
       next.classList.toggle('btn-next-article', last && Boolean(nextCard));
+      fitPageInfo(info);
     };
     onTap(overview, () => this.showOverview(0, article.id));
     onTap(back, () => {

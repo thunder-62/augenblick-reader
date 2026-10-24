@@ -149,7 +149,7 @@ export class IntroFlow {
       rail: this.leave(),
       progress: this.progress(step),
       title: t('settings.menu.font'),
-      content: [hint(t('settings.font.hint')), sample.el, controls(smaller, larger)],
+      content: [hint(t('settings.font.hint'), true), sample.el, controls(smaller, larger)],
       bar: [
         this.skip(step),
         h(
@@ -182,7 +182,7 @@ export class IntroFlow {
       rail: this.leave(),
       progress: this.progress(step),
       title: t('settings.menu.colors'),
-      content: [hint(t('intro.colors.hint')), sample.el, controls(other)],
+      content: [hint(t('intro.colors.hint'), true), sample.el, controls(other)],
       bar: [this.skip(step), null, better],
     });
     this.host.mount(screen);
