@@ -5,7 +5,7 @@
 
 ## Ziel
 
-Am Ende läuft Augenblick lokal (`npm run dev`) und auf einem Raspberry Pi als systemd-Dienst. Die Web-App zeigt eine Übersicht mit echten Artikeln von **tagesschau** und **BR24** und eine gut lesbare Artikelansicht. Noch **ohne** KI, Vorlesen, Admin-Bereich und Offline-Modus.
+Am Ende läuft Augenblick lokal (`npm run dev`) und auf einem Raspberry Pi als systemd-Dienst. Die Web-App zeigt eine Übersicht mit echten Artikeln von **tagesschau** und **BR24** und eine gut lesbare Artikelansicht. Noch **ohne** KI, Vorlesen und Einstellungen.
 
 ## Umfang
 
@@ -33,7 +33,7 @@ Am Ende läuft Augenblick lokal (`npm run dev`) und auf einem Raspberry Pi als s
 - **Betrieb** nach SPEC §9: `deploy/install.sh`, `deploy/update.sh`, systemd-Units `augenblick-api` und `augenblick-worker`, systemd-Timer für nächtliches Update. Tailscale nur als Anleitung in `deploy/README.md` (HTTPS kommt mit M4).
 
 ## Nicht in diesem Auftrag
-KI-Kurzfassungen (M3), Admin-Bereich und Kalibrierung (M2), HTTPS (M4), Vorlesen (M5), Experimente (M6), Regionalzeitung (M7).
+KI-Kurzfassungen (M3), Einstellungen der Nutzerin, Kalibrierung und Technik-Bereich (M2), HTTPS (M4), Vorlesen (M5), Experimente (M6), Regionalzeitung (M7).
 
 ## Abnahme
 1. `npm run dev` startet Server und Web-App; nach dem ersten Abruf zeigt die Übersicht echte Artikel beider Quellen.

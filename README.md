@@ -6,7 +6,7 @@ Ein ruhiger, sehr gut lesbarer Zeitungs-Reader für Menschen mit Makuladegenerat
 - Übersicht mit kurzen Zusammenfassungen: „Lohnt sich dieser Artikel?"
 - Blättern per Taste statt Scrollen, nur einfache Tipps
 - Sanftes Vorlesen ab einem angetippten Wort – Begleitung, kein Ersatz fürs eigene Lesen
-- Alle Einstellungen macht ein Angehöriger aus der Ferne
+- Leseeinstellungen ändert die Leserin selbst, mit Rückfrage vor dem dauerhaften Speichern; um die Technik kümmert sich ein Angehöriger
 
 **Status:** Konzeptphase. Noch kein Code.
 
