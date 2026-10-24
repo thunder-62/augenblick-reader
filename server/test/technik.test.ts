@@ -51,6 +51,34 @@ describe('Technik-Bereich: Netz statt PIN', () => {
     expect((await app.inject({ url: '/technik', remoteAddress: INTERNET })).statusCode).toBe(403);
   });
 
+  it('jede Schreibweise des Pfads ist aus dem Internet gesperrt', async () => {
+    const { app } = setup();
+    const variants = [
+      '/api/%74echnik/status',
+      '/api/%74%65%63%68%6e%69%6b/status',
+      '/api/%2574echnik/status',
+      '/api%2Ftechnik/status',
+      '//api//technik//status',
+      '/api/./technik/status',
+      '/api/x/../technik/status',
+      '/API/Technik/Status',
+      '/api/technik/status?x=1',
+      '/api/technik/status#a',
+      '/%74echnik',
+      '/technik/',
+      '/Technik.html',
+      '/technik.html?a=b',
+    ];
+    for (const url of variants) {
+      const res = await app.inject({ url, remoteAddress: INTERNET });
+      expect(res.statusCode, url).toBe(403);
+    }
+    // Aus dem Heimnetz bleibt die normale Adresse erreichbar.
+    expect(
+      (await app.inject({ url: '/api/%74echnik/status', remoteAddress: LAN })).statusCode,
+    ).toBe(200);
+  });
+
   it('Status: Version, Ausgabe, Einführung, KI aus ohne Schlüssel', async () => {
     const { app } = setup();
     const s = (await app.inject({ url: '/api/technik/status', remoteAddress: LAN })).json();

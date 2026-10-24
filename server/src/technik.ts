@@ -43,12 +43,38 @@ function freeBytes(dir: string): number | null {
   }
 }
 
+/**
+ * Pfad so, wie ihn Router und Dateiauslieferung am Ende verstehen: dekodiert (auch mehrfach),
+ * ohne Query, `\\` als `/`, doppelte Schrägstriche und `.`/`..` aufgelöst, klein geschrieben.
+ */
+export function normalizePath(url: string): string {
+  let path = url.split(/[?#]/)[0] ?? '';
+  for (let i = 0; i < 5; i++) {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(path);
+    } catch {
+      break;
+    }
+    if (decoded === path) break;
+    path = decoded;
+  }
+  const segments: string[] = [];
+  for (const seg of path.replace(/\\/g, '/').toLowerCase().split('/')) {
+    if (seg === '' || seg === '.') continue;
+    if (seg === '..') segments.pop();
+    else segments.push(seg);
+  }
+  return `/${segments.join('/')}`;
+}
+
 export function isTechnikUrl(url: string): boolean {
-  const path = url.split('?')[0] ?? '';
+  const path = normalizePath(url);
   return (
     path === '/technik' ||
     path.startsWith('/technik/') ||
-    path === '/technik.html' ||
+    path.startsWith('/technik.') ||
+    path === '/api/technik' ||
     path.startsWith('/api/technik/')
   );
 }
@@ -57,7 +83,8 @@ export function registerTechnik(app: FastifyInstance, { db, config, now }: Deps)
   const networks = parseNetworks(config.technikNetworks);
 
   app.addHook('onRequest', async (req, reply) => {
-    if (!isTechnikUrl(req.url)) return;
+    // Rohe URL normalisiert und zusätzlich die tatsächlich getroffene Route prüfen.
+    if (!isTechnikUrl(req.url) && !isTechnikUrl(req.routeOptions.url ?? '')) return;
     if (!isAllowedAddress(networks, req.socket.remoteAddress)) {
       return reply
         .code(403)

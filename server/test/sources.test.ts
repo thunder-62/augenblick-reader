@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { htmlToBlocks } from '../src/core/clean.ts';
 import { RateLimiter } from '../src/core/ratelimit.ts';
 import { Br24Adapter, br24Section, parseFeed, RssAdapter } from '../src/sources/br24.ts';
@@ -6,6 +6,11 @@ import { normalizeFeedList, resolveFeeds } from '../src/sources/feeds.ts';
 import { createAdapters } from '../src/sources/index.ts';
 import { contentToHtml, TagesschauAdapter, tagesschauSection } from '../src/sources/tagesschau.ts';
 import { fakeFetch, fixture } from './helpers.ts';
+
+// Testdaten nutzen example.org; ohne Netz soll die Zielprüfung (ADR 011) trotzdem greifen.
+vi.mock('node:dns/promises', () => ({
+  lookup: async () => [{ address: '93.184.215.14', family: 4 }],
+}));
 
 const BASE = 'https://example.org/api2u';
 
