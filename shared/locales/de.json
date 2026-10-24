@@ -37,6 +37,9 @@
   "state": {
     "loading": "Die Zeitung wird geladen …"
   },
+  "errors": {
+    "host": "Diese Adresse ist für Augenblick nicht freigegeben (AUGENBLICK_ALLOWED_HOSTS)."
+  },
   "sources": {
     "tagesschau": "tagesschau",
     "br24": "BR24",

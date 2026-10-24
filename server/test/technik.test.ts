@@ -263,7 +263,12 @@ describe('Einführung (SPEC §8.8)', () => {
       (await app.inject({ method: 'PUT', url: '/api/intro', payload: { state: 'quatsch' } }))
         .statusCode,
     ).toBe(400);
-    await app.inject({ method: 'POST', url: '/api/technik/intro/reset', remoteAddress: LAN });
+    await app.inject({
+      method: 'POST',
+      url: '/api/technik/intro/reset',
+      remoteAddress: LAN,
+      payload: {},
+    });
     expect((await app.inject('/api/intro')).json().state).toBe('neu');
   });
 });

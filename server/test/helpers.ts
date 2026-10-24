@@ -48,6 +48,7 @@ export function testConfig(over: Partial<AppConfig> = {}): AppConfig {
   return {
     settings: DEFAULT_SETTINGS,
     technikNetworks: DEFAULT_TECHNIK_NETWORKS,
+    allowedHosts: [],
     rssFeeds: ['br24-mittelfranken'],
     dbPath: ':memory:',
     dataDir: '.',

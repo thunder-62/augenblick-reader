@@ -30,6 +30,8 @@ export type Config = {
   settings: Settings;
   /** Netze, aus denen der Technik-Bereich erreichbar ist (CIDR). */
   technikNetworks: string[];
+  /** Zusätzlich erlaubte Host-Namen (Tailscale u. a.); „.endung“ erlaubt alle darunter (ADR 013). */
+  allowedHosts: string[];
   /** OpenRouter (SPEC §6); ohne Schlüssel: Anreißer bzw. erste Sätze. */
   openrouterApiKey: string | null;
   openrouterModel: string;
@@ -153,6 +155,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     technikNetworks: env.AUGENBLICK_TECHNIK_NETWORKS?.trim()
       ? env.AUGENBLICK_TECHNIK_NETWORKS.split(',').map((s) => s.trim())
       : DEFAULT_TECHNIK_NETWORKS,
+    allowedHosts: (env.AUGENBLICK_ALLOWED_HOSTS ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
     openrouterApiKey: parseApiKey(env.OPENROUTER_API_KEY),
     openrouterModel: env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODEL,
     openrouterFallbackModel: env.OPENROUTER_FALLBACK_MODEL?.trim() || null,

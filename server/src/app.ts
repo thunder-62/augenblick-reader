@@ -20,6 +20,8 @@ import {
   signalPoints,
   USER_KEYS,
 } from './core/store.ts';
+import { hostChecker } from './core/hosts.ts';
+import { serverT } from './core/i18n.ts';
 import { VERSION } from './core/version.ts';
 import { registerTechnik } from './technik.ts';
 
@@ -27,6 +29,7 @@ export type AppConfig = Pick<
   Config,
   | 'settings'
   | 'technikNetworks'
+  | 'allowedHosts'
   | 'rssFeeds'
   | 'dbPath'
   | 'dataDir'
@@ -55,6 +58,17 @@ export function createApp({
   now = () => new Date(),
 }: AppOptions): FastifyInstance {
   const app = Fastify({ logger, bodyLimit: 64 * 1024 });
+
+  // Schutz gegen DNS-Rebinding und CSRF (ADR 013): nur bekannte Host-Namen, Änderungen nur als JSON.
+  const hostAllowed = hostChecker(config.allowedHosts);
+  app.addHook('onRequest', async (req, reply) => {
+    if (!hostAllowed(req.headers.host))
+      return reply.code(421).type('text/plain; charset=utf-8').send(serverT('errors.host'));
+    if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
+      const type = (req.headers['content-type'] ?? '').split(';')[0]?.trim().toLowerCase();
+      if (type !== 'application/json') return reply.code(415).send({ error: 'content_type' });
+    }
+  });
 
   app.addHook('onSend', async (req, reply) => {
     if (req.url.startsWith('/api/') || req.url === '/health')
