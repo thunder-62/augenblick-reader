@@ -1,0 +1,10 @@
+node_modules
+dist
+data
+release
+playwright-report
+test-results
+package-lock.json
+web/public/fonts
+*.md
+docs/prototyp

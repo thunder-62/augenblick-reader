@@ -47,3 +47,12 @@ Erst wenn mehrere Bausteine laufen: Augenblick öffnet mit höchstens vier groß
 ## 5. Regionalzeitung mit Verlags-Branding
 
 Siehe SPEC §5.1 (Phase 2) und §12a. Anfrage an den Verlag erst, wenn der Prototyp mit öffentlichen Quellen überzeugt.
+
+## 6. Kleinere Ideen aus der Umsetzung
+
+Während der Arbeit an M0–M3 notiert, bewusst nicht gebaut:
+
+- **Zweite Tagesausgabe am Nachmittag** statt einer festen Ausgabe pro Tag (ADR 003) – nur, wenn der Test mit der Nutzerin das nahelegt.
+- **Leiser Klick als Tipp-Feedback** (SPEC §8.1, optional) – erst nach Rückmeldung zum visuellen Feedback.
+- **tagesschau in Einfacher Sprache** als eigene Rubrik oder als Stilvorbild für die Kurzfassungen (SPEC §5.1, [R30]) – Zugangsweg klären.
+- **Branding-Ordner** `/branding/<name>/` (SPEC §12a): Der Name „Augenblick“ kommt schon aus der Locale; Logo und Akzentfarbe folgen, wenn ein Partner es braucht.

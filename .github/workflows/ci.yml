@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint und Typen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - name: Shell-Skripte prüfen
+        run: shellcheck deploy/*.sh
+
+  test:
+    name: Unit-Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  e2e:
+    name: E2E-Tests (Tablet-Viewport, Kontrast, Tippziele, Scrollbalken)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  build:
+    name: Build und Release-Paket
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run package
+      - name: Paket lässt sich ohne Entwicklungsabhängigkeiten installieren und starten
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/rel && tar -xzf release/augenblick-*.tar.gz -C /tmp/rel
+          cd /tmp/rel/augenblick-*
+          npm ci --omit=dev --no-audit --no-fund
+          AUGENBLICK_DATA_DIR=/tmp/rel-data PORT=8090 AUGENBLICK_WEB_DIST=web/dist node server/dist/api.js &
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:8090/health && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8090/ | grep -q '<div id="app">'
+          kill %1
+
+  secrets:
+    name: Secret-Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

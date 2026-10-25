@@ -18,7 +18,7 @@ Ein Angehöriger („Betreuer") richtet alles ein und kümmert sich um die Techn
 
 1. **Weniger ist das Feature.** Jede zusätzliche Taste ist ein Risiko. Im Zweifel weglassen.
 2. **Größe, Abstand, Kontrast vor allem anderen.** [R1–R7]
-3. **Nur Einzeltipps.** Keine versteckten Gesten. [R16]
+3. **Nur Einzeltipps.** Keine versteckten Gesten. Einzige Ausnahme: senkrechtes Wischen im Artikeltext (ADR 018). [R16]
 4. **Nichts kann kaputtgehen.** Keine Dialoge, keine Modi, keine Sackgassen. [R23, R24]
 5. **Würde.** Sieht aus wie eine hochwertige Zeitung, nicht wie ein „Senioren-Modus". [R25]
 6. **Originaltext ist heilig.** KI erzeugt nur Kurzfassungen, nie den Lesetext.
@@ -122,7 +122,7 @@ interface SourceAdapter {
 ```
 
 - **Phase 1a: tagesschau** (Deutschland/Welt). Öffentliche JSON-Schnittstelle der tagesschau (vor Umsetzung Endpunkte und Nutzungsbedingungen prüfen und in `docs/entscheidungen/` festhalten). Zusätzlich prüfen, ob sich „tagesschau in Einfacher Sprache" als eigene Rubrik einbinden lässt.
-- **Phase 1b: BR24** (Bayern und Region). BR24 bietet RSS-Feeds, u. a. allgemein (`https://feeds.br24.de/rss/nachrichten`) und je Region bzw. Ressort (`nachrichtenfeeds.br.de/...`). Die Region (Feed-URL) ist eine Einstellung des Betreuers, nicht fest im Code. Feeds liefern meist nur Anreißer: Volltext von der Artikelseite holen und mit einer Readability-artigen Extraktion bereinigen. Vor Umsetzung aktuelle Feed-URLs, insbesondere für Franken/Mittelfranken, und Nutzungsbedingungen prüfen und dokumentieren.
+- **Phase 1b: BR24** (Bayern und Region). BR24 bietet RSS-Feeds, u. a. allgemein (`https://feeds.br24.de/rss/nachrichten`) und je Region bzw. Ressort (`nachrichtenfeeds.br.de/...`). Welche Feeds abgeholt werden, ist eine Liste in der Konfiguration bzw. im Technik-Bereich (Katalog bekannter Feeds plus eigene Adressen, höchstens 10, ADR 010), nicht fest im Code. Standard ist BR24 Mittelfranken (`https://nachrichtenfeeds.br.de/rdf/boards/UZlNk5T`, RDF-Format). Feeds liefern meist nur Anreißer: Volltext von der Artikelseite holen und mit einer Readability-artigen Extraktion bereinigen. Vor Umsetzung aktuelle Feed-URLs, insbesondere für Franken/Mittelfranken, und Nutzungsbedingungen prüfen und dokumentieren.
 - **Dubletten zwischen Quellen:** Gleiche Meldung bei tagesschau und BR24 nur einmal zeigen, bevorzugt die Fassung mit mehr Text.
 - **Phase 2: Regionale Tageszeitung (ePaper, Abo).** Nur Schnittstelle und Konfigurationsplatz vorsehen, **keinen Scraper bauen**, bevor der Betreuer die rechtliche Klärung (Nutzungsbedingungen, privater Gebrauch, KI-Kurzfassungen) freigegeben hat. Zugangsdaten nie im Repo, nur in `.env` auf dem Pi.
 
@@ -203,7 +203,7 @@ Alle Einstellungen liegen auf dem Server (`Settings`). Die Leseeinstellungen än
 - **Pinch-Zoom und Textauswahl aus**, kein Kontextmenü bei langem Druck.
 - **Wake Lock** im Artikel (Bildschirm bleibt an). In der Übersicht nicht. [R23]
 - **Nur Einzeltipps.** Auslösen beim Loslassen. Berührungen unter 80 ms und zweiter Tipp innerhalb von 300 ms auf dasselbe Ziel ignorieren. Bewegt sich der Finger mehr als 10 mm, ist es kein Tipp. [R22]
-- **Tippziele mindestens 15 mm, Ziel 20 mm**, Abstand ≥ 6 mm, mindestens 15 mm Abstand zum Bildschirmrand. In CSS-Pixel für das Tab S11 am Gerät mit Lineal verifizieren und als Konstante festhalten. [R17]
+- **Tippziele mindestens 15 mm, Ziel 20 mm**, Abstand ≥ 6 mm, mindestens 15 mm Abstand zum Bildschirmrand. Umrechnung in CSS-Pixel aus dem Datenblatt des Tab S11 (≈ 5,4 CSS-px/mm, ADR 017); eine Messung am Gerät ist nicht nötig. [R17]
 - **Höchstens 6 Tippziele pro Bildschirm.** [R18]
 - **Jede Taste: Symbol + Wort**, immer an derselben Stelle. [R20]
 - **Visuelles Feedback** beim Tippen (deutliche Umrandung/Invertierung, 150 ms), optional leiser Klick.
@@ -220,16 +220,16 @@ Alle Einstellungen liegen auf dem Server (`Settings`). Die Leseeinstellungen än
   - Kurzfassung
   - „ca. 4 Minuten"
   - bereits gelesen: dezentes Häkchen, kein Ausgrauen des Textes
-- Unten feste Leiste: **„◂ Zurück"** · „Seite 1 von 4" · **„Weiter ▸"**. Inaktive Taste bleibt sichtbar, aber gedämpft.
+- Navigation: **„◂ Zurück"** · „Seite 1 von 4" · **„Weiter ▸"**, dazu „Einstellungen“. Inaktive Taste bleibt sichtbar, aber gedämpft. Bei normaler Schrift an den Seiten (links „Einstellungen“ oben und „Zurück“ unten, rechts unten Seitenangabe und „Weiter“), damit Karten die volle Höhe bekommen; bei großer Schrift als feste Leiste unten (ADR 017).
 - Kein Scrollen. Seiten werden aus der Schriftgröße berechnet, sodass nichts abgeschnitten wird.
 
 ### 8.3 Bildschirm „Artikel"
 
-- Kopf: **„◂ Übersicht"** (immer sichtbar, Notausgang). [R20]
+- Links oben, fest über dem Text: ein **runder Knopf „◂“ mit dem Wort „Übersicht“** darunter (immer sichtbar, Notausgang). Der Text liegt nie darunter. [R20]
 - Titel, danach Fließtext in **einer Spalte**, linksbündig, kein Blocksatz, **keine Silbentrennung**, `max-width` nach `maxCharsPerLine`. [R5]
-- **Seitenweise**, kein Scrollen. Umbruch nie mitten im Satz am Seitenende, wenn vermeidbar (lieber eine Zeile weniger). Unten: **„◂ Zurück"** · „Seite 2 von 5" · **„Weiter ▸"**. [R19]
-- Am Artikelende statt „Weiter": **„Nächster Artikel ▸"** mit dessen Titel.
-- Beim Öffnen der App: letzter Artikel und letzte Seite werden wiederhergestellt. [R24]
+- **Fließtext zum Scrollen** (senkrechtes Wischen, ohne sichtbaren Scrollbalken, ohne zusätzliche Tasten) – Entscheidung des Betreuers nach dem ersten Test am Gerät, bewusste Abweichung von [R19] (ADR 018).
+- Am Artikelende: **„Nächster Artikel ▸"** mit dessen Titel.
+- Beim Öffnen der App: letzter Artikel und die zuletzt gelesene Stelle (erster sichtbarer Satz) werden wiederhergestellt. [R24]
 - Ab Phase 3 zusätzlich Taste **„🔊 Vorlesen"** (siehe §8.5).
 
 ### 8.4 Kalibrierung („Schrift einstellen“)
@@ -355,7 +355,7 @@ Nach M1, M2 und M5 testet der Betreuer mit der Nutzerin am Gerät; Rückmeldunge
 
 ## 14. Qualitätsanforderungen
 
-- **E2E-Tests** im Viewport des Tab S11 (Querformat; tatsächliche CSS-Auflösung am Gerät ermitteln und eintragen) für: Übersicht blättern, Artikel öffnen, blättern, zurück, Zustand nach Neuladen, Hinweis bei nicht erreichbarem Server.
+- **E2E-Tests** im Viewport des Tab S11 (Querformat, 1280 × 800 CSS-px nach Datenblatt; alle Stufen der Schriftkalibrierung) für: Übersicht blättern, Artikel öffnen, blättern, zurück, Zustand nach Neuladen, Hinweis bei nicht erreichbarem Server.
 - **Automatischer Check** in CI: Kontrast ≥ 7:1 für beide Schemata, Tippziele ≥ Minimalgröße, maximal 6 Tippziele pro Bildschirm, keine Scrollbalken in Übersicht/Artikel.
 - **Performance:** Übersicht in < 1 s aus dem Cache, Seitenwechsel < 100 ms.
 - **Robustheit:** Ein kaputter Artikel darf die Übersicht nicht verhindern; Quelle down → letzte Ausgabe bleibt.

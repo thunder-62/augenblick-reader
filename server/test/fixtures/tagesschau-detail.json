@@ -1,0 +1,15 @@
+{
+  "sophoraId": "beispiel-ohne-inhalt-102",
+  "title": "Meldung mit Detail-Abruf",
+  "date": "2026-10-24T05:30:00.000+02:00",
+  "content": [
+    {
+      "type": "text",
+      "value": "In einem Nachbarland ist ein neues Museum für Seefahrt eröffnet worden. Es zeigt alte Schiffsmodelle, Karten und Werkzeuge. Der Eintritt ist für Kinder frei."
+    },
+    {
+      "type": "text",
+      "value": "Die Ausstellung wurde von Freiwilligen aufgebaut, die viele Stücke selbst gesammelt haben. Am ersten Tag kamen mehrere hundert Gäste. Das Museum ist täglich außer montags geöffnet."
+    }
+  ]
+}

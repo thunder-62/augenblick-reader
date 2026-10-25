@@ -1,0 +1,10 @@
+[Unit]
+Description=Augenblick: Neustart-Wunsch des Update-Dienstes beobachten
+
+[Path]
+# Der Update-Dienst legt diese Datei an, wenn API und Worker neu starten sollen (ADR 012).
+PathExists=/opt/augenblick/restart-request
+Unit=augenblick-restart.service
+
+[Install]
+WantedBy=multi-user.target

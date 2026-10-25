@@ -1,0 +1,24 @@
+[Unit]
+Description=Augenblick Worker (Artikel abholen, bereinigen, Ausgabe zusammenstellen)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=augenblick
+Group=augenblick
+WorkingDirectory=/opt/augenblick/current
+EnvironmentFile=/etc/augenblick/augenblick.env
+Environment=NODE_ENV=production
+# Node aus dem Systempfad (/usr/local/bin vor /usr/bin), ADR 015
+ExecStart=/usr/bin/env node server/dist/worker.js
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/augenblick
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+[Unit]
+Description=Augenblick: API und Worker neu starten (auf Wunsch des Update-Dienstes)
+
+[Service]
+Type=oneshot
+# Fester Befehl ohne Eingaben vom Update-Dienst; nur die Datei löst ihn aus (ADR 012).
+ExecStartPre=/bin/rm -f /opt/augenblick/restart-request
+ExecStart=/bin/systemctl restart augenblick-api.service augenblick-worker.service

@@ -1,0 +1,22 @@
+[Unit]
+Description=Augenblick nächtliches Update (neues Release laden, Healthcheck, ggf. Rückfall)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Eigener Benutzer ohne Root-Rechte (ADR 012): schreibt nur unter /opt/augenblick.
+# Neu gestartet wird über augenblick-restart.path, nicht über sudo.
+User=augenblick-update
+Group=augenblick-update
+EnvironmentFile=/etc/augenblick/augenblick.env
+CacheDirectory=augenblick-update
+Environment=HOME=/var/cache/augenblick-update
+Environment=npm_config_cache=/var/cache/augenblick-update/npm
+ExecStart=/usr/local/sbin/augenblick-update
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths=/opt/augenblick
