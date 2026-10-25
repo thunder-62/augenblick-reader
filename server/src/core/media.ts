@@ -19,14 +19,21 @@ export const mediaDir = (dataDir: string): string => path.join(dataDir, 'media')
 export const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
 /** Gültige Dateinamen im Bildverzeichnis: Prüfsumme und Endung. */
-export const MEDIA_NAME = /^[a-f0-9]{40}\.(jpg|png|webp|gif)$/;
+export const MEDIA_NAME = /^[a-f0-9]{40}\.(jpg|png|webp|gif|avif)$/;
 
 export const MEDIA_TYPES: Record<string, string> = {
   jpg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
   gif: 'image/gif',
+  avif: 'image/avif',
 };
+
+/**
+ * Was beim Abruf angefragt wird. Kein AVIF: Bildserver (z. B. der des MDR) liefern sonst AVIF,
+ * auch wenn die Adresse auf .jpg endet. JPEG und PNG reichen für das Tablet.
+ */
+export const IMAGE_ACCEPT = 'image/jpeg,image/png;q=0.9,image/webp;q=0.8,image/gif;q=0.5';
 
 type Size = { width: number; height: number };
 
@@ -58,6 +65,14 @@ export function sniffImage(b: Uint8Array): ({ ext: string } & Size) | null {
       const w = (b[24] ?? 0) | ((b[25] ?? 0) << 8) | ((b[26] ?? 0) << 16);
       const h = (b[27] ?? 0) | ((b[28] ?? 0) << 8) | ((b[29] ?? 0) << 16);
       return { ext: 'webp', width: w + 1, height: h + 1 };
+    }
+    return null;
+  }
+  // AVIF (ISO-BMFF): Maße stehen im Kasten „ispe“
+  if (b.length > 12 && ascii(4, 4) === 'ftyp' && /^avi[fs]$/.test(ascii(8, 4))) {
+    for (let i = 12; i + 16 <= b.length; i++) {
+      if (b[i] === 0x69 && ascii(i, 4) === 'ispe')
+        return { ext: 'avif', width: view.getUint32(i + 8), height: view.getUint32(i + 12) };
     }
     return null;
   }
@@ -94,14 +109,19 @@ export async function localizeImages(blocks: Block[], opts: MediaOptions): Promi
       continue;
     }
     try {
-      const { body } = await getBytes(b.src, {
+      const { body, contentType } = await getBytes(b.src, {
         ...(opts.fetch ? { fetch: opts.fetch } : {}),
         ...(opts.lookup ? { lookup: opts.lookup } : {}),
-        accept: 'image/avif,image/webp,image/jpeg,image/png,image/*;q=0.8',
+        accept: IMAGE_ACCEPT,
         maxBytes: MAX_IMAGE_BYTES,
       });
       const info = sniffImage(body);
-      if (!info) throw new Error('kein unterstütztes Bildformat');
+      if (!info) {
+        const head = Array.from(body.subarray(0, 12), (x) => x.toString(16).padStart(2, '0'));
+        throw new Error(
+          `kein unterstütztes Bildformat (${contentType || 'ohne Typ'}, ${body.length} Bytes, Anfang ${head.join(' ')})`,
+        );
+      }
       if (info.width < MIN_IMAGE_PX || info.height < MIN_IMAGE_PX) continue;
       const name = `${createHash('sha1').update(body).digest('hex')}.${info.ext}`;
       mkdirSync(opts.dir, { recursive: true });
