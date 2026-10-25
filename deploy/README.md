@@ -1,6 +1,6 @@
 # Betrieb auf dem Raspberry Pi
 
-Augenblick läuft ohne Docker direkt auf einem Raspberry Pi 5 (SSD, Raspberry Pi OS Lite 64 bit) als zwei systemd-Dienste (SPEC §9):
+Augenblick läuft ohne Docker direkt auf einem Raspberry Pi 5 (SSD, Raspberry Pi OS Lite 64 bit; ein vorhandener Pi 4 mit 32-bit-System geht auch, siehe unten) als zwei systemd-Dienste (SPEC §9):
 
 | Dienst | Aufgabe |
 |---|---|
@@ -36,6 +36,28 @@ sudo systemctl restart augenblick-api augenblick-worker
 ```
 
 Für KI-Zusammenfassungen `OPENROUTER_API_KEY` eintragen (Schlüssel von openrouter.ai), optional `OPENROUTER_MODEL`, `OPENROUTER_FALLBACK_MODEL` und `AUGENBLICK_SUMMARY_DAILY_LIMIT`. Ohne Schlüssel zeigen die Karten den Anreißer der Quelle bzw. die ersten Sätze. Die Datei ist nur für root und den Dienstbenutzer lesbar; sie gehört nie ins Repo.
+
+### Auf einem bestehenden Pi (z. B. Pi 4, 32 bit, mit Docker)
+
+Läuft auf dem Gerät schon anderes, vorher prüfen (ADR 015):
+
+```bash
+dpkg --print-architecture        # armhf (32 bit) oder arm64
+sudo ss -ltnp | grep 8080        # Port 8080 belegt?
+free -h                          # wenig RAM → Paket auf dem PC bauen
+```
+
+1. Auf dem PC (Windows geht auch): `npm install && npm run build && npm run package`, dann `release/augenblick-<version>.tar.gz` auf den Pi kopieren (`scp`).
+2. Auf dem Pi die Konfiguration mit freiem Port **vor** der Installation anlegen:
+   ```bash
+   sudo mkdir -p /etc/augenblick
+   sed -e 's|^HOST=.*|HOST=0.0.0.0|' -e 's|^PORT=.*|PORT=8090|' \
+       -e 's|^AUGENBLICK_DATA_DIR=.*|AUGENBLICK_DATA_DIR=/var/lib/augenblick|' \
+       .env.example | sudo tee /etc/augenblick/augenblick.env >/dev/null
+   ```
+3. `sudo ./deploy/install.sh --file ~/augenblick-<version>.tar.gz`
+
+Ein Node.js über nvm bleibt unberührt; für die Dienste installiert `install.sh` bei 32 bit ein eigenes Node 22 nach `/opt/node`. Ist der Port belegt, bricht `install.sh` mit einem Hinweis ab. Spätere Stände: neues Paket bauen, kopieren, `sudo augenblick-update --file ~/augenblick-<version>.tar.gz`.
 
 ## Leseeinstellungen und Technik-Bereich
 

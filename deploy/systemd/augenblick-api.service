@@ -11,7 +11,8 @@ WorkingDirectory=/opt/augenblick/current
 EnvironmentFile=/etc/augenblick/augenblick.env
 Environment=NODE_ENV=production
 Environment=AUGENBLICK_WEB_DIST=/opt/augenblick/current/web/dist
-ExecStart=/usr/bin/node server/dist/api.js
+# Node aus dem Systempfad (/usr/local/bin vor /usr/bin), ADR 015
+ExecStart=/usr/bin/env node server/dist/api.js
 Restart=always
 RestartSec=3
 NoNewPrivileges=true

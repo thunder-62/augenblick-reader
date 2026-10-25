@@ -32,16 +32,44 @@ done
 
 log() { echo; echo "==> $*"; }
 [[ $EUID -eq 0 ]] || { echo "Bitte mit sudo ausführen." >&2; exit 1; }
-[[ "$(uname -m)" == "aarch64" ]] || echo "Hinweis: gedacht für Raspberry Pi OS 64 bit (aarch64), gefunden: $(uname -m)."
+[[ "$(uname -m)" == "aarch64" || "$(uname -m)" == "armv7l" ]] || echo "Hinweis: gedacht für Raspberry Pi OS (aarch64 oder armv7l), gefunden: $(uname -m)."
 
 log "Systempakete"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
-# build-essential/python3: falls für better-sqlite3 kein passendes arm64-Prebuild existiert
-apt-get install -y -q ca-certificates curl gnupg tar build-essential python3
+# build-essential/python3: falls für better-sqlite3 kein passendes Prebuild existiert (z. B. armhf)
+apt-get install -y -q ca-certificates curl gnupg tar xz-utils build-essential python3
 
 log "Node.js $NODE_MAJOR"
-if ! command -v node >/dev/null || [[ "$(node -p 'process.versions.node.split(".")[0]')" != "$NODE_MAJOR" ]]; then
+# Die Dienste brauchen ein systemweites Node (nicht nvm im Home-Verzeichnis eines Benutzers).
+# Ein per nvm installiertes Node bleibt unberührt (ADR 015).
+ARCH="$(dpkg --print-architecture)"
+system_node_ok() {
+  local n
+  for n in /usr/local/bin/node /usr/bin/node; do
+    if [[ -x "$n" && "$("$n" -p 'process.versions.node.split(".")[0]')" == "$NODE_MAJOR" ]]; then return 0; fi
+  done
+  return 1
+}
+if system_node_ok; then
+  echo "Systemweites Node.js $NODE_MAJOR vorhanden."
+elif [[ "$ARCH" == "armhf" ]]; then
+  # 32-bit Raspberry Pi OS: NodeSource liefert dafür keine aktuellen Pakete –
+  # offizielles Archiv von nodejs.org (armv7l), Prüfsumme gegen SHASUMS256.txt.
+  NODE_DIST="https://nodejs.org/dist/latest-v$NODE_MAJOR.x"
+  TMP_NODE="$(mktemp -d)"
+  curl -fsSL "$NODE_DIST/SHASUMS256.txt" -o "$TMP_NODE/SHASUMS256.txt"
+  NODE_TAR="$(grep -oE "node-v$NODE_MAJOR\.[0-9.]+-linux-armv7l\.tar\.xz" "$TMP_NODE/SHASUMS256.txt" | head -n1)"
+  [[ -n "$NODE_TAR" ]] || { echo "Kein Node.js $NODE_MAJOR für armv7l gefunden." >&2; exit 1; }
+  curl -fsSL "$NODE_DIST/$NODE_TAR" -o "$TMP_NODE/$NODE_TAR"
+  (cd "$TMP_NODE" && grep " $NODE_TAR\$" SHASUMS256.txt | sha256sum -c -) || { echo "Prüfsumme von $NODE_TAR stimmt nicht." >&2; exit 1; }
+  rm -rf /opt/node.new && mkdir -p /opt/node.new
+  tar -xJf "$TMP_NODE/$NODE_TAR" -C /opt/node.new --strip-components=1
+  rm -rf /opt/node && mv /opt/node.new /opt/node
+  for bin in node npm npx; do ln -sfn "/opt/node/bin/$bin" "/usr/local/bin/$bin"; done
+  rm -rf "$TMP_NODE"
+  echo "Node.js nach /opt/node installiert (${NODE_TAR})."
+else
   install -d -m 755 /etc/apt/keyrings
   curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg
   echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" \
@@ -49,6 +77,7 @@ if ! command -v node >/dev/null || [[ "$(node -p 'process.versions.node.split(".
   apt-get update -q
   apt-get install -y -q nodejs
 fi
+export PATH="/usr/local/bin:/usr/bin:$PATH"
 node --version
 
 log "Benutzer und Verzeichnisse"
@@ -82,7 +111,9 @@ cat > /etc/systemd/system.conf.d/augenblick-watchdog.conf <<'CONF'
 RuntimeWatchdogSec=15
 RebootWatchdogSec=2min
 CONF
+# Bookworm: /boot/firmware/config.txt, ältere Systeme (bullseye): /boot/config.txt
 BOOT_CONFIG=/boot/firmware/config.txt
+[[ -f "$BOOT_CONFIG" ]] || BOOT_CONFIG=/boot/config.txt
 if [[ -f "$BOOT_CONFIG" ]] && ! grep -q '^dtparam=watchdog=on' "$BOOT_CONFIG"; then
   echo 'dtparam=watchdog=on' >> "$BOOT_CONFIG"
   echo "Watchdog in $BOOT_CONFIG eingeschaltet (wirksam nach Neustart)."
@@ -95,6 +126,13 @@ set -a
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 set +a
+# Belegter Port (z. B. durch einen Docker-Container): abbrechen statt den falschen Dienst zu prüfen.
+if ss -Hltn "sport = :${PORT:-8080}" | grep -q . && ! systemctl is-active --quiet augenblick-api; then
+  echo "Port ${PORT:-8080} ist schon belegt:" >&2
+  ss -Hltnp "sport = :${PORT:-8080}" >&2 || true
+  echo "Bitte in $ENV_FILE einen freien PORT eintragen (z. B. PORT=8090) und install.sh erneut starten." >&2
+  exit 1
+fi
 case "$MODE" in
   file) /usr/local/sbin/augenblick-update --file "$FILE" --force ;;
   source)
