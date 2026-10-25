@@ -90,8 +90,34 @@ describe('tagesschau-Adapter', () => {
   it('normalisiert Rubriken', () => {
     expect(tagesschauSection({ ressort: 'ausland' })).toBe('ausland');
     expect(tagesschauSection({ ressort: 'investigativ' })).toBe('inland');
-    expect(tagesschauSection({ regionId: 2 })).toBe('region');
     expect(tagesschauSection({})).toBe('nachrichten');
+  });
+
+  it('übernimmt keine Regionalmeldungen (ADR 020)', async () => {
+    const story = (id: string, extra: object) => ({
+      externalId: id,
+      title: `Meldung ${id}`,
+      type: 'story',
+      date: '2026-10-24T08:00:00+02:00',
+      ...extra,
+    });
+    const adapter = new TagesschauAdapter({
+      baseUrl: BASE,
+      hourlyLimit: 50,
+      lists: ['/homepage/'],
+      fetch: fakeFetch({
+        [`${BASE}/homepage/`]: JSON.stringify({
+          news: [
+            story('bund', { ressort: 'inland', regionId: 0 }),
+            story('nord', { ressort: 'inland', regionId: 3 }),
+            story('welt', { ressort: 'ausland' }),
+          ],
+          regional: [story('hamburg', { regionId: 6 })],
+        }),
+      }),
+    });
+    const ids = (await adapter.fetchList()).map((i) => i.id);
+    expect(ids).toEqual(['bund', 'welt']);
   });
 
   it('übernimmt nur Text und Überschriften', () => {

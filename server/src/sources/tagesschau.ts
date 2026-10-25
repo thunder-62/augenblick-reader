@@ -39,8 +39,18 @@ const SECTION_MAP: Record<string, string> = {
 export function tagesschauSection(item: TagesschauItem): string {
   const r = item.ressort?.toLowerCase();
   if (r && SECTION_MAP[r]) return SECTION_MAP[r];
-  if (item.regionId !== undefined && item.regionId !== 0 && item.regionId !== '') return 'region';
   return 'nachrichten';
+}
+
+/**
+ * Regionalmeldungen der Landesrundfunkanstalten (z. B. aus Norddeutschland) helfen der Leserin
+ * nicht; Regionales kommt aus den BR24-Feeds (Wunsch des Betreuers, ADR 020).
+ */
+export function isRegional(item: TagesschauItem): boolean {
+  const region = item.regionId;
+  if (region === undefined || region === null || region === '' || region === 0 || region === '0')
+    return false;
+  return true;
 }
 
 /** Nur Text und Zwischenüberschriften übernehmen; Boxen, Zitat-Kästen, Medien, Links usw. entfallen. */
@@ -93,10 +103,12 @@ export class TagesschauAdapter implements SourceAdapter {
         lastError = err;
         continue;
       }
-      for (const n of [...(res.news ?? []), ...(res.regional ?? [])]) {
+      // Die Liste „regional“ wird nicht gelesen, Regionalmeldungen in „news“ übersprungen (ADR 020).
+      for (const n of res.news ?? []) {
         const id = n.externalId ?? n.sophoraId;
         if (!id || seen.has(id) || !n.title) continue;
         if (n.type && n.type !== 'story') continue;
+        if (isRegional(n)) continue;
         seen.add(id);
         items.push({
           id,
