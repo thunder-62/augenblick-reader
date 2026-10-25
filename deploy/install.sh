@@ -36,9 +36,20 @@ log() { echo; echo "==> $*"; }
 
 log "Systempakete"
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -q
+# Nur was fehlt, und nichts Vorhandenes aktualisieren – kein Update des ganzen Systems.
 # build-essential/python3: falls für better-sqlite3 kein passendes Prebuild existiert (z. B. armhf)
-apt-get install -y -q ca-certificates curl gnupg tar xz-utils build-essential python3
+PACKAGES=(ca-certificates curl gnupg tar xz-utils build-essential python3)
+MISSING=()
+for pkg in "${PACKAGES[@]}"; do
+  dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed" || MISSING+=("$pkg")
+done
+if [[ ${#MISSING[@]} -gt 0 ]]; then
+  echo "Installiere: ${MISSING[*]}"
+  apt-get update -q
+  apt-get install -y -q --no-upgrade "${MISSING[@]}"
+else
+  echo "Alle benötigten Pakete sind schon installiert."
+fi
 
 log "Node.js $NODE_MAJOR"
 # Die Dienste brauchen ein systemweites Node (nicht nvm im Home-Verzeichnis eines Benutzers).
