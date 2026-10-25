@@ -87,6 +87,30 @@ curl http://127.0.0.1:7341/health         # Version, Ausgabe, letzter Abruf je Q
 
 Sofort neu abholen: `sudo systemctl restart augenblick-worker` (der Worker holt beim Start einmal ab, solange `AUGENBLICK_FETCH_ON_START=true`).
 
+## Was installiert wird – und wieder entfernen
+
+`install.sh` legt einmalig an (idempotent, Vorhandenes bleibt):
+
+| Was | Wo | Besitzer |
+|---|---|---|
+| Systembenutzer `augenblick` (API, Worker), ohne Login | Home = `/var/lib/augenblick` | – |
+| Systembenutzer `augenblick-update` (nächtliches Update), ohne Login | Home = `/var/cache/augenblick-update` (legt systemd an) | – |
+| Programmversionen | `/opt/augenblick` | `augenblick-update` |
+| Daten (SQLite) | `/var/lib/augenblick` | `augenblick` |
+| Konfiguration | `/etc/augenblick/augenblick.env` | root, Gruppe `augenblick` |
+| Units, Update-Programm | `/etc/systemd/system/augenblick-*`, `/usr/local/sbin/augenblick-update` | root |
+| nur 32 bit: Node 22 | `/opt/node`, Verweise in `/usr/local/bin` | root |
+| Watchdog | `/etc/systemd/system.conf.d/augenblick-watchdog.conf`, Zeile in der Boot-Konfiguration | root |
+
+Unter `/home` entsteht nichts. Entfernen:
+
+```bash
+sudo ./deploy/uninstall.sh                     # Dienste, Programm, Konfiguration; Daten und Benutzer bleiben
+sudo ./deploy/uninstall.sh --purge             # zusätzlich Datenbank und Benutzer
+#   --remove-node      systemweites Node unter /opt/node (nur wenn sonst niemand es nutzt)
+#   --remove-watchdog  Watchdog-Zeile aus der Boot-Konfiguration
+```
+
 ## Hardware-Watchdog
 
 `install.sh` schaltet den Watchdog ein (`dtparam=watchdog=on` in `/boot/firmware/config.txt`, `RuntimeWatchdogSec=15` für systemd). Hängt das System, startet der Pi von selbst neu. Wirksam nach dem nächsten Neustart.
