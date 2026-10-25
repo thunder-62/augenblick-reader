@@ -18,7 +18,7 @@ Ein Angehöriger („Betreuer") richtet alles ein und kümmert sich um die Techn
 
 1. **Weniger ist das Feature.** Jede zusätzliche Taste ist ein Risiko. Im Zweifel weglassen.
 2. **Größe, Abstand, Kontrast vor allem anderen.** [R1–R7]
-3. **Nur Einzeltipps.** Keine versteckten Gesten. [R16]
+3. **Nur Einzeltipps.** Keine versteckten Gesten. Einzige Ausnahme: senkrechtes Wischen im Artikeltext (ADR 018). [R16]
 4. **Nichts kann kaputtgehen.** Keine Dialoge, keine Modi, keine Sackgassen. [R23, R24]
 5. **Würde.** Sieht aus wie eine hochwertige Zeitung, nicht wie ein „Senioren-Modus". [R25]
 6. **Originaltext ist heilig.** KI erzeugt nur Kurzfassungen, nie den Lesetext.
@@ -225,11 +225,11 @@ Alle Einstellungen liegen auf dem Server (`Settings`). Die Leseeinstellungen än
 
 ### 8.3 Bildschirm „Artikel"
 
-- Links oben: **„◂ Übersicht"** (immer sichtbar, Notausgang). [R20]
+- Links oben, fest über dem Text: ein **runder Knopf „◂“ mit dem Wort „Übersicht“** darunter (immer sichtbar, Notausgang). Der Text liegt nie darunter. [R20]
 - Titel, danach Fließtext in **einer Spalte**, linksbündig, kein Blocksatz, **keine Silbentrennung**, `max-width` nach `maxCharsPerLine`. [R5]
-- **Seitenweise**, kein Scrollen. Umbruch nie mitten im Satz am Seitenende, wenn vermeidbar (lieber eine Zeile weniger). Navigation: **„◂ Zurück"** · „Seite 2 von 5" · **„Weiter ▸"** – bei normaler Schrift links unten bzw. rechts unten neben dem Text, bei großer Schrift als Leiste unten; „◂ Übersicht“ immer links oben (ADR 017). [R19]
-- Am Artikelende statt „Weiter": **„Nächster Artikel ▸"** mit dessen Titel.
-- Beim Öffnen der App: letzter Artikel und letzte Seite werden wiederhergestellt. [R24]
+- **Fließtext zum Scrollen** (senkrechtes Wischen, ohne sichtbaren Scrollbalken, ohne zusätzliche Tasten) – Entscheidung des Betreuers nach dem ersten Test am Gerät, bewusste Abweichung von [R19] (ADR 018).
+- Am Artikelende: **„Nächster Artikel ▸"** mit dessen Titel.
+- Beim Öffnen der App: letzter Artikel und die zuletzt gelesene Stelle (erster sichtbarer Satz) werden wiederhergestellt. [R24]
 - Ab Phase 3 zusätzlich Taste **„🔊 Vorlesen"** (siehe §8.5).
 
 ### 8.4 Kalibrierung („Schrift einstellen“)

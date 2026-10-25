@@ -12,6 +12,7 @@ import {
 import { fetchArticle, fetchEdition, fetchIntro, fetchSettings } from './api.ts';
 import {
   button,
+  roundButton,
   fitFlowPage,
   fitSides,
   fitPageInfo,
@@ -22,7 +23,7 @@ import {
   setButton,
 } from './dom.ts';
 import { setLocale, t, tOr, tp } from './i18n.ts';
-import { packPages, pageForAnchor, paginate, type Page, type PageItem } from './paginate.ts';
+import { packPages, type PageItem } from './paginate.ts';
 import { applySettings, calibrateCharWidth, chooseNav, layoutKey } from './settings.ts';
 import type { FlowHost } from './flow.ts';
 import { IntroFlow } from './intro.ts';
@@ -76,7 +77,8 @@ type View =
   /** Einstellungen oder Einführung: eigene Bildschirme, kein Neuaufbau durch die App. */
   | { kind: 'flow' }
   | { kind: 'overview'; page: number }
-  | { kind: 'article'; article: Article | null; id: string; page: number; pages: Page[] };
+  /** `anchor`: erster sichtbarer Satz (−1 = Anfang mit Titel). */
+  | { kind: 'article'; article: Article | null; id: string; anchor: number };
 
 export class App implements FlowHost {
   settings: Settings = DEFAULT_SETTINGS;
@@ -214,7 +216,7 @@ export class App implements FlowHost {
     const v = this.view;
     if (v.kind === 'overview') this.showOverview(v.page);
     else if (v.kind === 'article' && v.article) {
-      const anchor = v.page === 0 ? -1 : (v.pages[v.page]?.anchor ?? -1);
+      const anchor = v.anchor;
       this.renderArticle(v.article, anchor);
     }
   }
@@ -449,83 +451,77 @@ export class App implements FlowHost {
         h('nav', { class: 'bar' }, back, h('p', { class: 'pageinfo' }), next),
       ),
     );
-    this.view = { kind: 'article', article: null, id, page: 0, pages: [] };
+    this.view = { kind: 'article', article: null, id, anchor: -1 };
     // Nur wenn es den Artikel wirklich nicht mehr gibt, geht es beim nächsten Start zur Übersicht.
     if (reason === 'article.notFound') this.saveState({ view: 'overview', overviewPage: 0 });
   }
 
+  /**
+   * Artikel als Fließtext zum Scrollen (Auftrag 006, ADR 018): ein Text vom Titel bis zum Ende,
+   * oben links fest der runde Knopf zur Übersicht, am Ende „Nächster Artikel“.
+   * Gemerkt wird der erste sichtbare Satz – nach dem Neuladen geht es dort weiter.
+   */
   private renderArticle(article: Article, anchor: number): void {
     keepAwake(true);
-    const overview = button(t('nav.overview'), 'left', 'btn-overview');
-    const back = button(t('nav.back'), 'left', 'btn-back');
-    const next = button(t('nav.next'), 'right', 'btn-next');
-    const info = h('p', { class: 'pageinfo', 'aria-live': 'polite' });
-    const pageEl = h('article', { class: 'page prose', lang: article.lang });
-    this.mount(
-      h(
-        'main',
-        { class: 'screen article' },
-        h('div', { class: 'rail' }, overview),
-        pageEl,
-        h('nav', { class: 'bar' }, back, info, next),
-      ),
-    );
-
     const offsets: number[] = [];
+    const items: PageItem[] = [{ kind: 'head' }];
     let count = 0;
-    for (const b of article.blocks) {
+    article.blocks.forEach((b, i) => {
       offsets.push(count);
-      if (b.type === 'paragraph') count += b.sentences.length;
-    }
-    const box = measureBox(pageEl);
-    // Ein sehr langer Titel bei großer Schrift muss allein auf Seite 1 passen (Auftrag 004, A1):
-    // dann wird nur die Titelschrift kleiner, höchstens bis zur Schrift der Bedienelemente.
-    box.replaceChildren(...this.renderItems(article, [{ kind: 'head' }], offsets));
-    const minTitle = parseFloat(getComputedStyle(box).getPropertyValue('--ui')) || 0;
-    while (!fitsIn(box)) {
-      const h1 = box.querySelector('h1');
-      if (!h1) break;
-      const size = Math.floor(parseFloat(getComputedStyle(h1).fontSize) * 0.9);
-      if (size < minTitle) break;
-      for (const el of [box, pageEl]) el.style.setProperty('--h1-fit', `${size}px`);
-    }
-    const pages = paginate(article.blocks, (items) => {
-      box.replaceChildren(...this.renderItems(article, items, offsets));
-      return fitsIn(box);
+      if (b.type === 'paragraph') {
+        items.push({ kind: 'para', block: i, from: 0, to: b.sentences.length });
+        count += b.sentences.length;
+      } else items.push({ kind: 'heading', block: i });
     });
-    box.remove();
-
+    const text = h(
+      'article',
+      { class: 'prose flowtext', lang: article.lang },
+      ...this.renderItems(article, items, offsets),
+    );
     const nextCard = this.nextInEdition(article.id);
-    const total = pages.length;
-    const go = (p: number): void => {
-      const current = Math.max(0, Math.min(total - 1, p));
-      this.view = { kind: 'article', article, id: article.id, page: current, pages };
-      // Seite 1 als -1 merken: sie beginnt mit dem Titel, auch wenn der erste Satz erst auf Seite 2 steht.
-      this.saveState({
-        view: 'article',
-        articleId: article.id,
-        anchor: current === 0 ? -1 : (pages[current]?.anchor ?? 0),
-      });
-      if (!this.preview) trackPage(article.id, current, total);
-      pageEl.replaceChildren(...this.renderItems(article, pages[current]?.items ?? [], offsets));
-      info.textContent = t('pager.pageOf', { page: current + 1, total });
-      setButton(back, t('nav.back'), 'left', { inactive: current === 0 });
-      const last = current >= total - 1;
-      if (last && nextCard) setButton(next, t('nav.nextArticle'), 'right', { sub: nextCard.title });
-      else setButton(next, t('nav.next'), 'right', { inactive: last });
-      next.classList.toggle('btn-next-article', last && Boolean(nextCard));
-      fitPageInfo(info);
+    const next = nextCard
+      ? button(t('nav.nextArticle'), 'right', 'btn-next btn-next-article')
+      : null;
+    if (next && nextCard) setButton(next, t('nav.nextArticle'), 'right', { sub: nextCard.title });
+    const end = h('div', { class: 'article-end' }, next ?? h('p', {}, t('article.end')));
+    const scroller = h('div', { class: 'article-scroll' }, text, end);
+    const back = roundButton(t('nav.overview'), 'btn-overview');
+    this.mount(h('main', { class: 'screen reading' }, scroller, back));
+    this.view = { kind: 'article', article, id: article.id, anchor };
+
+    // An die gemerkte Stelle: der Satz steht oben auf dem Bildschirm.
+    const target = anchor >= 0 ? text.querySelector<HTMLElement>(`[data-s="${anchor}"]`) : null;
+    if (target) scroller.scrollTop = target.offsetTop - text.offsetTop;
+
+    const remember = (): void => {
+      const top = scroller.getBoundingClientRect().top;
+      let first = -1;
+      if (scroller.scrollTop > 0) {
+        // Erster Satz, dessen Anfang zu sehen ist (die erste Zeile eines Satzes kann mit dem Ende
+        // des vorigen geteilt sein).
+        for (const el of text.querySelectorAll<HTMLElement>('.s')) {
+          const start = el.getClientRects()[0];
+          if (start && start.top >= top - 1) {
+            first = Number(el.dataset.s);
+            break;
+          }
+        }
+      }
+      const atEnd = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
+      if (this.view.kind === 'article' && this.view.id === article.id) this.view.anchor = first;
+      this.saveState({ view: 'article', articleId: article.id, anchor: first });
+      // „Bis zum Ende gelesen“ für das Interessen-Lernen (SPEC §5.3).
+      if (!this.preview) trackPage(article.id, atEnd ? 1 : 0, 2);
     };
-    onTap(overview, () => this.showOverview(0, article.id));
-    onTap(back, () => {
-      if (this.view.kind === 'article') go(this.view.page - 1);
+    let pending = 0;
+    scroller.addEventListener('scroll', () => {
+      cancelAnimationFrame(pending);
+      pending = requestAnimationFrame(remember);
     });
-    onTap(next, () => {
-      if (this.view.kind !== 'article') return;
-      if (this.view.page < total - 1) go(this.view.page + 1);
-      else if (nextCard) void this.openArticle(nextCard.id, -1);
-    });
-    go(pageForAnchor(pages, anchor));
+    remember();
+
+    onTap(back, () => this.showOverview(0, article.id));
+    if (next && nextCard) onTap(next, () => void this.openArticle(nextCard.id, -1));
   }
 
   /** Typografie ohne Textänderung: „z. B.“, „u. a.“ nicht über Zeilen trennen. */

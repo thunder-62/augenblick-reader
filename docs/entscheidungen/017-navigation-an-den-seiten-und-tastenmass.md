@@ -1,6 +1,6 @@
 # 017 – Navigation an den Seiten, Tastenmaß aus dem Datenblatt
 
-**Status:** angenommen · **Datum:** 25.10.2026 · **Bezug:** Auftrag 005, SPEC §8.1–8.3, §14; Freigabe des Betreuers („ja, A und B umsetzen“)
+**Status:** angenommen; für den Artikel ersetzt durch ADR 018 · **Datum:** 25.10.2026 · **Bezug:** Auftrag 005, SPEC §8.1–8.3, §14; Freigabe des Betreuers („ja, A und B umsetzen“)
 
 ## Kontext
 

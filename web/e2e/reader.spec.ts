@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { TAP_MIN_DURATION_MS } from '@augenblick/shared';
+import { EDGE_MM, mm, TAP_MIN_DURATION_MS } from '@augenblick/shared';
 import { checkScreen, pageInfo, resetState, tap, withSettings } from './helpers.ts';
 
 test.beforeEach(async ({ request }) => {
@@ -44,86 +44,94 @@ test.describe('Übersicht', () => {
   });
 });
 
-test.describe('Artikel', () => {
-  test('öffnen, blättern, zurück zur Übersicht', async ({ page }) => {
+/** Im Fließtext ein Stück weiter wischen (ADR 018). */
+async function scrollBy(page: import('@playwright/test').Page, px: number): Promise<void> {
+  await page.locator('.article-scroll').evaluate((el, d) => el.scrollBy(0, d), px);
+  await page.waitForTimeout(150);
+}
+
+test.describe('Artikel (Fließtext, ADR 018)', () => {
+  test('öffnen, scrollen, über den runden Knopf zurück zur Übersicht', async ({ page }) => {
     await page.goto('/');
     const title = (await page.locator('.card .title').first().textContent()) ?? '';
     await tap(page.locator('.card').first());
     await expect(page.locator('.prose h1')).toHaveText(title);
-    await expect(page.locator('.btn-overview')).toBeVisible();
+    const back = page.locator('.btn-round');
+    await expect(back).toBeVisible();
+    await expect(back).toContainText('Übersicht');
+    await checkScreen(page);
 
-    const info = await pageInfo(page);
-    expect(info.page).toBe(1);
-    expect(info.total).toBeGreaterThan(1);
-    await tap(page.locator('.btn-next'));
-    expect((await pageInfo(page)).page).toBe(2);
-    await expect(page.locator('.prose h1')).toHaveCount(0);
-    await tap(page.locator('.btn-back'));
-    expect((await pageInfo(page)).page).toBe(1);
+    // Der Text scrollt, der Knopf bleibt an seinem Platz.
+    const before = await back.boundingBox();
+    await scrollBy(page, 600);
+    expect(await page.locator('.article-scroll').evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+    expect(await back.boundingBox()).toEqual(before);
+    await checkScreen(page);
 
-    await tap(page.locator('.btn-overview'));
+    await tap(back);
     await expect(page.locator('.card').first()).toBeVisible();
-    // gelesen: dezentes Häkchen
     await expect(page.locator('.card').first().locator('.read')).toBeVisible();
   });
 
-  test('kein Satz wird über eine Seite hinweg geteilt und keiner geht verloren', async ({
-    page,
-    request,
-  }) => {
+  test('der ganze Text steht da, jeder Satz genau einmal', async ({ page, request }) => {
     const edition = await (await request.get('/api/edition')).json();
     const id = edition.articles[0].id as string;
     const article = await (await request.get(`/api/articles/${id}`)).json();
     const expected = article.blocks.flatMap(
       (b: { type: string; sentences?: string[] }) => b.sentences ?? [],
     ).length;
-
     await page.goto('/');
     await tap(page.locator('.card').first());
-    const { total } = await pageInfo(page);
-    const seen: string[] = [];
-    for (let p = 1; p <= total; p++) {
-      seen.push(
-        ...(await page
-          .locator('.prose .s')
-          .evaluateAll((els) => els.map((e) => e.getAttribute('data-s') ?? ''))),
-      );
-      await checkScreen(page);
-      if (p < total) await tap(page.locator('.btn-next'));
-    }
+    const seen = await page
+      .locator('.prose .s')
+      .evaluateAll((els) => els.map((e) => e.getAttribute('data-s') ?? ''));
     expect(seen).toHaveLength(expected);
     expect(new Set(seen).size).toBe(expected);
+  });
+
+  test('der Text liegt nie unter dem runden Knopf', async ({ page }) => {
+    await page.goto('/');
+    await tap(page.locator('.card').first());
+    const knob = (await page.locator('.btn-round').boundingBox())!;
+    const text = (await page.locator('.flowtext').boundingBox())!;
+    expect(text.x).toBeGreaterThanOrEqual(knob.x + knob.width);
   });
 
   test('am Ende: „Nächster Artikel“ mit Titel', async ({ page }) => {
     await page.goto('/');
     const titles = await page.locator('.card .title').allTextContents();
     await tap(page.locator('.card').first());
-    const { total } = await pageInfo(page);
-    for (let i = 1; i < total; i++) await tap(page.locator('.btn-next'));
-    const next = page.locator('.btn-next');
+    await page.locator('.article-scroll').evaluate((el) => (el.scrollTop = el.scrollHeight));
+    const next = page.locator('.article-end .btn-next');
     await expect(next).toContainText('Nächster Artikel');
     await checkScreen(page);
+    // Ganz unten hält „Nächster Artikel“ den Randabstand von 15 mm ein.
+    const box = (await next.boundingBox())!;
+    const viewport = page.viewportSize()!;
+    expect(viewport.height - (box.y + box.height)).toBeGreaterThanOrEqual(mm(EDGE_MM) - 0.5);
     await tap(next);
-    expect((await pageInfo(page)).page).toBe(1);
-    const secondTitle = (await page.locator('.prose h1').textContent()) ?? '';
-    expect(secondTitle).not.toBe(titles[0]);
-    await expect(page.locator('.prose h1')).not.toBeEmpty();
+    await expect(page.locator('.prose h1')).not.toHaveText(titles[0] ?? '');
+    expect(await page.locator('.article-scroll').evaluate((el) => el.scrollTop)).toBe(0);
   });
 
-  test('nach Neuladen: derselbe Artikel auf derselben Seite', async ({ page }) => {
+  test('nach Neuladen: derselbe Artikel an derselben Stelle', async ({ page }) => {
     await page.goto('/');
     await tap(page.locator('.card').first());
-    await tap(page.locator('.btn-next'));
-    await tap(page.locator('.btn-next'));
-    const before = await pageInfo(page);
-    const text = await page.locator('.prose').textContent();
+    await scrollBy(page, 900);
+    const firstVisible = async () =>
+      page.locator('.article-scroll').evaluate((sc) => {
+        const top = sc.getBoundingClientRect().top;
+        return Array.from(sc.querySelectorAll<HTMLElement>('.s')).find(
+          (s) => (s.getClientRects()[0]?.top ?? -1) >= top - 1,
+        )?.dataset.s;
+      });
+    const before = await firstVisible();
+    expect(Number(before)).toBeGreaterThan(0);
     await page.reload();
-    await expect(page.locator('.prose')).toHaveText(text ?? '');
-    expect(await pageInfo(page)).toEqual(before);
+    await expect(page.locator('.prose h1')).toBeVisible();
+    expect(await firstVisible()).toBe(before);
 
-    // Zurück zur Übersicht landet auf der Seite mit diesem Artikel.
-    await tap(page.locator('.btn-overview'));
+    await tap(page.locator('.btn-round'));
     await expect(page.locator('.card').first()).toBeVisible();
   });
 
@@ -213,7 +221,7 @@ test.describe('Prüfungen nach SPEC §14', () => {
         await tap(page.locator('.card').first());
         await expect(page.locator('.prose')).not.toBeEmpty();
         await checkScreen(page);
-        await tap(page.locator('.btn-next'));
+        await scrollBy(page, 700);
         await checkScreen(page);
       });
     }

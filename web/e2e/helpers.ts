@@ -32,7 +32,14 @@ export async function pageInfo(page: Page): Promise<{ page: number; total: numbe
   return { page: Number(m?.[1]), total: Number(m?.[2]) };
 }
 
-type Rect = { x: number; y: number; width: number; height: number; label: string };
+type Rect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label: string;
+  scrolls: boolean;
+};
 
 /** Prüft die Regeln aus SPEC §8.1/§14 für den aktuellen Bildschirm. */
 export async function checkScreen(page: Page): Promise<void> {
@@ -58,6 +65,8 @@ export async function checkScreen(page: Page): Promise<void> {
         width: r.width,
         height: r.height,
         label: (el.textContent ?? '').trim().slice(0, 30),
+        // Tasten im Fließtext wandern beim Scrollen über den Rand (ADR 018).
+        scrolls: el.closest('.article-scroll') !== null,
       });
     }
 
@@ -89,9 +98,10 @@ export async function checkScreen(page: Page): Promise<void> {
       .filter((el) => !el.closest('.measure') && el.scrollHeight > el.clientHeight + 1)
       .map((el) => `${el.className}: ${el.scrollHeight} > ${el.clientHeight}`);
 
-    // Elemente mit sichtbaren Scrollbalken
+    // Elemente mit Scrollbalken – erlaubt ist nur der Fließtext des Artikels (ADR 018).
     const scrollable = Array.from(document.querySelectorAll<HTMLElement>('*'))
       .filter((el) => {
+        if (el.classList.contains('article-scroll')) return false;
         const s = getComputedStyle(el);
         return (
           /(auto|scroll)/.test(s.overflowY + s.overflowX) &&
@@ -123,7 +133,10 @@ export async function checkScreen(page: Page): Promise<void> {
     };
     const screen = document.querySelector('.screen');
     if (screen) {
-      pairwise(Array.from(screen.children));
+      // Der runde Knopf schwebt gewollt über dem Fließtext (ADR 018); der Text selbst liegt nie darunter.
+      pairwise(
+        Array.from(screen.children).filter((el) => !el.classList.contains('article-scroll')),
+      );
       for (const el of Array.from(screen.children)) {
         const b = box(el);
         if (b.b > vh + 1 || b.r > vw + 1) overlaps.push(`${b.name} ragt aus dem Bildschirm`);
@@ -181,6 +194,7 @@ export async function checkScreen(page: Page): Promise<void> {
   for (const t of result.targets) {
     expect(t.width, `Breite „${t.label}“`).toBeGreaterThanOrEqual(min);
     expect(t.height, `Höhe „${t.label}“`).toBeGreaterThanOrEqual(min);
+    if (t.scrolls) continue;
     expect(t.x, `Randabstand links „${t.label}“`).toBeGreaterThanOrEqual(edge - 0.5);
     expect(t.y, `Randabstand oben „${t.label}“`).toBeGreaterThanOrEqual(edge - 0.5);
     expect(result.vw - (t.x + t.width), `Randabstand rechts „${t.label}“`).toBeGreaterThanOrEqual(

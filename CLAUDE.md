@@ -11,7 +11,7 @@ Dieses Repo baut **Augenblick**, einen Zeitungs-Reader für eine hochaltrige Nut
 ## Grundsätze
 
 - **Lesbarkeit und Einfachheit schlagen Features.** Im Zweifel weglassen und als Frage notieren.
-- **Nur Einzeltipps** in der Oberfläche der Nutzerin. Keine Gesten, Dialoge, Pop-ups, Scroll-Container.
+- **Nur Einzeltipps** in der Oberfläche der Nutzerin. Keine Gesten, Dialoge, Pop-ups, Scroll-Container. Einzige Ausnahme (Entscheidung des Betreuers, ADR 018): der Artikeltext ist Fließtext zum Scrollen.
 - **Originaltext ist heilig.** KI nur für Kurzfassungen (ab M3).
 - Nichts bauen, was über den aktuellen Auftrag hinausgeht. Ideen für später → `docs/ideen.md`.
 

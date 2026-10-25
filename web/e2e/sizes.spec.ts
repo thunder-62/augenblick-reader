@@ -56,10 +56,9 @@ for (const fontSizePx of CALIBRATION_SIZES_PX) {
       await tap(page.locator('.card').first());
       await expect(page.locator('.prose h1')).toHaveText(title);
       await checkScreen(page);
-      if ((await pageInfo(page)).total > 1) {
-        await tap(page.locator('.btn-next'));
-        await checkScreen(page);
-      }
+      // Fließtext (ADR 018): weiter wischen, der runde Knopf bleibt erreichbar.
+      await page.locator('.article-scroll').evaluate((el) => el.scrollBy(0, el.clientHeight));
+      await checkScreen(page);
       await tap(page.locator('.btn-overview'));
       await expect(page.locator('.card').first()).toBeVisible();
     });

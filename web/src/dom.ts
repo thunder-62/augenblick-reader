@@ -95,6 +95,19 @@ export function setButton(
   }
 }
 
+/**
+ * Runder Knopf (Auftrag 006): Kreis mit Symbol, das Wort darunter (SPEC §8.1: Symbol + Wort).
+ * Das ganze Element ist die Tippfläche.
+ */
+export function roundButton(label: string, extraClass = ''): HTMLButtonElement {
+  return h(
+    'button',
+    { type: 'button', class: `btn-round ${extraClass}`.trim(), 'aria-label': label },
+    h('span', { class: 'round' }, icons.left()),
+    h('span', { class: 'round-label' }, label),
+  );
+}
+
 /** Unsichtbarer Messbehälter mit Größe und Klassen eines echten Bereichs. */
 export function measureBox(like: HTMLElement): HTMLElement {
   const box = h('div', { class: `${like.className} measure`, 'aria-hidden': 'true' });

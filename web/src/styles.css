@@ -634,3 +634,89 @@ button {
 .practice-card .title {
   font-size: inherit;
 }
+
+/* --- Artikel als Fließtext zum Scrollen (Auftrag 006, ADR 018) --------------------------- */
+
+.screen.reading {
+  display: block;
+  padding: 0;
+}
+.article-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Nur hier darf gewischt werden, und nur senkrecht. */
+  touch-action: pan-y;
+  scrollbar-width: none;
+  /* Links Platz für den runden Knopf, damit nie Text darunter liegt. */
+  padding: var(--pad) var(--pad) var(--edge) calc(var(--edge) + var(--tap) * 1.4 + var(--gap));
+}
+.article-scroll::-webkit-scrollbar {
+  display: none;
+}
+.flowtext {
+  max-width: calc(var(--maxch) * var(--chw));
+  margin: 0 auto;
+}
+.article-end {
+  max-width: calc(var(--maxch) * var(--chw));
+  margin: 1.5em auto 0;
+  padding-right: var(--extra);
+  color: var(--muted);
+}
+.article-end .btn {
+  color: var(--text);
+  width: 100%;
+  white-space: normal;
+}
+.article-end p {
+  margin: 0;
+}
+
+/* Runder Knopf oben links: fest über dem Text, Kreis mit Pfeil, das Wort darunter. */
+.btn-round {
+  position: fixed;
+  top: var(--edge);
+  left: var(--edge);
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  font-size: max(24px, calc(var(--ui) * 0.7));
+  font-weight: 700;
+  line-height: 1.15;
+  cursor: pointer;
+  z-index: 2;
+}
+.btn-round .round {
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: 50%;
+  border: var(--stroke) solid var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-round .round .icon {
+  width: 40%;
+  height: 40%;
+  fill: currentColor;
+}
+.btn-round .round-label {
+  background: var(--bg);
+  padding: 0 0.15em;
+  white-space: nowrap;
+}
+.btn-round.pressed .round,
+.btn-round.tapped .round {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
