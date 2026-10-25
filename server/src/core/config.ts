@@ -90,7 +90,8 @@ export function parseSections(value: string | undefined): SectionQuota[] {
  * Standardmodell: das im Klick-Prototyp erprobte kostenlose Modell. Für den Dauerbetrieb lieber ein
  * günstiges bezahltes Modell eintragen (OPENROUTER_MODEL), siehe ADR 008.
  */
-export const DEFAULT_OPENROUTER_MODEL = 'qwen/qwen3-next-80b-a3b-instruct:free';
+/** Die kostenlose Fassung (`:free`) hat OpenRouter im Oktober 2026 abgeschaltet (ADR 008). */
+export const DEFAULT_OPENROUTER_MODEL = 'qwen/qwen3-next-80b-a3b-instruct';
 
 /** Platzhalter aus .env.example zählen nicht als Schlüssel. */
 export function parseApiKey(value: string | undefined): string | null {

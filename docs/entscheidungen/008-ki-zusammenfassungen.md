@@ -20,3 +20,7 @@ SPEC §6 (geändert): Anbindung über OpenRouter (OpenAI-kompatible Chat-Complet
 
 - Mit echtem Schlüssel ist noch nicht gelaufen; geprüft sind Anfrage-Aufbau, Antwort, Fehlerarten, Ausweich-Modell und Kosten mit einer nachgebildeten API. Ob Ton, Länge und Schlagworte passen, zeigt der erste Betrieb.
 - Die Texte öffentlich abrufbarer Artikel gehen zur Zusammenfassung an OpenRouter und das gewählte Modell; persönliche Daten der Leserin nicht. Kostenlose Modelle können Eingaben zum Training nutzen – auch das spricht im Dauerbetrieb für ein bezahltes Modell.
+
+## Nachtrag 25.10.2026
+
+Beim ersten Lauf auf dem Pi antwortete OpenRouter für `qwen/qwen3-next-80b-a3b-instruct:free` mit 404: „This model is unavailable for free.“ Standard ist jetzt die bezahlte Fassung `qwen/qwen3-next-80b-a3b-instruct`. Sie braucht Guthaben im OpenRouter-Konto; ohne Guthaben meldet OpenRouter 402, und die Karten behalten den Fallback. Die tatsächlichen Kosten zeigt der Technik-Status je Tag.

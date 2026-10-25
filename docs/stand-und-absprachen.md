@@ -28,7 +28,7 @@ Geprüft wurde alles in der Entwicklungsumgebung: Lint, 166 Unit-Tests und 59 E2
    - Interessen lernen ersetzt das Nutzungsprotokoll. Es läuft nur mit Einverständnis.
    - Es gibt keinen Kiosk- und keinen Offline-Modus.
 4. **Betrieb auf dem Windows-PC zum Ausprobieren.** Server und Web-App laufen auch unter Windows (Node.js 22, PowerShell), siehe README „Starten“. Die Skripte in `deploy/` gelten nur für Pi und Linux.
-5. **KI-Modell:** Standard ist das im Prototyp erprobte kostenlose Modell. Für den Dauerbetrieb trägt der Betreuer ein günstiges bezahltes Modell ein (Auftrag 003, offene Frage 1).
+5. **KI-Modell:** Das im Prototyp erprobte kostenlose Modell hat OpenRouter abgeschaltet. Standard ist jetzt seine bezahlte Fassung `qwen/qwen3-next-80b-a3b-instruct`, dafür braucht das OpenRouter-Konto Guthaben (ADR 008, Nachtrag).
 6. **Kein Release ohne Freigabe.** Das Tag `v0.1.0`, das das Release-Paket für `install.sh`/`update.sh` erzeugt, setzt nur der Betreuer.
 7. **Durchsicht nach M3 (Auftrag 004):** Vor dem Gerätetest wurden die Befunde einer Durchsicht behoben, ohne neue Funktionen. Danach wird wieder angehalten; weiter erst nach dem Test am Gerät.
 8. **Arbeitsweise:** Entwickelt wird auf dem Branch `claude/claude-md-offene-auftraege-h1iuc3`. Pull Requests gibt es nur auf Wunsch. Commits sind klein und deutsch, und vor jedem Commit laufen Lint und Tests grün.
