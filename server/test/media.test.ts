@@ -124,6 +124,15 @@ describe('Bilder herunterladen und selbst ausliefern', () => {
   it('erkennt Format und Maße', () => {
     expect(sniffImage(png(640, 360))).toEqual({ ext: 'png', width: 640, height: 360 });
     expect(sniffImage(new TextEncoder().encode('<html>kein Bild</html>'))).toBe(null);
+    // AVIF: ftyp „avif“ und Maße im Kasten „ispe“ (Breite, Höhe nach Version/Flags)
+    const avif = Buffer.alloc(48);
+    avif.writeUInt32BE(24, 0);
+    avif.write('ftypavif', 4, 'ascii');
+    avif.writeUInt32BE(20, 24);
+    avif.write('ispe', 28, 'ascii');
+    avif.writeUInt32BE(1280, 36);
+    avif.writeUInt32BE(720, 40);
+    expect(sniffImage(new Uint8Array(avif))).toEqual({ ext: 'avif', width: 1280, height: 720 });
   });
 
   it('ersetzt fremde Adressen durch /media/…, Fehler und Kleines entfallen', async () => {
@@ -133,8 +142,11 @@ describe('Bilder herunterladen und selbst ausliefern', () => {
       'https://x.example/klein.png': () => new Response(Buffer.from(png(100, 100))),
       'https://x.example/seite.html': () => new Response('<html></html>'),
     };
-    const fetch: FetchLike = async (url) =>
-      files[url]?.() ?? new Response('fehlt', { status: 404 });
+    const accepts: string[] = [];
+    const fetch: FetchLike = async (url, init) => {
+      accepts.push(new Headers(init?.headers).get('accept') ?? '');
+      return files[url]?.() ?? new Response('fehlt', { status: 404 });
+    };
     const blocks: Block[] = [
       { type: 'paragraph', sentences: ['Satz.'] },
       { type: 'image', src: 'https://x.example/gross.png', alt: 'Ein Bild' },
@@ -149,6 +161,8 @@ describe('Bilder herunterladen und selbst ausliefern', () => {
     expect(img).toMatchObject({ type: 'image', alt: 'Ein Bild', width: 800, height: 450 });
     expect(img?.type === 'image' && img.src).toMatch(/^\/media\/[a-f0-9]{40}\.png$/);
     expect(readdirSync(dir)).toHaveLength(1);
+    // Kein AVIF anfordern (sonst liefern manche Bildserver AVIF statt JPEG).
+    expect(accepts.every((a) => a.startsWith('image/jpeg') && !a.includes('avif'))).toBe(true);
   });
 
   it('räumt Bilder auf, die kein Artikel mehr braucht', async () => {
