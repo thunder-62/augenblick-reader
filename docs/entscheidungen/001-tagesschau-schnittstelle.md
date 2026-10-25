@@ -26,7 +26,7 @@ Meldungen haben u. a. `sophoraId`, `externalId`, `title`, `topline`, `date`, `re
 - Augenblick nutzt `/homepage/`, `/news/?ressort=sport` und `/news/?ressort=wissen` als Listen. Liefert die Liste den Inhalt (`content`) mit, wird kein Detail-Abruf gemacht; sonst wird `details` abgerufen.
 - Nur `type: story` wird übernommen; aus `content` nur `text` und `headline`. Kästen, Zitat-Kästen, Medien und Linklisten entfallen. Der Hinweis „Über dieses Thema berichtete …“ und „Mehr zum Thema“ werden als Beiwerk entfernt.
 - Ein Ratenbegrenzer im Worker erlaubt **höchstens 50 Abrufe pro Stunde** (einstellbar bis 55, nie 60). Bei 34 Läufen am Tag und 3 Listen-Abrufen pro Lauf bleibt genug Spielraum für Detail-Abrufe neuer Meldungen.
-- Rubriken werden normalisiert: `inland`, `ausland`, `wirtschaft`, `sport`, `wissen` bleiben, `investigativ` → `inland`, Regionalmeldungen → `region`.
+- Rubriken werden normalisiert: `inland`, `ausland`, `wirtschaft`, `sport`, `wissen` bleiben, `investigativ` → `inland`. Regionalmeldungen werden seit ADR 020 nicht mehr übernommen.
 - Augenblick ist eine private Einzelinstallation für eine Person; Inhalte werden nicht veröffentlicht. Das deckt sich mit den Bedingungen. Für den White-Label-Betrieb (SPEC §12a) ist das **nicht** ausreichend – dort muss jeder Betreiber seine Quellen selbst klären.
 
 ## Folgen
