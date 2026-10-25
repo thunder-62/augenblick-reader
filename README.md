@@ -60,7 +60,7 @@ Weitere Befehle:
 
 Die E2E-Tests laufen im Querformat-Viewport 1280×800 CSS-px. Die Schriftgröße stellt die Leserin in der Einführung selbst ein; die Umrechnung Millimeter → CSS-Pixel für die Tippziele in `shared/src/geometry.ts` ist ein vorsichtiger Schätzwert (eher zu große Tasten).
 
-Auf dem Raspberry Pi: `sudo ./deploy/install.sh` (Details in [`deploy/README.md`](deploy/README.md)). Wer schon eine ältere Fassung installiert hat, führt es nach Auftrag 004 einmal erneut aus: Das nächtliche Update läuft jetzt als eigener Benutzer ohne Root-Rechte (ADR 012). Releases entstehen automatisch, wenn ein Tag `v*` gepusht wird.
+Auf dem Raspberry Pi: `sudo ./deploy/install.sh` (Details in [`deploy/README.md`](deploy/README.md)). Wer schon eine ältere Fassung installiert hat, führt es nach Auftrag 004 einmal erneut aus: Das nächtliche Update läuft jetzt als eigener Benutzer ohne Root-Rechte (ADR 012). Releases entstehen automatisch bei jedem Merge nach `main` (und bei einem Tag `v*`); der Pi spielt sie nachts selbst ein (ADR 019).
 
 ## Öffentliches Repo – Hinweise
 

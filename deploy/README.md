@@ -67,6 +67,7 @@ Der **Technik-Bereich** liegt unter `http://<name-des-pi>:7341/technik` – ohne
 
 ## Updates
 
+- **Woher:** Jeder Merge nach `main` erzeugt auf GitHub automatisch ein Release `v0.1.<n>` mit fertig gebautem Paket (`.github/workflows/release.yml`, ADR 019). Reine Doku-Änderungen lösen keins aus. Bauen auf dem Pi ist dafür nicht nötig.
 - automatisch jede Nacht um 03:00 (`systemctl list-timers augenblick-update.timer`)
 - von Hand: `sudo augenblick-update` (oder mit `--file paket.tar.gz`, `--force` für dieselbe Version)
 
