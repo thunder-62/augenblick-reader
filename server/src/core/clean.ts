@@ -1,7 +1,8 @@
 /**
  * Bereinigung zu Block[] (SPEC §5.2, Schritt 2): Werbung, Bildunterschriften,
  * „Mehr zum Thema“, Links, Social-Embeds und Bildnachweise entfernen,
- * Zwischenüberschriften behalten. Der eigentliche Text bleibt unverändert.
+ * Zwischenüberschriften und Bilder behalten (Bilder ohne Unterschrift, ADR 021).
+ * Der eigentliche Text bleibt unverändert.
  */
 import { parseHTML } from 'linkedom';
 import type { Block } from '@augenblick/shared';
@@ -19,10 +20,7 @@ const DROP_SELECTOR = [
   'embed',
   'video',
   'audio',
-  'picture',
-  'img',
   'svg',
-  'figure',
   'figcaption',
   'aside',
   'nav',
@@ -77,6 +75,8 @@ const CONTAINER_TAGS = new Set([
   'OL',
   'DL',
   'BLOCKQUOTE',
+  'FIGURE',
+  'PICTURE',
 ]);
 const INLINE_TAGS = new Set([
   'A',
@@ -120,21 +120,77 @@ export function paragraph(text: string): Block | null {
   return sentences.length ? { type: 'paragraph', sentences } : null;
 }
 
+/** Kleinere Bilder sind meist Symbole, Logos oder Zählpixel. */
+export const MIN_IMAGE_PX = 200;
+
+/** Größte Variante aus `srcset` bis 1600 px Breite, sonst `src` bzw. `data-src`. */
+function imageUrl(img: Element): string | null {
+  const srcset = img.getAttribute('srcset') ?? img.getAttribute('data-srcset');
+  if (srcset) {
+    const candidates = srcset
+      .split(',')
+      .map((part) => part.trim().split(/\s+/))
+      .map(([url = '', size = '']) => ({ url, w: Number(size.replace(/w$/, '')) || 0 }))
+      .filter((c) => c.url);
+    const fitting = candidates.filter((c) => c.w <= 1600).sort((a, b) => b.w - a.w);
+    const best = fitting[0] ?? candidates.sort((a, b) => a.w - b.w)[0];
+    if (best) return best.url;
+  }
+  return img.getAttribute('src') ?? img.getAttribute('data-src');
+}
+
+/**
+ * Bild als Block mit absoluter http(s)-Adresse der Quelle; der Pi lädt es später herunter
+ * (media.ts). Symbole, Logos, SVG und eingebettete Daten entfallen.
+ */
+export function imageBlock(img: Element, baseUrl?: string): Block | null {
+  const raw = imageUrl(img);
+  if (!raw || raw.startsWith('data:')) return null;
+  let url: URL;
+  try {
+    url = new URL(raw, baseUrl);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+  if (/\.svg$/i.test(url.pathname)) return null;
+  const w = Number(img.getAttribute('width'));
+  const h = Number(img.getAttribute('height'));
+  if ((w && w < MIN_IMAGE_PX) || (h && h < MIN_IMAGE_PX)) return null;
+  const alt = normalizeWhitespace(img.getAttribute('alt') ?? '');
+  return { type: 'image', src: url.toString(), ...(alt ? { alt } : {}) };
+}
+
 export function heading(text: string): Block | null {
   const t = normalizeWhitespace(text);
   return t ? { type: 'heading', text: t } : null;
 }
 
-/** Wandelt HTML (Artikelkörper) in Blöcke um. */
-export function htmlToBlocks(html: string): Block[] {
+/** Höchstens so viele Bilder je Artikel. */
+export const MAX_IMAGES = 6;
+
+/** Wandelt HTML (Artikelkörper) in Blöcke um; `baseUrl` löst relative Bildadressen auf. */
+export function htmlToBlocks(html: string, baseUrl?: string): Block[] {
   const { document } = parseHTML(`<!doctype html><html><body>${html}</body></html>`);
   for (const el of Array.from(document.querySelectorAll(DROP_SELECTOR))) el.remove();
 
   const blocks: Block[] = [];
   let skipUntilHeading = false;
+  const seenImages = new Set<string>();
+  const pushImage = (img: Element): void => {
+    if (skipUntilHeading || seenImages.size >= MAX_IMAGES) return;
+    const b = imageBlock(img, baseUrl);
+    if (!b || b.type !== 'image' || seenImages.has(b.src)) return;
+    seenImages.add(b.src);
+    blocks.push(b);
+  };
 
   const visit = (el: Element): void => {
     const tag = el.tagName.toUpperCase();
+    if (tag === 'IMG') {
+      pushImage(el);
+      return;
+    }
     if (HEADING_TAGS.has(tag)) {
       const text = normalizeWhitespace(el.textContent ?? '');
       if (!text) return;
@@ -151,9 +207,12 @@ export function htmlToBlocks(html: string): Block[] {
     if (TEXT_TAGS.has(tag)) {
       if (skipUntilHeading) return;
       const { text, onlyLinks } = readText(el);
-      if (!text || onlyLinks || isNoise(text)) return;
-      const b = paragraph(text);
-      if (b) blocks.push(b);
+      if (text && !onlyLinks && !isNoise(text)) {
+        const b = paragraph(text);
+        if (b) blocks.push(b);
+      }
+      // Bilder innerhalb eines Absatzes stehen danach.
+      for (const img of Array.from(el.querySelectorAll('img'))) pushImage(img);
       return;
     }
     if (CONTAINER_TAGS.has(tag)) {
@@ -199,7 +258,11 @@ export function htmlToBlocks(html: string): Block[] {
 /** Überschriften ohne folgenden Text am Ende sind Reste von Linklisten. */
 export function trimTrailingHeadings(blocks: Block[]): Block[] {
   const out = [...blocks];
-  while (out.at(-1)?.type === 'heading') out.pop();
+  while (out.length) {
+    const last = out.at(-1);
+    if (last?.type !== 'heading') break;
+    out.pop();
+  }
   return out;
 }
 

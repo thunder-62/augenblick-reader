@@ -1,3 +1,4 @@
+import { createReadStream, existsSync } from 'node:fs';
 import path from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import fastifyStatic from '@fastify/static';
@@ -22,6 +23,7 @@ import {
 } from './core/store.ts';
 import { hostChecker } from './core/hosts.ts';
 import { serverT } from './core/i18n.ts';
+import { MEDIA_NAME, MEDIA_TYPES, mediaDir } from './core/media.ts';
 import { VERSION } from './core/version.ts';
 import { registerTechnik } from './technik.ts';
 
@@ -140,6 +142,19 @@ export function createApp({
     const article = learning() ? getArticle(db, signal.articleId) : null;
     if (article) addTopicPoints(db, articleTopics(article), signal.points, now());
     return reply.code(204).send();
+  });
+
+  // Bilder der Artikel, vom Pi selbst ausgeliefert (ADR 021). Nur Dateinamen aus Prüfsumme und
+  // Endung – kein Pfad, keine fremde Adresse.
+  app.get<{ Params: { name: string } }>('/media/:name', async (req, reply) => {
+    const name = req.params.name;
+    if (!MEDIA_NAME.test(name)) return reply.code(404).send({ error: 'not_found' });
+    const file = path.join(mediaDir(config.dataDir), name);
+    if (!existsSync(file)) return reply.code(404).send({ error: 'not_found' });
+    return reply
+      .type(MEDIA_TYPES[name.split('.').pop() ?? ''] ?? 'application/octet-stream')
+      .header('cache-control', 'public, max-age=31536000, immutable')
+      .send(createReadStream(file));
   });
 
   registerTechnik(app, { db, config, now });

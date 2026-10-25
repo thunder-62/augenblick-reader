@@ -471,7 +471,8 @@ export class App implements FlowHost {
       if (b.type === 'paragraph') {
         items.push({ kind: 'para', block: i, from: 0, to: b.sentences.length });
         count += b.sentences.length;
-      } else items.push({ kind: 'heading', block: i });
+      } else if (b.type === 'image') items.push({ kind: 'image', block: i });
+      else items.push({ kind: 'heading', block: i });
     });
     const text = h(
       'article',
@@ -544,7 +545,19 @@ export class App implements FlowHost {
       }
       const block = article.blocks[it.block];
       if (!block) continue;
-      if (it.kind === 'heading' && block.type === 'heading') {
+      if (it.kind === 'image' && block.type === 'image') {
+        // Nur Bilder vom Pi (/media/…), ohne Unterschrift; Maße reservieren den Platz, damit die
+        // Lesestelle beim Laden nicht springt (ADR 021).
+        if (!block.src.startsWith('/media/')) continue;
+        const img = h('img', {
+          src: block.src,
+          alt: block.alt ?? '',
+          width: block.width,
+          height: block.height,
+          decoding: 'async',
+        });
+        out.push(h('figure', { class: 'article-image' }, img));
+      } else if (it.kind === 'heading' && block.type === 'heading') {
         out.push(h('h2', {}, block.text));
       } else if (it.kind === 'para' && block.type === 'paragraph') {
         const p = h('p', { class: it.from > 0 ? 'cont' : '' });

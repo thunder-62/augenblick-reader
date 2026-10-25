@@ -1,6 +1,13 @@
 /** Datenmodell nach SPEC §4. */
 
-export type Block = { type: 'heading'; text: string } | { type: 'paragraph'; sentences: string[] };
+export type Block =
+  | { type: 'heading'; text: string }
+  | { type: 'paragraph'; sentences: string[] }
+  /**
+   * Bild aus der Quelle (Auftrag 007, ADR 021). `src` ist im gespeicherten Artikel immer eine
+   * Adresse des Pi (`/media/…`), nie eine fremde – das Tablet lädt nichts von außen.
+   */
+  | { type: 'image'; src: string; alt?: string; width?: number; height?: number };
 
 export type Summary = {
   /** 2–3 Sätze, einfache Sprache. */

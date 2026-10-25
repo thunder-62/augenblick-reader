@@ -7,7 +7,14 @@ import { RateLimiter } from '../core/ratelimit.ts';
 import { toIso } from '../core/time.ts';
 import type { RawArticle, RawItem, SourceAdapter } from './types.ts';
 
-type ContentElement = { type?: string; value?: string };
+/** Bild der Schnittstelle: Varianten je Format und Breite, z. B. „16x9-960“. */
+export type TagesschauImage = {
+  alttext?: string;
+  title?: string;
+  imageVariants?: Record<string, string>;
+};
+
+type ContentElement = { type?: string; value?: string; gallery?: TagesschauImage[] };
 
 export type TagesschauItem = {
   sophoraId?: string;
@@ -22,6 +29,7 @@ export type TagesschauItem = {
   detailsweb?: string;
   shareURL?: string;
   firstSentence?: string;
+  teaserImage?: TagesschauImage;
   content?: ContentElement[];
 };
 
@@ -53,10 +61,43 @@ export function isRegional(item: TagesschauItem): boolean {
   return true;
 }
 
-/** Nur Text und Zwischenüberschriften übernehmen; Boxen, Zitat-Kästen, Medien, Links usw. entfallen. */
-export function contentToHtml(content: ContentElement[]): string {
+/** Variante im Querformat bis 1280 px Breite, sonst die größte vorhandene (ADR 021). */
+export function pickImageVariant(variants: Record<string, string> = {}): string | null {
+  const parsed = Object.entries(variants)
+    .map(([key, url]) => {
+      const m = /^(\d+)x(\d+)-(\d+)$/.exec(key);
+      return m ? { url, landscape: Number(m[1]) > Number(m[2]), w: Number(m[3]) } : null;
+    })
+    .filter((v): v is { url: string; landscape: boolean; w: number } => v !== null);
+  const pool = parsed.some((v) => v.landscape) ? parsed.filter((v) => v.landscape) : parsed;
+  const fitting = pool.filter((v) => v.w <= 1280).sort((a, b) => b.w - a.w);
+  return (fitting[0] ?? pool.sort((a, b) => a.w - b.w)[0])?.url ?? null;
+}
+
+const attr = (value: string): string =>
+  value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+function imageHtml(image: TagesschauImage): string | null {
+  const url = pickImageVariant(image.imageVariants);
+  return url ? `<img src="${attr(url)}" alt="${attr(image.alttext ?? '')}">` : null;
+}
+
+/**
+ * Text, Zwischenüberschriften und Bilder übernehmen (Aufmacherbild zuerst, ADR 021);
+ * Boxen, Zitat-Kästen, Videos, Links usw. entfallen.
+ */
+export function contentToHtml(content: ContentElement[], teaserImage?: TagesschauImage): string {
   const parts: string[] = [];
+  const lead = teaserImage ? imageHtml(teaserImage) : null;
+  if (lead) parts.push(lead);
   for (const el of content) {
+    if (el.type === 'image_gallery') {
+      for (const image of el.gallery ?? []) {
+        const img = imageHtml(image);
+        if (img) parts.push(img);
+      }
+      continue;
+    }
     if (!el.value) continue;
     if (el.type === 'text')
       parts.push(/^\s*<(p|h\d)\b/i.test(el.value) ? el.value : `<p>${el.value}</p>`);
@@ -138,7 +179,10 @@ export class TagesschauAdapter implements SourceAdapter {
       ...(item.section ? { section: item.section } : {}),
       title: data.title ?? item.title,
       publishedAt: toIso(data.date) ?? item.publishedAt,
-      html: contentToHtml(data.content ?? []),
+      html: contentToHtml(
+        data.content ?? [],
+        data.teaserImage ?? (item.payload as TagesschauItem | undefined)?.teaserImage,
+      ),
       ...((data.firstSentence ?? (item.payload as TagesschauItem | undefined)?.firstSentence)
         ? { teaser: data.firstSentence ?? (item.payload as TagesschauItem).firstSentence }
         : {}),

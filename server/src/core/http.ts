@@ -96,17 +96,16 @@ export async function assertPublicUrl(
 }
 
 /** Liest den Körper, bricht aber ab, sobald er größer als `maxBytes` wird. */
-async function readLimited(res: Response, url: string, maxBytes: number): Promise<string> {
+async function readLimited(res: Response, url: string, maxBytes: number): Promise<Uint8Array> {
   const declared = Number(res.headers.get('content-length'));
   if (declared > maxBytes) {
     await res.body?.cancel();
     throw new BlockedFetchError(`Antwort zu groß (${declared} Bytes): ${url}`);
   }
-  if (!res.body) return '';
+  if (!res.body) return new Uint8Array();
   const reader = res.body.getReader();
-  const decoder = new TextDecoder();
+  const chunks: Uint8Array[] = [];
   let size = 0;
-  let text = '';
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -115,9 +114,15 @@ async function readLimited(res: Response, url: string, maxBytes: number): Promis
       await reader.cancel();
       throw new BlockedFetchError(`Antwort zu groß (über ${maxBytes} Bytes): ${url}`);
     }
-    text += decoder.decode(value, { stream: true });
+    chunks.push(value);
   }
-  return text + decoder.decode();
+  const out = new Uint8Array(size);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.byteLength;
+  }
+  return out;
 }
 
 export type GetOptions = {
@@ -129,6 +134,15 @@ export type GetOptions = {
 };
 
 export async function getText(url: string, options: GetOptions = {}): Promise<string> {
+  const { body } = await getBytes(url, options);
+  return new TextDecoder().decode(body);
+}
+
+/** Wie getText, aber als Bytes mit Inhaltstyp (für Bilder, ADR 021). */
+export async function getBytes(
+  url: string,
+  options: GetOptions = {},
+): Promise<{ body: Uint8Array; contentType: string }> {
   const doFetch = options.fetch ?? fetch;
   const signal = AbortSignal.timeout(options.timeoutMs ?? 20_000);
   let current = url;
@@ -151,7 +165,8 @@ export async function getText(url: string, options: GetOptions = {}): Promise<st
       await res.body?.cancel();
       throw new HttpError(current, res.status);
     }
-    return readLimited(res, current, options.maxBytes ?? MAX_RESPONSE_BYTES);
+    const body = await readLimited(res, current, options.maxBytes ?? MAX_RESPONSE_BYTES);
+    return { body, contentType: res.headers.get('content-type') ?? '' };
   }
 }
 

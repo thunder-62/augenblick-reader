@@ -135,6 +135,70 @@ test.describe('Artikel (Fließtext, ADR 018)', () => {
     await expect(page.locator('.card').first()).toBeVisible();
   });
 
+  test('Bilder der Quelle stehen im Text, so breit wie die Spalte (ADR 021)', async ({ page }) => {
+    // Bild vom Pi (/media/…), hier im Test selbst erzeugt; keine fremden Bilder im Repo.
+    const { deflateSync } = await import('node:zlib');
+    const png = (() => {
+      const table = Array.from({ length: 256 }, (_, n) => {
+        let c = n;
+        for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+        return c >>> 0;
+      });
+      const crc = (b: Buffer) => {
+        let c = 0xffffffff;
+        for (const x of b) c = (table[(c ^ x) & 0xff] ?? 0) ^ (c >>> 8);
+        return (c ^ 0xffffffff) >>> 0;
+      };
+      const chunk = (t: string, d: Buffer) => {
+        const l = Buffer.alloc(4);
+        l.writeUInt32BE(d.length);
+        const td = Buffer.concat([Buffer.from(t), d]);
+        const c = Buffer.alloc(4);
+        c.writeUInt32BE(crc(td));
+        return Buffer.concat([l, td, c]);
+      };
+      const ihdr = Buffer.alloc(13);
+      ihdr.writeUInt32BE(640, 0);
+      ihdr.writeUInt32BE(360, 4);
+      ihdr[8] = 8;
+      ihdr[9] = 2;
+      const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(640 * 3, 0x60)]);
+      return Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        chunk('IHDR', ihdr),
+        chunk('IDAT', deflateSync(Buffer.concat(Array.from({ length: 360 }, () => row)))),
+        chunk('IEND', Buffer.alloc(0)),
+      ]);
+    })();
+    const name = `${'e'.repeat(40)}.png`;
+    await page.route(`**/media/${name}`, (route) =>
+      route.fulfill({ body: png, contentType: 'image/png' }),
+    );
+    await page.route('**/api/articles/*', async (route) => {
+      const res = await route.fetch();
+      const article = await res.json();
+      article.blocks.splice(1, 0, {
+        type: 'image',
+        src: `/media/${name}`,
+        alt: 'Ein Testbild',
+        width: 640,
+        height: 360,
+      });
+      await route.fulfill({ json: article });
+    });
+    await page.goto('/');
+    await tap(page.locator('.card').first());
+    const img = page.locator('.prose .article-image img');
+    await expect(img).toHaveAttribute('alt', 'Ein Testbild');
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBe(640);
+    const imgBox = (await img.boundingBox())!;
+    const textBox = (await page.locator('.flowtext').boundingBox())!;
+    expect(Math.round(imgBox.width)).toBe(Math.round(textBox.width));
+    expect(imgBox.height).toBeLessThanOrEqual(page.viewportSize()!.height / 2 + 1);
+    await expect(page.locator('.prose figcaption')).toHaveCount(0);
+    await checkScreen(page);
+  });
+
   test('nicht mehr vorhandener Artikel: Hinweis und Weg zur Übersicht', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('.card').first()).toBeVisible();

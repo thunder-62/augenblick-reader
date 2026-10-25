@@ -6,6 +6,7 @@
 export type PageItem =
   | { kind: 'head' }
   | { kind: 'heading'; block: number }
+  | { kind: 'image'; block: number }
   /** Sätze [from, to) eines Absatzes. */
   | { kind: 'para'; block: number; from: number; to: number }
   /** Notfall: Wörter [from, to) eines einzelnen, zu langen Satzes. */

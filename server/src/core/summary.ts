@@ -44,7 +44,11 @@ export function loadPrompt(dir: string, lang: string): Prompt {
 }
 
 export function articleText(blocks: Block[]): string {
-  return blocks.map((b) => (b.type === 'heading' ? b.text : b.sentences.join(' '))).join('\n\n');
+  return blocks
+    .flatMap((b) =>
+      b.type === 'heading' ? [b.text] : b.type === 'paragraph' ? [b.sentences.join(' ')] : [],
+    )
+    .join('\n\n');
 }
 
 // prettier-ignore
