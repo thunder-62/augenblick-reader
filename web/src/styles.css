@@ -720,3 +720,19 @@ button {
   color: var(--bg);
   border-color: var(--text);
 }
+
+/* Bilder im Artikel (Auftrag 007, ADR 021): so breit wie der Text, höchstens halbe Bildschirmhöhe,
+   ohne Unterschrift. Keine Tippfläche. */
+.prose .article-image {
+  margin: 0.2em 0 0.8em;
+}
+.prose .article-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 50vh;
+  object-fit: contain;
+  object-position: left center;
+  border-radius: 0.2em;
+  pointer-events: none;
+}

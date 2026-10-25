@@ -20,6 +20,7 @@ import {
   type Db,
 } from './db.ts';
 import { log } from './log.ts';
+import { dropImages, localizeImages, pruneMedia, type MediaOptions } from './media.ts';
 import { selectEdition, type InterestRanker } from './selection.ts';
 import { articleText, createSummary, type SummaryProvider } from './summary.ts';
 import { berlinDay } from './time.ts';
@@ -35,6 +36,8 @@ export type PipelineOptions = {
    * damit die Interessen schon bei der Auswahl wirken (Auftrag 004, C8).
    */
   beforeEdition?: () => Promise<unknown>;
+  /** Bilder herunterladen und selbst ausliefern (ADR 021); ohne entfallen sie. */
+  media?: MediaOptions;
   now?: () => Date;
 };
 
@@ -74,7 +77,8 @@ async function processSource(
   for (const item of fresh) {
     try {
       const raw = await adapter.fetchArticle(item);
-      const blocks = htmlToBlocks(raw.html);
+      const found = htmlToBlocks(raw.html, raw.sourceUrl);
+      const blocks = opts.media ? await localizeImages(found, opts.media) : dropImages(found);
       const article = buildArticle(adapter.id, { ...raw, blocks }, now);
       upsertArticle(db, article);
       if (article.status === 'ready') report.added++;
@@ -133,6 +137,7 @@ export async function runPipeline(
   const now = (opts.now ?? (() => new Date()))();
   const edition = buildEdition(db, now, opts.sections, opts.ranker ?? null);
   const removed = cleanup(db, now, opts.retentionDays);
+  if (opts.media) pruneMedia(db, opts.media.dir, now.getTime());
   log.info('Lauf beendet', { sources, edition, removed });
   return { sources, edition };
 }

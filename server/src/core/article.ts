@@ -30,7 +30,8 @@ export function makeArticleId(source: string, originalId: string): string {
 export function blocksWordCount(blocks: Block[]): number {
   let n = 0;
   for (const b of blocks) {
-    n += b.type === 'heading' ? countWords(b.text) : countWords(b.sentences.join(' '));
+    if (b.type === 'heading') n += countWords(b.text);
+    else if (b.type === 'paragraph') n += countWords(b.sentences.join(' '));
   }
   return n;
 }

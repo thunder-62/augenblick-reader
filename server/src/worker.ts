@@ -4,6 +4,7 @@
  * `--once`: genau ein Lauf, dann Ende.
  */
 import cron from 'node-cron';
+import { mediaDir } from './core/media.ts';
 import { loadConfig, loadEnvFile } from './core/config.ts';
 import { openDb } from './core/db.ts';
 import { log } from './core/log.ts';
@@ -53,6 +54,8 @@ async function run(): Promise<void> {
       ranker: interestRanker(db, settings, new Date()),
       maxArticlesPerRun: config.maxArticlesPerRun,
       retentionDays: config.retentionDays,
+      // Bilder liegen neben der Datenbank; die API liefert sie unter /media/ aus (ADR 021).
+      media: { dir: mediaDir(config.dataDir) },
       // Erst Kurzfassungen und Schlagworte der Kandidaten, dann die Auswahl (Auftrag 004, C8).
       ...(summaryOpts && {
         beforeEdition: async () =>

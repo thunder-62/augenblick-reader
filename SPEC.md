@@ -96,7 +96,8 @@ type Article = {
 
 type Block =
   | { type: "heading"; text: string }
-  | { type: "paragraph"; sentences: string[] }; // Satzgrenzen vorberechnet (für Vorlesen)
+  | { type: "paragraph"; sentences: string[] } // Satzgrenzen vorberechnet (für Vorlesen)
+  | { type: "image"; src: string; alt?: string; width?: number; height?: number }; // vom Pi ausgeliefert (ADR 021)
 
 type Summary = {
   text: string;            // 2–3 Sätze, einfache Sprache
@@ -129,7 +130,7 @@ interface SourceAdapter {
 ### 5.2 Verarbeitungs-Pipeline (Worker)
 
 1. **Abholen:** alle 30 Minuten zwischen 5:00 und 22:00, danach Ruhe. Bis 6:30 muss die Morgenausgabe vollständig verarbeitet sein.
-2. **Bereinigen:** Werbung, Bildunterschriften, „Mehr zum Thema", Links, Social-Embeds, Bildnachweise entfernen. Zwischenüberschriften behalten. Ergebnis als `Block[]`.
+2. **Bereinigen:** Werbung, Bildunterschriften, „Mehr zum Thema", Links, Social-Embeds, Bildnachweise entfernen. Zwischenüberschriften und **Bilder** behalten: Bilder ohne Unterschrift, an ihrer Stelle im Text, höchstens 6 je Artikel; der Pi lädt sie herunter und liefert sie selbst aus, das Tablet fragt nie bei fremden Servern an (ADR 021). Ergebnis als `Block[]`.
 3. **Sätze trennen:** deutscher Satztrenner mit Abkürzungsliste (z. B., Dr., Nr., …). Satzgrenzen sind Grundlage für das Vorlesen.
 4. **KI-Kurzfassung** (§6).
 5. **Auswahl für die Ausgabe** (Reihenfolge siehe §5.3): maximal 12 Artikel pro Tag in der Übersicht, Mischung nach konfigurierbaren Rubriken (z. B. 4× Region aus BR24, 4× Deutschland/Welt aus tagesschau, 2× Vermischtes, 2× Sport). Dubletten (gleiches Thema) zusammenfassen.

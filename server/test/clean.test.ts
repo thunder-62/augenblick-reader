@@ -28,11 +28,11 @@ describe('htmlToBlocks', () => {
       <h2>Weiter im Text</h2>
       <p>Schluss.</p>
     `);
-    expect(blocks.map((b) => (b.type === 'heading' ? b.text : b.sentences.join(' ')))).toEqual([
-      'Text.',
-      'Weiter im Text',
-      'Schluss.',
-    ]);
+    expect(
+      blocks.map((b) =>
+        b.type === 'heading' ? b.text : b.type === 'paragraph' ? b.sentences.join(' ') : b.src,
+      ),
+    ).toEqual(['Text.', 'Weiter im Text', 'Schluss.']);
   });
 
   it('übernimmt lose Texte und <br> als Absatzgrenze', () => {
