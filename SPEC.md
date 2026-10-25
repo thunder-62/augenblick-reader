@@ -203,7 +203,7 @@ Alle Einstellungen liegen auf dem Server (`Settings`). Die Leseeinstellungen än
 - **Pinch-Zoom und Textauswahl aus**, kein Kontextmenü bei langem Druck.
 - **Wake Lock** im Artikel (Bildschirm bleibt an). In der Übersicht nicht. [R23]
 - **Nur Einzeltipps.** Auslösen beim Loslassen. Berührungen unter 80 ms und zweiter Tipp innerhalb von 300 ms auf dasselbe Ziel ignorieren. Bewegt sich der Finger mehr als 10 mm, ist es kein Tipp. [R22]
-- **Tippziele mindestens 15 mm, Ziel 20 mm**, Abstand ≥ 6 mm, mindestens 15 mm Abstand zum Bildschirmrand. In CSS-Pixel für das Tab S11 am Gerät mit Lineal verifizieren und als Konstante festhalten. [R17]
+- **Tippziele mindestens 15 mm, Ziel 20 mm**, Abstand ≥ 6 mm, mindestens 15 mm Abstand zum Bildschirmrand. Umrechnung in CSS-Pixel aus dem Datenblatt des Tab S11 (≈ 5,4 CSS-px/mm, ADR 017); eine Messung am Gerät ist nicht nötig. [R17]
 - **Höchstens 6 Tippziele pro Bildschirm.** [R18]
 - **Jede Taste: Symbol + Wort**, immer an derselben Stelle. [R20]
 - **Visuelles Feedback** beim Tippen (deutliche Umrandung/Invertierung, 150 ms), optional leiser Klick.
@@ -220,14 +220,14 @@ Alle Einstellungen liegen auf dem Server (`Settings`). Die Leseeinstellungen än
   - Kurzfassung
   - „ca. 4 Minuten"
   - bereits gelesen: dezentes Häkchen, kein Ausgrauen des Textes
-- Unten feste Leiste: **„◂ Zurück"** · „Seite 1 von 4" · **„Weiter ▸"**. Inaktive Taste bleibt sichtbar, aber gedämpft.
+- Navigation: **„◂ Zurück"** · „Seite 1 von 4" · **„Weiter ▸"**, dazu „Einstellungen“. Inaktive Taste bleibt sichtbar, aber gedämpft. Bei normaler Schrift an den Seiten (links „Einstellungen“ oben und „Zurück“ unten, rechts unten Seitenangabe und „Weiter“), damit Karten die volle Höhe bekommen; bei großer Schrift als feste Leiste unten (ADR 017).
 - Kein Scrollen. Seiten werden aus der Schriftgröße berechnet, sodass nichts abgeschnitten wird.
 
 ### 8.3 Bildschirm „Artikel"
 
-- Kopf: **„◂ Übersicht"** (immer sichtbar, Notausgang). [R20]
+- Links oben: **„◂ Übersicht"** (immer sichtbar, Notausgang). [R20]
 - Titel, danach Fließtext in **einer Spalte**, linksbündig, kein Blocksatz, **keine Silbentrennung**, `max-width` nach `maxCharsPerLine`. [R5]
-- **Seitenweise**, kein Scrollen. Umbruch nie mitten im Satz am Seitenende, wenn vermeidbar (lieber eine Zeile weniger). Unten: **„◂ Zurück"** · „Seite 2 von 5" · **„Weiter ▸"**. [R19]
+- **Seitenweise**, kein Scrollen. Umbruch nie mitten im Satz am Seitenende, wenn vermeidbar (lieber eine Zeile weniger). Navigation: **„◂ Zurück"** · „Seite 2 von 5" · **„Weiter ▸"** – bei normaler Schrift links unten bzw. rechts unten neben dem Text, bei großer Schrift als Leiste unten; „◂ Übersicht“ immer links oben (ADR 017). [R19]
 - Am Artikelende statt „Weiter": **„Nächster Artikel ▸"** mit dessen Titel.
 - Beim Öffnen der App: letzter Artikel und letzte Seite werden wiederhergestellt. [R24]
 - Ab Phase 3 zusätzlich Taste **„🔊 Vorlesen"** (siehe §8.5).
@@ -355,7 +355,7 @@ Nach M1, M2 und M5 testet der Betreuer mit der Nutzerin am Gerät; Rückmeldunge
 
 ## 14. Qualitätsanforderungen
 
-- **E2E-Tests** im Viewport des Tab S11 (Querformat; tatsächliche CSS-Auflösung am Gerät ermitteln und eintragen) für: Übersicht blättern, Artikel öffnen, blättern, zurück, Zustand nach Neuladen, Hinweis bei nicht erreichbarem Server.
+- **E2E-Tests** im Viewport des Tab S11 (Querformat, 1280 × 800 CSS-px nach Datenblatt; alle Stufen der Schriftkalibrierung) für: Übersicht blättern, Artikel öffnen, blättern, zurück, Zustand nach Neuladen, Hinweis bei nicht erreichbarem Server.
 - **Automatischer Check** in CI: Kontrast ≥ 7:1 für beide Schemata, Tippziele ≥ Minimalgröße, maximal 6 Tippziele pro Bildschirm, keine Scrollbalken in Übersicht/Artikel.
 - **Performance:** Übersicht in < 1 s aus dem Cache, Seitenwechsel < 100 ms.
 - **Robustheit:** Ein kaputter Artikel darf die Übersicht nicht verhindern; Quelle down → letzte Ausgabe bleibt.

@@ -171,3 +171,53 @@ function overflows(page: HTMLElement): boolean {
     outside(c, Array.from(c.children)),
   );
 }
+
+/**
+ * Breite der seitlichen Spalten (Auftrag 005): einmal je Bildschirm so breit wie die breiteste
+ * Taste in fetter Schrift, links und rechts gleich. Danach ändert sie sich beim Blättern nicht
+ * mehr, sodass der Seitenumbruch stimmt.
+ */
+export function fitSides(screen: HTMLElement): void {
+  if (!screen.matches('.screen.article, .screen.overview')) return;
+  screen.style.removeProperty('--side-l');
+  screen.style.removeProperty('--side-r');
+  const screenBox = screen.getBoundingClientRect();
+  // Breite je Seite einschließlich Randabstand (margin bzw. padding der Spalte „rail“).
+  const measure = (mode: 'sizing-min' | 'sizing-max'): { l: number; r: number } => {
+    screen.classList.add('sizing', mode);
+    const sides = { l: 0, r: 0 };
+    for (const el of screen.querySelectorAll<HTMLElement>('.rail > *, .bar > *')) {
+      if (el.classList.contains('pageinfo') || el.classList.contains('btn-next-article')) continue;
+      const s = getComputedStyle(el);
+      const rail = el.parentElement?.classList.contains('rail')
+        ? parseFloat(getComputedStyle(el.parentElement).paddingLeft)
+        : 0;
+      const r = el.getBoundingClientRect();
+      const width = r.width + parseFloat(s.marginLeft) + parseFloat(s.marginRight) + rail;
+      const side = r.left + r.width / 2 < screenBox.left + screenBox.width / 2 ? 'l' : 'r';
+      sides[side] = Math.max(sides[side], width);
+    }
+    screen.classList.remove('sizing', mode);
+    return sides;
+  };
+  const min = measure('sizing-min');
+  const max = measure('sizing-max');
+  // Höchstens 22 % der Breite je Seite – außer das längste Wort braucht mehr.
+  const cap = screenBox.width * 0.22;
+  const sides = {
+    l: Math.max(min.l, Math.min(max.l, cap)),
+    r: Math.max(min.r, Math.min(max.r, cap)),
+  };
+  // Die Seitenangabe soll als „Seite 88 von 88“ in die rechte Spalte passen (Langform), sonst Kurzform.
+  const info = screen.querySelector<HTMLElement>('.bar > .pageinfo');
+  if (info) {
+    const probe = h('span', {}, t('pager.pageOf', { page: 88, total: 88 }));
+    probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap';
+    info.append(probe);
+    const margin = parseFloat(getComputedStyle(info).marginRight) || 0;
+    sides.r = Math.max(sides.r, Math.min(cap, probe.getBoundingClientRect().width + margin + 2));
+    probe.remove();
+  }
+  if (sides.l > 0) screen.style.setProperty('--side-l', `${Math.ceil(sides.l)}px`);
+  if (sides.r > 0) screen.style.setProperty('--side-r', `${Math.ceil(sides.r)}px`);
+}

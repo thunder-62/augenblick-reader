@@ -13,6 +13,7 @@ import { fetchArticle, fetchEdition, fetchIntro, fetchSettings } from './api.ts'
 import {
   button,
   fitFlowPage,
+  fitSides,
   fitPageInfo,
   fitsIn,
   h,
@@ -22,7 +23,7 @@ import {
 } from './dom.ts';
 import { setLocale, t, tOr, tp } from './i18n.ts';
 import { packPages, pageForAnchor, paginate, type Page, type PageItem } from './paginate.ts';
-import { applySettings, calibrateCharWidth, layoutKey } from './settings.ts';
+import { applySettings, calibrateCharWidth, chooseNav, layoutKey } from './settings.ts';
 import type { FlowHost } from './flow.ts';
 import { IntroFlow } from './intro.ts';
 import { endReading, setSignalsEnabled, trackPage } from './signals.ts';
@@ -224,6 +225,8 @@ export class App implements FlowHost {
     this.screen?.remove();
     this.screen = screen;
     this.root.append(screen);
+    chooseNav();
+    fitSides(screen);
     screen.querySelectorAll<HTMLElement>('.pageinfo').forEach(fitPageInfo);
     screen.querySelectorAll<HTMLElement>('.flowpage').forEach(fitFlowPage);
     if (screen.classList.contains('flow')) {
@@ -290,12 +293,16 @@ export class App implements FlowHost {
       'main',
       { class: 'screen overview' },
       h(
-        'header',
-        { class: 'masthead' },
-        h('h1', { class: 'date' }, date),
-        h('span', { class: 'brand' }, t('app.name')),
+        'div',
+        { class: 'middle' },
+        h(
+          'header',
+          { class: 'masthead' },
+          h('h1', { class: 'date' }, date),
+          h('span', { class: 'brand' }, t('app.name')),
+        ),
+        list,
       ),
-      list,
       h('nav', { class: 'bar bar-overview' }, back, settingsBtn ?? h('span'), info, next),
     );
     this.mount(screen);

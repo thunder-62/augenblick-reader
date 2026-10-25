@@ -77,3 +77,24 @@ export function calibrateCharWidth(): void {
   probe.remove();
   if (width > 0) document.documentElement.style.setProperty('--chw', `${width}px`);
 }
+
+/**
+ * Navigation an den Seiten oder unten (Auftrag 005, ADR 017). Seitenspalten schenken dem Text die
+ * volle Höhe, kosten aber Breite. Das lohnt sich nur, solange eine Zeile trotzdem fast ihre volle
+ * Länge (`maxCharsPerLine`) behält – gemessen bei 1280 × 800: bis 30 px Seitenspalten, ab 38 px
+ * die Leiste unten. Ergebnis als `data-nav` auf <html>.
+ */
+export function chooseNav(): 'side' | 'bottom' {
+  const root = document.documentElement;
+  const cs = getComputedStyle(root);
+  const px = (name: string): number => parseFloat(cs.getPropertyValue(name)) || 0;
+  const fs = parseFloat(getComputedStyle(document.body).fontSize) || 30;
+  const chw = px('--chw') || fs * 0.55;
+  const maxText = (parseFloat(cs.getPropertyValue('--maxch')) || 45) * chw;
+  const w = window.innerWidth;
+  // Seitenspalte geschätzt mit 20 % der Breite (dom.ts, fitSides: höchstens 22 %).
+  const middle = w - 2 * px('--pad') - 2 * (0.2 * w + px('--gap'));
+  const mode = middle >= 0.8 * maxText ? 'side' : 'bottom';
+  root.dataset.nav = mode;
+  return mode;
+}

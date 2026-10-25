@@ -179,7 +179,9 @@ button {
   text-align: left;
 }
 .btn-next-article {
-  max-width: 48vw;
+  /* In der rechten Spalte: so breit wie „Weiter“, der Titel darf umbrechen (Auftrag 005). */
+  white-space: normal;
+  contain: inline-size;
 }
 .btn.inactive {
   border-style: dashed;
@@ -210,16 +212,36 @@ button {
   outline-offset: 4px;
 }
 
+/*
+ * Navigation an den Seiten statt in einer Leiste unten (Auftrag 005, ADR 017): Im Querformat ist
+ * die Höhe knapp, die Breite reichlich. Links oben „Übersicht“ bzw. „Einstellungen“, links unten
+ * „Zurück“, rechts unten Seitenangabe und „Weiter“; Text und Karten bekommen die volle Höhe.
+ * Die Spaltenbreite (--side) misst app.ts einmal je Bildschirm, damit sie sich beim Blättern nie
+ * ändert (sonst stimmte der Seitenumbruch nicht mehr).
+ */
 .bar {
-  grid-area: bar;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--gap);
-  margin: 0 var(--extra) var(--extra);
+  display: contents;
+}
+.bar > * {
+  margin: 0;
+}
+.bar > :first-child {
+  grid-area: back;
+  margin: 0 0 var(--extra) var(--extra);
+}
+.bar > :last-child {
+  grid-area: next;
+  margin: 0 var(--extra) var(--extra) 0;
+}
+.bar > .pageinfo {
+  grid-area: info;
+  margin: 0 var(--extra) 0 0;
+  align-self: end;
 }
 .pageinfo {
   margin: 0;
+  /* Die Seitenangabe bestimmt nicht die Spaltenbreite; passt sie nicht, kommt die Kurzform. */
+  contain: inline-size;
   font-size: var(--ui);
   text-align: center;
   color: var(--muted);
@@ -233,17 +255,115 @@ button {
 
 /* --- Übersicht ---------------------------------------------------------- */
 
-.screen.overview {
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-areas: 'mast' 'cards' 'bar';
+.screen.overview,
+.screen.article {
+  grid-template-columns: var(--side-l, max-content) minmax(0, 1fr) var(--side-r, max-content);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'top  main .'
+    '.    main .'
+    '.    main info'
+    'back main next';
+  row-gap: 0;
+}
+/* Seitliche Tasten füllen ihre Spalte (abzüglich Randabstand). */
+.screen.overview > .bar > .btn,
+.screen.article > .bar > .btn,
+.screen.article > .rail {
+  justify-self: stretch;
+  min-width: 0;
+}
+.screen.article > .rail > .btn {
+  width: 100%;
+}
+.screen.overview > .bar > .btn-settings {
+  grid-area: top;
+  margin: var(--extra) 0 0 var(--extra);
+}
+.screen.overview > .bar > :nth-child(2):not(.btn-settings) {
+  display: none;
+}
+/*
+ * Große Schrift: Navigation wieder unten (data-nav="bottom", settings.ts chooseNav) – dann ist die
+ * Breite knapper als die Höhe. „Übersicht“ bleibt links oben, Text bzw. Karten werden breiter.
+ */
+:root[data-nav='bottom'] .screen.article {
+  grid-template-columns: var(--side-l, max-content) minmax(0, 1fr) max-content;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'top  main main'
+    'back info next';
+  row-gap: var(--gap);
+}
+:root[data-nav='bottom'] .screen.overview {
+  grid-template-columns: max-content max-content minmax(0, 1fr) max-content;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'main main main main'
+    'back top  info next';
+  row-gap: var(--gap);
+}
+:root[data-nav='bottom'] .screen.overview > .bar > .btn-settings {
+  margin: 0 0 var(--extra) 0;
+}
+:root[data-nav='bottom'] .bar > .pageinfo {
+  align-self: center;
+  margin: 0 0 var(--extra);
+  text-align: center;
+}
+:root[data-nav='bottom'] .screen > .middle,
+:root[data-nav='bottom'] .screen > .flowpage {
+  margin-bottom: 0;
+}
+:root[data-nav='bottom'] .screen > .middle {
+  margin: 0 var(--extra);
+}
+/* Tippziele in Einstellungen und Einführung halten auch rechts 15 mm Abstand zum Rand. */
+:root[data-nav='bottom'] .screen > .flowpage {
+  padding-right: var(--extra);
+}
+:root[data-nav='bottom'] .screen > .bar > .btn {
+  white-space: nowrap;
+}
+
+/* Seitliche Tasten dürfen zweizeilig werden (nie mitten im Wort), damit die Mitte breit bleibt. */
+.screen.overview > .bar > .btn,
+.screen.article > .bar > .btn,
+.screen.article > .rail > .btn {
+  white-space: normal;
+  text-align: center;
+}
+/* Zum Messen der Spaltenbreite (dom.ts): fett wie im aktiven Zustand, Breite erzwungen. */
+.sizing .btn {
+  font-weight: 700;
+}
+.sizing-min :is(.bar, .rail) > .btn {
+  width: min-content;
+  justify-self: start;
+}
+.sizing-max :is(.bar, .rail) > .btn {
+  width: max-content;
+  justify-self: start;
+}
+/* Bereiche mit Tippzielen (Karten, Tasten) halten unten 15 mm Abstand zum Rand; Lesetext nicht. */
+.screen > .middle,
+.screen > .flowpage {
+  margin-bottom: var(--extra);
+}
+.middle {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 0;
+  min-width: 0;
 }
 .masthead {
-  grid-area: mast;
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: var(--gap);
-  margin: 0 var(--extra);
+  margin: 0;
   font-size: var(--ui);
   color: var(--muted);
   line-height: 1.25;
@@ -258,11 +378,11 @@ button {
   font-size: 0.8em;
 }
 .cards {
-  grid-area: cards;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: var(--gap);
-  margin: 0 var(--extra);
+  margin: 0;
   overflow: hidden;
   min-height: 0;
 }
@@ -321,25 +441,22 @@ button {
   margin-right: 0.3em;
 }
 .notice {
-  margin: 0 var(--extra);
+  margin: 0;
   max-width: calc(var(--maxch) * var(--chw));
 }
 
 /* --- Artikel ------------------------------------------------------------ */
 
-.screen.article {
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
-  grid-template-areas: 'rail page' 'bar bar';
-}
 .rail {
-  grid-area: rail;
+  grid-area: top;
   padding: var(--extra) 0 0 var(--extra);
 }
 .page {
-  grid-area: page;
+  grid-area: main;
   overflow: hidden;
   min-height: 0;
+  width: 100%;
+  justify-self: center;
   max-width: calc(var(--maxch) * var(--chw));
   padding: 0;
 }
@@ -393,9 +510,6 @@ button {
 
 /* --- Übersicht: Leiste mit „Einstellungen“ --------------------------------------- */
 
-.bar.bar-overview {
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
-}
 .btn .icon-gear,
 .btn .icon-plus,
 .btn .icon-minus,
@@ -416,8 +530,6 @@ button {
   flex-direction: column;
   gap: calc(var(--ui) * 0.3);
   max-width: none;
-  /* Tippziele im Inhalt halten 15 mm Abstand zum rechten Rand. */
-  padding-right: var(--extra);
 }
 .flowpage > * {
   flex: none;
@@ -514,14 +626,11 @@ button {
 .cards.practice {
   flex: 1 1 auto;
   min-height: 0;
-  /* Zwei Übungskarten nebeneinander, damit sie auch bei großer Schrift ganz zu sehen sind. */
-  flex-direction: row;
-  align-items: flex-start;
 }
-.cards.practice .card {
-  flex: 1 1 0;
-  min-width: 0;
+/* Übungskarten: nur Titel, in Tastengröße – zwei Karten müssen auch bei großer Schrift passen. */
+.practice-card {
+  font-size: var(--ui);
 }
 .practice-card .title {
-  font-size: var(--hint);
+  font-size: inherit;
 }

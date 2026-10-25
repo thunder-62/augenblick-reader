@@ -1,11 +1,11 @@
 /**
  * Maße für Tippziele (SPEC §8.1, [R17]).
  *
- * PX_PER_MM ist ein vorsichtiger Schätzwert aus der Recherche (15–20 mm ≈ 95–125 CSS-px); er macht
- * Tasten eher größer als nötig. Die Schriftgröße stellt die Leserin in der Einführung selbst ein,
- * eine Messung am Gerät ist laut Betreuer nicht nötig.
+ * PX_PER_MM aus dem Datenblatt des Galaxy Tab S11 (11 Zoll, 2560 × 1600 px, in Chrome 1280 × 800
+ * CSS-px): Breite ≈ 237 mm → ≈ 5,4 CSS-px/mm. Der frühere Schätzwert 6,3 machte die Tasten am
+ * Gerät rund 23 statt 20 mm hoch (Foto vom 25.10.2026; Auftrag 005, ADR 017).
  */
-export const PX_PER_MM = 6.3;
+export const PX_PER_MM = 5.4;
 
 export const TAP_MIN_MM = 15;
 export const TAP_TARGET_MM = 20;
