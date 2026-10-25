@@ -220,7 +220,7 @@ describe('OpenRouterSummaryProvider', () => {
   function provider(responses: Response[], fallbackModel: string | null = null) {
     const calls: Call[] = [];
     const p = new OpenRouterSummaryProvider({
-      apiKey: 'sk-or-test-0123456789abcdef',
+      apiKey: 'test-schluessel',
       model: 'test/modell',
       fallbackModel,
       prompt: PROMPT,
@@ -245,7 +245,7 @@ describe('OpenRouterSummaryProvider', () => {
     const c = calls[0]!;
     expect(c.url).toBe(OPENROUTER_URL);
     const h = c.init.headers as Record<string, string>;
-    expect(h.authorization).toBe('Bearer sk-or-test-0123456789abcdef');
+    expect(h.authorization).toBe('Bearer test-schluessel');
     expect(h['x-title']).toBe('Augenblick');
     expect(h['http-referer']).toContain('augenblick-reader');
     expect(c.body.model).toBe('test/modell');
