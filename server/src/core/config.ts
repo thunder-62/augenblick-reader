@@ -1,6 +1,9 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { DEFAULT_TECHNIK_NETWORKS } from './network.ts';
+
+/** Standardport der API und Web-App (ADR 016). */
+export const DEFAULT_PORT = 7341;
 import {
   DEFAULT_FEEDS,
   DEFAULT_SECTIONS,
@@ -141,7 +144,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     dataDir,
     dbPath: path.join(dataDir, 'augenblick.sqlite'),
     host: env.HOST ?? '127.0.0.1',
-    port: num(env.PORT, 8080),
+    // Kein bekannter Standardport wie 8080, um Konflikte mit anderen Diensten zu meiden (ADR 016).
+    port: num(env.PORT, DEFAULT_PORT),
     webDist: findWebDist(),
     tagesschauBaseUrl: (env.TAGESSCHAU_BASE_URL ?? 'https://www.tagesschau.de/api2u').replace(
       /\/+$/,

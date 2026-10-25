@@ -49,7 +49,7 @@ KI-Kurzfassungen (M3), Einstellungen der Nutzerin, Kalibrierung und Technik-Bere
 
 **Quellen**
 
-1. **Kein Live-Abruf möglich:** Aus der Entwicklungsumgebung waren tagesschau.de, br.de und br24.de gesperrt. Die Adapter beruhen auf der Dokumentation (ADR 001, 002) und sind mit selbst geschriebenen Testdaten abgesichert. Beim ersten Start auf dem Pi prüfen: `journalctl -u augenblick-worker` und `curl http://127.0.0.1:8080/health` – kommen Artikel beider Quellen an, und sind die Texte sauber (keine Bildunterschriften, Linklisten, Hinweiskästen)?
+1. **Kein Live-Abruf möglich:** Aus der Entwicklungsumgebung waren tagesschau.de, br.de und br24.de gesperrt. Die Adapter beruhen auf der Dokumentation (ADR 001, 002) und sind mit selbst geschriebenen Testdaten abgesichert. Beim ersten Start auf dem Pi prüfen: `journalctl -u augenblick-worker` und `curl http://127.0.0.1:7341/health` – kommen Artikel beider Quellen an, und sind die Texte sauber (keine Bildunterschriften, Linklisten, Hinweiskästen)?
 2. ~~**BR24-Feed für Franken/Mittelfranken**~~ **Beantwortet (24.10.):** Der Betreuer hat den Feed BR24 Mittelfranken gefunden: `https://nachrichtenfeeds.br.de/rdf/boards/UZlNk5T` (RDF). Er ist jetzt Standard; mehrere Feeds sind möglich (ADR 010).
 3. **tagesschau in Einfacher Sprache:** In der dokumentierten Schnittstelle gibt es dafür kein eigenes Ressort. Zugangsweg vor M3 klären.
 
@@ -61,7 +61,7 @@ KI-Kurzfassungen (M3), Einstellungen der Nutzerin, Kalibrierung und Technik-Bere
 7. **Eine Ausgabe pro Tag:** Was morgens in der Ausgabe steht, bleibt; tagesüber kommen nur Artikel auf freie Plätze (ADR 003). Wünscht die Nutzerin eher eine zweite Ausgabe am Nachmittag?
 8. **Ende des letzten Artikels:** Dort gibt es keinen „Nächsten Artikel“; „Weiter“ ist inaktiv, zurück geht es über „Übersicht“. Passt das, oder soll dort „Zur Übersicht ▸“ stehen?
 9. **Quellenangabe:** Karten zeigen „Region · BR24“, der Artikel „Quelle: tagesschau“. Gewünscht, oder lieber nur die Rubrik?
-10. **Wake Lock ohne HTTPS:** Browser erlauben Wake Lock nur in sicheren Kontexten. Über `http://pi:8080` bleibt der Bildschirm bis M4 (HTTPS) evtl. nicht an. Übergangsweise am Tablet die Bildschirm-Zeitüberschreitung hochsetzen.
+10. **Wake Lock ohne HTTPS:** Browser erlauben Wake Lock nur in sicheren Kontexten. Über `http://pi:7341` bleibt der Bildschirm bis M4 (HTTPS) evtl. nicht an. Übergangsweise am Tablet die Bildschirm-Zeitüberschreitung hochsetzen.
 
 **Betrieb**
 

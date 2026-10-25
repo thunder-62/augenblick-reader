@@ -1,6 +1,6 @@
 import { defineConfig, type Plugin } from 'vite';
 
-const api = `http://127.0.0.1:${process.env.PORT ?? 8080}`;
+const api = `http://127.0.0.1:${process.env.PORT ?? 7341}`;
 
 /** In der Entwicklung /technik und /technik/… auf technik.html umleiten (im Betrieb macht das der Server). */
 const technikRoute: Plugin = {

@@ -127,10 +127,10 @@ set -a
 source "$ENV_FILE"
 set +a
 # Belegter Port (z. B. durch einen Docker-Container): abbrechen statt den falschen Dienst zu prüfen.
-if ss -Hltn "sport = :${PORT:-8080}" | grep -q . && ! systemctl is-active --quiet augenblick-api; then
-  echo "Port ${PORT:-8080} ist schon belegt:" >&2
-  ss -Hltnp "sport = :${PORT:-8080}" >&2 || true
-  echo "Bitte in $ENV_FILE einen freien PORT eintragen (z. B. PORT=8090) und install.sh erneut starten." >&2
+if ss -Hltn "sport = :${PORT:-7341}" | grep -q . && ! systemctl is-active --quiet augenblick-api; then
+  echo "Port ${PORT:-7341} ist schon belegt:" >&2
+  ss -Hltnp "sport = :${PORT:-7341}" >&2 || true
+  echo "Bitte in $ENV_FILE einen freien PORT eintragen (z. B. PORT=7342) und install.sh erneut starten." >&2
   exit 1
 fi
 case "$MODE" in
@@ -156,18 +156,18 @@ systemctl start augenblick-api augenblick-worker augenblick-update.timer augenbl
 
 log "Prüfung"
 for _ in $(seq 1 30); do
-  if curl -fsS "http://127.0.0.1:${PORT:-8080}/health" >/dev/null 2>&1; then break; fi
+  if curl -fsS "http://127.0.0.1:${PORT:-7341}/health" >/dev/null 2>&1; then break; fi
   sleep 1
 done
-curl -fsS "http://127.0.0.1:${PORT:-8080}/health" && echo
+curl -fsS "http://127.0.0.1:${PORT:-7341}/health" && echo
 
 cat <<MSG
 
-Fertig. Augenblick läuft unter http://$(hostname):${PORT:-8080}/
+Fertig. Augenblick läuft unter http://$(hostname):${PORT:-7341}/
   Status:   systemctl status augenblick-api augenblick-worker
   Logs:     journalctl -u augenblick-worker -f
   Update:   sudo augenblick-update   (läuft sonst jede Nacht um 03:00)
-  Technik:  http://$(hostname):${PORT:-8080}/technik (nur im Heimnetz bzw. über Tailscale)
+  Technik:  http://$(hostname):${PORT:-7341}/technik (nur im Heimnetz bzw. über Tailscale)
 
 Tailscale (Fernwartung, später HTTPS): siehe deploy/README.md
 MSG

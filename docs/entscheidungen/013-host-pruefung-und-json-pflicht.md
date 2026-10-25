@@ -7,7 +7,7 @@
 Augenblick hat keine Anmeldung. Geschützt wird über das Netz: Die App ist nur im Heimnetz erreichbar, der Technik-Bereich nur aus Heimnetz und Tailscale. Zwei Angriffe umgehen das über den Browser eines Geräts im Heimnetz:
 
 - **DNS-Rebinding:** Eine fremde Seite lässt ihren eigenen Namen kurz auf die Adresse des Pi zeigen. Danach darf ihr Skript Antworten des Pi lesen, weil der Browser die Anfrage für „gleiche Herkunft“ hält.
-- **CSRF:** Eine fremde Seite schickt ein Formular oder ein `fetch` mit `text/plain` an `http://pi:8080/api/…`. Solche „einfachen“ Anfragen kommen ohne Vorabprüfung (CORS-Preflight) an. Sie könnten z. B. die Einführung zurücksetzen oder Lesesignale fälschen.
+- **CSRF:** Eine fremde Seite schickt ein Formular oder ein `fetch` mit `text/plain` an `http://pi:7341/api/…`. Solche „einfachen“ Anfragen kommen ohne Vorabprüfung (CORS-Preflight) an. Sie könnten z. B. die Einführung zurücksetzen oder Lesesignale fälschen.
 
 ## Entscheidung
 

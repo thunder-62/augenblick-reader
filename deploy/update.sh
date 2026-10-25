@@ -14,7 +14,7 @@ APP_DIR="${AUGENBLICK_APP_DIR:-/opt/augenblick}"
 RELEASES="$APP_DIR/releases"
 CURRENT="$APP_DIR/current"
 REPO="${AUGENBLICK_REPO:-thunder-62/augenblick-reader}"
-PORT="${PORT:-8080}"
+PORT="${PORT:-7341}"
 HEALTH_URL="${AUGENBLICK_HEALTH_URL:-http://127.0.0.1:$PORT/health}"
 KEEP=3
 # Version, deren Healthcheck fehlschlug – wird nachts nicht erneut versucht (nur mit --force).

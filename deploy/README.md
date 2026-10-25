@@ -4,7 +4,7 @@ Augenblick läuft ohne Docker direkt auf einem Raspberry Pi 5 (SSD, Raspberry Pi
 
 | Dienst | Aufgabe |
 |---|---|
-| `augenblick-api` | liefert Web-App und JSON-API (Port aus `PORT`, Standard 8080) |
+| `augenblick-api` | liefert Web-App und JSON-API (Port aus `PORT`, Standard 7341) |
 | `augenblick-worker` | holt Artikel ab (5:00–22:00 alle 30 Minuten), bereinigt sie, stellt die Ausgabe zusammen |
 | `augenblick-update.timer` | jede Nacht 03:00: neues Release laden, Healthcheck, bei Fehler zurück |
 | `augenblick-restart.path` | startet API und Worker neu, wenn das Update darum bittet (ADR 012) |
@@ -43,15 +43,15 @@ Läuft auf dem Gerät schon anderes, vorher prüfen (ADR 015):
 
 ```bash
 dpkg --print-architecture        # armhf (32 bit) oder arm64
-sudo ss -ltnp | grep 8080        # Port 8080 belegt?
+sudo ss -ltnp | grep 7341        # Port 7341 belegt?
 free -h                          # wenig RAM → Paket auf dem PC bauen
 ```
 
 1. Auf dem PC (Windows geht auch): `npm install && npm run build && npm run package`, dann `release/augenblick-<version>.tar.gz` auf den Pi kopieren (`scp`).
-2. Auf dem Pi die Konfiguration mit freiem Port **vor** der Installation anlegen:
+2. Nur falls Port 7341 belegt ist: die Konfiguration mit einem freien Port **vor** der Installation anlegen:
    ```bash
    sudo mkdir -p /etc/augenblick
-   sed -e 's|^HOST=.*|HOST=0.0.0.0|' -e 's|^PORT=.*|PORT=8090|' \
+   sed -e 's|^HOST=.*|HOST=0.0.0.0|' -e 's|^PORT=.*|PORT=7342|' \
        -e 's|^AUGENBLICK_DATA_DIR=.*|AUGENBLICK_DATA_DIR=/var/lib/augenblick|' \
        .env.example | sudo tee /etc/augenblick/augenblick.env >/dev/null
    ```
@@ -63,7 +63,7 @@ Ein Node.js über nvm bleibt unberührt; für die Dienste installiert `install.s
 
 Die **Leseeinstellungen** ändert die Leserin selbst auf dem Tablet (Taste „Einstellungen“ in der Übersicht, mit Rückfrage vor dem Speichern). Beim ersten Öffnen führt eine **Einführung** durch Schrift, Farben, Blättern und Artikel öffnen.
 
-Der **Technik-Bereich** liegt unter `http://<name-des-pi>:8080/technik` – ohne PIN, aber nur aus dem Heimnetz bzw. über Tailscale erreichbar (`AUGENBLICK_TECHNIK_NETWORKS`), und auf dem Tablet nicht verlinkt. Dort: Status (Quellen, KI-Verbrauch und -Kosten, Speicher, Version), Leseeinstellungen ansehen und bei einem Versehen auf eine frühere Fassung zurücksetzen, BR24-Feed und Rubriken-Mix, gelernte Interessen (nur Themen-Gewichte), Anrede (Sie/du), Einführung neu starten, Spickzettel zum Ausdrucken.
+Der **Technik-Bereich** liegt unter `http://<name-des-pi>:7341/technik` – ohne PIN, aber nur aus dem Heimnetz bzw. über Tailscale erreichbar (`AUGENBLICK_TECHNIK_NETWORKS`), und auf dem Tablet nicht verlinkt. Dort: Status (Quellen, KI-Verbrauch und -Kosten, Speicher, Version), Leseeinstellungen ansehen und bei einem Versehen auf eine frühere Fassung zurücksetzen, BR24-Feed und Rubriken-Mix, gelernte Interessen (nur Themen-Gewichte), Anrede (Sie/du), Einführung neu starten, Spickzettel zum Ausdrucken.
 
 ## Updates
 
@@ -82,7 +82,7 @@ Update-Programm und systemd-Units selbst ändern sich dabei nicht (sie gehören 
 systemctl status augenblick-api augenblick-worker
 journalctl -u augenblick-worker -f        # Abrufe, Fehler je Quelle
 journalctl -u augenblick-update           # letzte Updates
-curl http://127.0.0.1:8080/health         # Version, Ausgabe, letzter Abruf je Quelle
+curl http://127.0.0.1:7341/health         # Version, Ausgabe, letzter Abruf je Quelle
 ```
 
 Sofort neu abholen: `sudo systemctl restart augenblick-worker` (der Worker holt beim Start einmal ab, solange `AUGENBLICK_FETCH_ON_START=true`).
@@ -102,7 +102,7 @@ Tailscale verbindet den Pi mit Tablet und Geräten des Betreuers, ohne Ports im 
    ```
    Den angezeigten Link im Browser öffnen und den Pi dem eigenen Tailnet hinzufügen.
 2. In der Tailscale-Verwaltung einen sprechenden Gerätenamen vergeben (z. B. `augenblick`) und für den Pi „Key expiry“ abschalten, damit er nicht nach Monaten herausfällt.
-3. Auf Smartphone/PC des Betreuers Tailscale installieren und mit demselben Konto anmelden. Dann ist der Pi unter `http://augenblick:8080/` bzw. per `ssh augenblick` erreichbar.
+3. Auf Smartphone/PC des Betreuers Tailscale installieren und mit demselben Konto anmelden. Dann ist der Pi unter `http://augenblick:7341/` bzw. per `ssh augenblick` erreichbar.
 4. Optional das Tablet ebenfalls ins Tailnet nehmen (für M4 nötig, weil das Zertifikat auf den Tailscale-Namen ausgestellt wird).
 
 ## Tablet

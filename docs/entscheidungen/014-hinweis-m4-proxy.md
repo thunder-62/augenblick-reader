@@ -4,7 +4,7 @@
 
 ## Kontext
 
-Für HTTPS (M4) ist der einfachste Weg, dass Tailscale das Zertifikat hält und auf `localhost:8080` weiterleitet (`tailscale serve`, alternativ Caddy o. ä.). Dann kommt **jede** Anfrage für Augenblick von `127.0.0.1`. Die Netzprüfung des Technik-Bereichs (ADR 007, 011) erlaubt `127.0.0.0/8`, also wäre der Technik-Bereich für jede Anfrage über den Proxy offen.
+Für HTTPS (M4) ist der einfachste Weg, dass Tailscale das Zertifikat hält und auf `localhost:7341` weiterleitet (`tailscale serve`, alternativ Caddy o. ä.). Dann kommt **jede** Anfrage für Augenblick von `127.0.0.1`. Die Netzprüfung des Technik-Bereichs (ADR 007, 011) erlaubt `127.0.0.0/8`, also wäre der Technik-Bereich für jede Anfrage über den Proxy offen.
 
 ## Entscheidung (umzusetzen mit M4)
 

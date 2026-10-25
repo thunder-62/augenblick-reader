@@ -29,7 +29,7 @@ npm run dev
 
 `npm run dev` startet drei Prozesse:
 
-- **API** auf <http://127.0.0.1:8080> (`/api/edition`, `/api/articles/:id`, `/api/settings`, `/health`)
+- **API** auf <http://127.0.0.1:7341> (`/api/edition`, `/api/articles/:id`, `/api/settings`, `/health`)
 - **Worker**: holt beim Start einmal ab, danach 5:00–22:00 alle 30 Minuten (tagesschau, BR24)
 - **Web-App** (Vite) auf <http://localhost:5173> – im Browser im Querformat öffnen, z. B. mit den Entwicklerwerkzeugen auf 1280×800
 - **Technik-Bereich** auf <http://localhost:5173/technik> (ohne PIN, nur Heimnetz/Tailscale)
