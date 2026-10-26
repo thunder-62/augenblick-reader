@@ -1,6 +1,13 @@
 # Augenblick
 
-Ein ruhiger, sehr gut lesbarer Zeitungs-Reader für Menschen mit Makuladegeneration. Gebaut für ein Android-Tablet mit AMOLED-Display und einen Raspberry Pi im Heimnetz.
+Ein ruhiger, sehr gut lesbarer Zeitungs-Reader für Menschen mit Makuladegeneration. Gebaut für ein Android-Tablet mit AMOLED-Display.
+
+Augenblick gibt es in zwei Formen:
+
+- **Augenblick für Firefox** (Hauptrichtung seit 26.10.2026, SPEC §16): eine Firefox-Erweiterung. Auf Nachrichtenseiten erscheint die Taste „Lesen“, ein Tipp zeigt den Artikel in der Augenblick-Leseansicht. Anleitung: [`extension/README.md`](extension/README.md).
+- **Augenblick-Zeitung** (SPEC §3–§15): eigene Übersicht aus tagesschau und BR24, mit einem Raspberry Pi im Heimnetz.
+
+Für die Augenblick-Zeitung:
 
 - Große Schrift, doppelter Zeilenabstand, hoher Kontrast, eine Spalte
 - Übersicht mit kurzen Zusammenfassungen: „Lohnt sich dieser Artikel?"
@@ -8,7 +15,9 @@ Ein ruhiger, sehr gut lesbarer Zeitungs-Reader für Menschen mit Makuladegenerat
 - Sanftes Vorlesen ab einem angetippten Wort – Begleitung, kein Ersatz fürs eigene Lesen
 - Leseeinstellungen ändert die Leserin selbst, mit Rückfrage vor dem dauerhaften Speichern; um die Technik kümmert sich ein Angehöriger
 
-**Status:** M0–M3 umgesetzt (Grundgerüst, tagesschau und BR24, Übersicht und Artikel, Einstellungen der Leserin mit Einführung, Technik-Bereich, KI-Zusammenfassungen über OpenRouter, Interessen lernen). Danach Korrekturen aus der Durchsicht (Auftrag 004). Angehalten: Als Nächstes testet der Betreuer mit der Nutzerin am Gerät.
+**Status:**
+- Augenblick-Zeitung: M0–M3 umgesetzt (Grundgerüst, tagesschau und BR24, Übersicht und Artikel, Einstellungen der Leserin mit Einführung, Technik-Bereich, KI-Zusammenfassungen über OpenRouter, Interessen lernen), danach Aufträge 004–007. Sie läuft beim Betreuer auf dem Pi.
+- Augenblick für Firefox: F1 umgesetzt (Taste „Lesen“, Textgewinnung, Leseansicht mit Standardwerten, Auftrag 008). Angehalten: Als Nächstes installiert der Betreuer F1 am Tablet und testet mit der Nutzerin.
 
 - Spezifikation: [`SPEC.md`](SPEC.md)
 - Stand und Absprachen: [`docs/stand-und-absprachen.md`](docs/stand-und-absprachen.md)
@@ -53,12 +62,15 @@ Weitere Befehle:
 |---|---|
 | `npm run lint` | ESLint, Prettier-Prüfung, TypeScript |
 | `npm test` | Unit-Tests (Vitest) |
-| `npm run test:e2e` | E2E-Tests (Playwright) inkl. Kontrast-, Tippziel- und Scrollbalken-Prüfung |
-| `npm run build` | Web-App und Server bauen (`web/dist`, `server/dist`) |
+| `npm run test:e2e` | E2E-Tests (Playwright) inkl. Kontrast-, Tippziel- und Scrollbalken-Prüfung, für Web-App und Erweiterung |
+| `npm run build` | Web-App, Server und Erweiterung bauen (`web/dist`, `server/dist`, `extension/dist`) |
+| `npm run lint:ext -w extension` | Erweiterung mit Mozillas `web-ext lint` prüfen (nach dem Build) |
 | `npm run package` | Release-Paket `release/augenblick-<version>.tar.gz` |
 | `npm start` | gebauten Server starten (liefert auch die Web-App aus) |
 
 Die E2E-Tests laufen im Querformat-Viewport 1280×800 CSS-px. Die Schriftgröße stellt die Leserin in der Einführung selbst ein; die Umrechnung Millimeter → CSS-Pixel für die Tippziele in `shared/src/geometry.ts` ist ein vorsichtiger Schätzwert (eher zu große Tasten).
+
+**Augenblick für Firefox:** `npm run build -w extension` baut die Erweiterung nach `extension/dist`. Wie man sie in Firefox am PC lädt, per USB am Tablet startet oder signiert und dauerhaft installiert, steht Schritt für Schritt in [`extension/README.md`](extension/README.md).
 
 Auf dem Raspberry Pi: `sudo ./deploy/install.sh` (Details in [`deploy/README.md`](deploy/README.md)). Wer schon eine ältere Fassung installiert hat, führt es nach Auftrag 004 einmal erneut aus: Das nächtliche Update läuft jetzt als eigener Benutzer ohne Root-Rechte (ADR 012). Releases entstehen automatisch bei jedem Merge nach `main` (und bei einem Tag `v*`); der Pi spielt sie nachts selbst ein (ADR 019).
 

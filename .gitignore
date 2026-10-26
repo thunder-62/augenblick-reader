@@ -12,3 +12,4 @@ test-results/
 release/
 *.tsbuildinfo
 .DS_Store
+web-ext-artifacts/

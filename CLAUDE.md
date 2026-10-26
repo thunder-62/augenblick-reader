@@ -17,9 +17,10 @@ Dieses Repo baut **Augenblick**, einen Zeitungs-Reader für eine hochaltrige Nut
 
 ## Technik
 
-- TypeScript strict, Node.js 22 LTS, npm Workspaces (`server`, `web`, `shared`).
+- TypeScript strict, Node.js 22 LTS, npm Workspaces (`server`, `web`, `shared`, `extension`).
+- Gemeinsam genutzt (ADR 023): Bereinigung und Satztrennung in `shared/src/text/`, Leseansicht in `web/src/reader/`. Die Erweiterung importiert nur über `@augenblick/shared/text` und `@augenblick/web/reader`.
 - Kein Docker. Betrieb als systemd-Dienste (siehe SPEC §9).
-- Keine externen Requests aus der Web-App (Schrift selbst gehostet, keine CDNs, kein Tracking).
+- Keine externen Requests aus der Web-App und der Erweiterung (Schrift selbst gehostet, keine CDNs, kein Tracking).
 - UI-Texte nur aus `shared/locales/de.json`.
 
 ## Öffentliches Repo

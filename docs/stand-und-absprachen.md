@@ -2,7 +2,7 @@
 
 Hier steht, wie weit Augenblick ist und was mit dem Betreuer abgesprochen wurde. Die Einzelheiten stehen in den Aufträgen (`docs/auftraege/`) und Entscheidungen (`docs/entscheidungen/`). Verbindlich bleibt `SPEC.md`.
 
-Stand: 24.10.2026
+Stand: 26.10.2026
 
 ## Stand der Meilensteine
 
@@ -13,9 +13,14 @@ Stand: 24.10.2026
 | M2 | Leserin stellt selbst ein (mit Rückfrage), Einführung in 6 Schritten, Technik-Bereich `/technik` | erledigt | [002](auftraege/002-m2-einstellungen-einfuehrung-technik.md) |
 | M3 | KI-Kurzfassungen über OpenRouter mit Funkelstern und Fallback, Interessen lernen mit Einverständnis | erledigt | [003](auftraege/003-m3-ki-und-interessen.md) |
 | – | Korrekturen aus der Durchsicht M0–M3: große Schrift, Sicherheit, Einwilligung, Interessen | erledigt | [004](auftraege/004-korrekturen-aus-durchsicht.md) |
-| M4 ff. | HTTPS, Vorlesen, weitere Quellen … | nicht begonnen | – |
+| – | Bildschirm besser nutzen: Tasten an den Seiten, Tastenmaß | erledigt | [005](auftraege/005-bildschirm-besser-nutzen.md) |
+| – | Artikel als Fließtext zum Scrollen mit rundem Knopf | erledigt | [006](auftraege/006-artikel-als-fliesstext.md) |
+| – | Bilder der Quelle im Artikel | erledigt | [007](auftraege/007-bilder-im-artikel.md) |
+| M4 ff. | HTTPS, Vorlesen, weitere Quellen … | nicht begonnen (Pi-Teil läuft weiter, ADR 022) | – |
+| **F1** | **Augenblick für Firefox:** Taste „Lesen“, Textgewinnung, Leseansicht mit Standardwerten, Zurück | erledigt | [008](auftraege/008-firefox-erweiterung-f1.md) |
+| F2–F4 | Einstellungen und Einführung, Vorlesen, Veröffentlichung auf addons.mozilla.org | nicht begonnen | – |
 
-Geprüft wurde alles in der Entwicklungsumgebung: Lint, 166 Unit-Tests und 59 E2E-Tests (Chromium, 1280 × 800, alle 7 Schriftstufen) sind grün. **Am echten Tablet und am Raspberry Pi wurde noch nichts getestet.**
+Geprüft in der Entwicklungsumgebung (26.10.2026): Lint, 178 Unit-Tests, 61 E2E-Tests der Web-App und 18 der Erweiterung (Chromium, 1280 × 800, alle 7 Schriftstufen) sind grün, `web-ext lint` ohne Fehler. Die Augenblick-Zeitung läuft beim Betreuer auf dem Pi und am Tablet. **Die Erweiterung ist noch nicht in echtem Firefox gelaufen** (in der Entwicklungsumgebung nicht verfügbar).
 
 ## Absprachen mit dem Betreuer
 
@@ -32,6 +37,7 @@ Geprüft wurde alles in der Entwicklungsumgebung: Lint, 166 Unit-Tests und 59 E2
 6. **Freigabe = Merge nach `main`** (seit 25.10.2026, ADR 019). Jeder Merge erzeugt automatisch ein Release, das der Pi nachts um 03:00 einspielt. Vorher war ein Tag von Hand nötig.
 7. **Durchsicht nach M3 (Auftrag 004):** Vor dem Gerätetest wurden die Befunde einer Durchsicht behoben, ohne neue Funktionen. Danach wird wieder angehalten; weiter erst nach dem Test am Gerät.
 8. **Arbeitsweise:** Entwickelt wird auf dem Branch `claude/claude-md-offene-auftraege-h1iuc3`. Pull Requests gibt es nur auf Wunsch. Commits sind klein und deutsch, und vor jedem Commit laufen Lint und Tests grün.
+9. **Richtungswechsel zu Firefox** (26.10.2026, ADR 022): Die Nutzerin möchte auf ihren gewohnten Seiten lesen und dort ein Lesefenster öffnen. Hauptrichtung ist deshalb Augenblick für Firefox (SPEC §16). Der Pi-Teil bleibt in Betrieb; neue Funktionen dort nur nach Absprache. Nach F1 wird angehalten, bis der Betreuer F1 am Tablet mit der Nutzerin getestet hat.
 
 ## Abgleich mit der Spec
 
@@ -65,6 +71,14 @@ Am 24.10.2026 nochmals gegen `SPEC.md` (Version 0.1) geprüft. Auf `main` gab es
 5. **Testzeitpunkte (§13):** Die Spec sieht einen Gerätetest nach M2 vor. Weil M2 und M3 ohne Gerät gebaut wurden, deckt der nächste Test M1–M3 ab. Rückmeldungen gehen laut Spec als Issues ins Repo.
 
 ## Was der Betreuer als Nächstes tun kann
+
+**Augenblick für Firefox (F1):**
+
+1. Am PC bauen und in Firefox (Desktop) temporär laden: `extension/README.md`, Schritte 1–2. Auf ein paar echten Nachrichtenseiten ausprobieren.
+2. Unlisted signieren und am Tablet installieren: Schritt 4. Danach die Berechtigung „alle Websites“ prüfen.
+3. Mit der Nutzerin auf ihren Seiten testen (nn.de, br24.de, tagesschau.de). Die Beobachtungen unter „Offene Fragen“ in Auftrag 008 eintragen.
+
+**Augenblick-Zeitung (Pi), wie bisher:**
 
 1. **Ausprobieren:** auf dem PC oder Pi `npm install`, `.env` anlegen, `npm run dev` (README „Starten“). Am Tablet `http://<IP>:5173` öffnen.
 2. **OpenRouter-Schlüssel** in `.env` als `OPENROUTER_API_KEY` eintragen und einige Karten lesen. Dabei auf Ton, Länge und Schlagworte achten (Technik → Interessen).

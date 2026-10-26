@@ -1,6 +1,6 @@
 # Auftrag 008 – Augenblick für Firefox: Taste „Lesen“ und Leseansicht (F1)
 
-**Status:** offen
+**Status:** erledigt
 **Bezug:** SPEC §16 (vor allem 16.1–16.4, 16.7–16.10), §8.1, §8.3 mit ADR 018, §7, §11, §12; ADR 021, ADR 022
 
 ## Ziel
@@ -41,8 +41,75 @@ Einstellungen, Einführung, Position der Taste (F2), Vorlesen (F3), Veröffentli
 
 ## Offene Fragen
 
-_(vom Agenten zu ergänzen)_
+1. **Echter Firefox fehlt in der Entwicklungsumgebung.** Die Download-Server von Mozilla waren gesperrt. Gebaut und mit `web-ext lint` geprüft ist die Erweiterung. Die Tests liefen in Chromium mit dem echten Inhaltsskript (ADR 024). Abnahme 2, also „in Firefox (Desktop) temporär laden“, muss deshalb der Betreuer prüfen (`extension/README.md`, Schritt 2). Firefox-Eigenheiten wie Inhaltsskripte, die Objekte der Seite über „Xray“ sehen, oder Nachrichten zwischen Seite und iframe sind nur dort sichtbar.
+2. **Berechtigung am Gerät:** Bei Manifest V3 kann Firefox den Zugriff auf alle Websites bei der Installation abgeschaltet lassen. Dann erscheint keine Taste. Bitte nach der Installation prüfen (README, Schritt 4.6). Ist er abgeschaltet: Soll die Erweiterung beim ersten Start selbst darum bitten (das wäre ein zusätzlicher Bildschirm)?
+3. **Mindestversion Firefox 142** (wegen der Angabe „keine Datensammlung“, die addons.mozilla.org verlangt). Ist Firefox am Tablet aktuell?
+4. **Bilder hinter dem Abo:** Die Leseansicht zeigt nur Bilder, die die Seite schon geladen hat, mit derselben Adresse. Kommen sie nicht aus dem Zwischenspeicher, kann ein Abo-Bild fehlen (ADR 024). Am Gerät mit nn.de prüfen.
+5. **Schrift der Taste:** Atkinson lässt sich im geschlossenen Shadow DOM nicht zuverlässig laden. Die Taste nutzt deshalb Verdana bzw. die Systemschrift. Die Leseansicht hat Atkinson. Reicht das?
+6. **Taste beim Heranzoomen:** Zoomt die Nutzerin mit zwei Fingern in die Seite, kann die Taste aus dem Bild wandern, bis sie wieder herauszoomt. Kommt das vor?
+7. **Zurück-Geste auf Seiten, die selbst den Verlauf nutzen** (Single-Page-Apps): Die Leseansicht legt einen eigenen Eintrag an und behält den Zustand der Seite darin. Auf den Seiten der Nutzerin prüfen, ob „Zurück“ immer nur die Leseansicht schließt.
+8. **Kopfzeile der Leseansicht:** Über dem Titel steht der Name der Website (aus der Seite, sonst die Adresse, z. B. „www.nn.de“). Am Ende steht „Ende des Artikels“. Passt das, oder soll dort „Zur Seite“ als zweite Taste stehen?
+9. **Erkennung auf ihren Seiten:** Ob Readability Artikel auf nn.de, br24.de und tagesschau.de sauber erkennt (Rubrikseiten ohne Taste, Artikel mit Taste), zeigt erst der Test am Gerät.
+10. **Entwicklungswerkzeug:** `web-ext` zieht ein Paket mit bekannter Sicherheitswarnung mit (`node-forge`, `npm audit`). Das betrifft nur den Entwicklungsrechner, nicht die Erweiterung. Beobachten und aktualisieren, sobald web-ext es ersetzt.
 
 ## Abschlussbericht
 
-_(vom Agenten zu ergänzen)_
+**Gebaut:**
+
+- **Gemeinsame Bausteine** (ADR 023):
+  - Bereinigung, Satztrennung und Wortzählung liegen jetzt in `shared/src/text/` (`@augenblick/shared/text`). Sie arbeiten auf einem DOM-Element, mit linkedom auf dem Pi und mit dem Browser-DOM in der Erweiterung. Der Server ruft sie unverändert über `htmlToBlocks` auf.
+  - Die Leseansicht (Fließtext, runder Knopf, Bilder) und ihre Styles liegen in `web/src/reader/` (`@augenblick/web/reader`). Die Web-App nutzt sie für den Artikel; ihr Verhalten ist gleich geblieben.
+- **Workspace `extension/`:**
+  - Manifest V3, ID `augenblick@thunder-62.github.io`, Mindestversion Firefox 142 (Desktop und Android).
+  - Keine Berechtigung außer dem Inhaltsskript auf `http`/`https`-Seiten.
+  - `action` als Ersatzweg über das Menü.
+  - Build mit esbuild (`npm run build -w extension`); `web-ext lint` läuft in der CI.
+- **Taste „Lesen“:**
+  - im geschlossenen Shadow DOM, unten rechts, 20 mm, Buch-Symbol und Wort, über allem;
+  - nur bei `isProbablyReaderable` und ohne Passwortfeld;
+  - Tipp-Logik der Web-App;
+  - prüft nachladende Seiten gedrosselt erneut;
+  - gleicht den Zoom herausgezoomter Seiten aus.
+- **Textgewinnung:**
+  - Readability auf einer Kopie, dann die gemeinsame Bereinigung;
+  - Titel ohne Namen der Website;
+  - Bilder nur, wie die Seite sie geladen hat (ADR 024);
+  - ohne Artikel der Hinweis „Diese Seite lässt sich leider nicht als Text anzeigen.“
+- **Leseansicht:**
+  - Erweiterungsseite im Vollbild-iframe, Artikel per Nachricht mit Kennwort;
+  - runder Knopf „Zur Seite“; die Zurück-Geste schließt (eigener Verlaufseintrag);
+  - die Seite behält ihre Scrollposition;
+  - Wake Lock solange offen;
+  - nur DOM-Bau, kein `innerHTML`.
+- **Texte** im Abschnitt `extension` von `shared/locales/de.json`. Auch Name und Beschreibung im Manifest kommen von dort.
+- **Doku:**
+  - `extension/README.md` mit Anleitung für PC, USB am Tablet, Signieren und Installation;
+  - README, CLAUDE.md, Stand und Absprachen angepasst;
+  - ADR 023 und 024.
+
+**Getestet** (alles in der Entwicklungsumgebung):
+
+- `npm run lint` und 178 Unit-Tests grün, davon 8 neue für die Erweiterung mit 5 selbst geschriebenen Testseiten:
+  - Artikel mit Zwischenüberschriften und Bildern;
+  - Cookie-Banner und Teilen-Knöpfe;
+  - Startseite ohne Artikel;
+  - Anmeldeseite mit Passwortfeld;
+  - nachgeladener Artikel.
+- `npm run test:e2e`: 61 Tests der Web-App und 18 der Erweiterung grün. Geprüft werden:
+  - Taste erscheint bzw. erscheint nicht, auch über dem Cookie-Banner;
+  - Tipp öffnet die Leseansicht mit Titel, Text und Bildern;
+  - „Zur Seite“ und Zurück schließen, Scrollposition bleibt;
+  - Ersatzweg über das Menü;
+  - die Seite kann keinen Text unterschieben;
+  - keine eigenen Netzabrufe (alle Anfragen abgefangen);
+  - §14-Prüfungen bei allen 7 Schriftstufen.
+- `web-ext lint`: 0 Fehler, 2 Warnungen (`innerHTML` in Readability auf der inerten Kopie, ADR 024).
+- Das Release-Paket für den Pi baut und startet weiter ohne Entwicklungsabhängigkeiten.
+
+**Offen:**
+
+- In echtem Firefox ist die Erweiterung noch nicht gelaufen, weder am PC noch am Tablet (offene Frage 1).
+- Der Gerätetest mit der Nutzerin steht aus.
+- Einstellungen, Einführung und die Position der Taste folgen in F2.
+
+**Angehalten:** Der Betreuer installiert F1 am Tablet (`extension/README.md`) und testet mit der Nutzerin auf ihren Seiten.
