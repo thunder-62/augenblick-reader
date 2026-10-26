@@ -27,7 +27,7 @@ import {
   type SummaryProvider,
   type SummaryResult,
 } from '../src/core/summary.ts';
-import { countWords } from '../src/core/text.ts';
+import { countWords } from '@augenblick/shared/text';
 import { DemoAdapter } from '../src/sources/demo.ts';
 
 const SOURCE =

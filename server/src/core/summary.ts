@@ -4,8 +4,7 @@
  */
 import { readFileSync } from 'node:fs';
 import type { Block } from '@augenblick/shared';
-import { countWords } from './text.ts';
-import { splitSentences } from './sentences.ts';
+import { countWords, splitSentences } from '@augenblick/shared/text';
 
 export const MAX_SUMMARY_WORDS = 45;
 

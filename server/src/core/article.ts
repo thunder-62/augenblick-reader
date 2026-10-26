@@ -1,6 +1,6 @@
 import type { Article, Block, Summary } from '@augenblick/shared';
 import { MAX_SUMMARY_WORDS } from './summary.ts';
-import { countWords, normalizeWhitespace, readingMinutes } from './text.ts';
+import { countWords, normalizeWhitespace, readingMinutes } from '@augenblick/shared/text';
 
 export const FALLBACK_SUMMARY_MODEL = 'fallback-erste-saetze';
 export const TEASER_SUMMARY_MODEL = 'anreisser-der-quelle';

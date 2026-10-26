@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { splitSentences } from '../src/core/sentences.ts';
+import { splitSentences } from '@augenblick/shared/text';
 
 describe('splitSentences', () => {
   it('trennt einfache Sätze', () => {

@@ -9,7 +9,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { parseHTML } from 'linkedom';
 import { getText, type FetchLike } from '../core/http.ts';
 import { log } from '../core/log.ts';
-import { normalizeWhitespace } from '../core/text.ts';
+import { normalizeWhitespace } from '@augenblick/shared/text';
 import { toIso } from '../core/time.ts';
 import type { ResolvedFeed } from './feeds.ts';
 import type { RawArticle, RawItem, SourceAdapter } from './types.ts';
