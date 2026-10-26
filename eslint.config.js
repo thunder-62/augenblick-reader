@@ -25,11 +25,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/test/**/*.ts', '**/*.test.ts', 'web/e2e/**/*.ts'],
+    files: ['**/test/**/*.ts', '**/*.test.ts', 'web/e2e/**/*.ts', 'extension/e2e/**/*.ts'],
     rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
   },
   {
-    files: ['web/src/**/*.ts', 'extension/src/**/*.ts', 'extension/e2e/pages/**/*.js'],
+    files: ['web/src/**/*.ts', 'extension/src/**/*.ts', 'extension/test/pages/**/*.js'],
     languageOptions: { globals: { ...globals.browser } },
   },
   prettier,

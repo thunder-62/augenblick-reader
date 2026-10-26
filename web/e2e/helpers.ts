@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Frame, type Locator, type Page } from '@playwright/test';
 import {
   contrastRatio,
   EDGE_MM,
@@ -41,8 +41,8 @@ type Rect = {
   scrolls: boolean;
 };
 
-/** Prüft die Regeln aus SPEC §8.1/§14 für den aktuellen Bildschirm. */
-export async function checkScreen(page: Page): Promise<void> {
+/** Prüft die Regeln aus SPEC §8.1/§14 für den aktuellen Bildschirm (auch in einem iframe). */
+export async function checkScreen(page: Page | Frame): Promise<void> {
   const result = await page.evaluate(() => {
     const vw = window.innerWidth;
     const vh = window.innerHeight;

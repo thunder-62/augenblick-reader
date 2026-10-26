@@ -4,7 +4,7 @@
  * Inhaltsskript; dargestellt wird nur über DOM-Bau, nie über `innerHTML`.
  */
 import '@augenblick/web/reader.css';
-import { DEFAULT_SETTINGS } from '@augenblick/shared';
+import { sanitizeSettings, type Settings } from '@augenblick/shared';
 import {
   applySettings,
   calibrateCharWidth,
@@ -19,6 +19,19 @@ import {
 import { isToReader, type FromReader, type PageArticle } from './messages.ts';
 
 const token = location.hash.slice(1);
+
+/**
+ * F1: feste Standardwerte. `?vorschau=<Einstellungen als JSON>` zeigt andere Werte, wie die
+ * Vorschau der Web-App (für Tests aller Schriftstufen; das Inhaltsskript setzt es nie).
+ */
+function readerSettings(): Settings {
+  const raw = new URLSearchParams(location.search).get('vorschau');
+  try {
+    return sanitizeSettings(raw ? JSON.parse(raw) : {});
+  } catch {
+    return sanitizeSettings({});
+  }
+}
 const root = document.getElementById('app') as HTMLElement;
 
 // Kein Kontextmenü bei langem Druck, keine Textauswahl (SPEC §8.1).
@@ -69,7 +82,7 @@ function show(article: PageArticle | null): void {
 
 async function start(): Promise<void> {
   setLocale('de');
-  applySettings(DEFAULT_SETTINGS);
+  applySettings(readerSettings());
   showMessage(t('extension.loading'), true);
   await document.fonts?.ready;
   calibrateCharWidth();

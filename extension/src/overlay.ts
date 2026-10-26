@@ -69,13 +69,15 @@ export function createOverlay(readerUrl: string, onClosed: () => void): Overlay 
     window.addEventListener('message', onMessage);
     window.addEventListener('popstate', onPop);
     // Den Zustand der Seite mitnehmen, damit ihr eigener Router den Eintrag nicht missversteht.
-    const prev: unknown = history.state;
-    history.pushState(
-      typeof prev === 'object' && prev !== null
-        ? { ...prev, augenblick: token }
-        : { augenblick: token },
-      '',
-    );
+    // Klappt das nicht (fremder Zustand, den das Inhaltsskript nicht lesen kann), nur der eigene.
+    let state: Record<string, unknown> = { augenblick: token };
+    try {
+      const prev: unknown = history.state;
+      if (typeof prev === 'object' && prev !== null) state = { ...prev, augenblick: token };
+    } catch {
+      // bleibt beim eigenen Zustand
+    }
+    history.pushState(state, '');
     document.documentElement.append(host);
   };
 

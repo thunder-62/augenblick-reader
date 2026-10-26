@@ -61,6 +61,19 @@ function pinLoadedImages(
   for (const s of Array.from(copy.querySelectorAll('picture source'))) s.remove();
 }
 
+/**
+ * Readability nimmt oft den Fenstertitel mit dem Namen der Website („… – Musterstädter Anzeiger“).
+ * Steht die Hauptüberschrift der Seite darin, gilt sie.
+ */
+function pickTitle(doc: Document, parsedTitle: string | null | undefined): string {
+  const candidate = normalizeWhitespace(parsedTitle || doc.title || '');
+  for (const h1 of Array.from(doc.querySelectorAll('h1'))) {
+    const text = normalizeWhitespace(h1.textContent ?? '');
+    if (text && candidate.includes(text)) return text;
+  }
+  return candidate;
+}
+
 export function extractArticle(doc: Document, opts: ExtractOptions = {}): PageArticle | null {
   const copy = doc.cloneNode(true) as Document;
   pinLoadedImages(doc, copy, opts.loadedImage ?? browserLoadedImage);
@@ -68,9 +81,9 @@ export function extractArticle(doc: Document, opts: ExtractOptions = {}): PageAr
   const parsed = new Readability(copy, { keepClasses: true }).parse();
   if (!parsed?.content) return null;
   const body = (opts.parseHtml ?? browserParseHtml)(parsed.content).body;
-  const baseUrl = doc.location?.href ?? doc.baseURI;
+  const baseUrl = doc.location?.href || doc.baseURI || undefined;
   const blocks = elementToBlocks(body, baseUrl);
-  const title = normalizeWhitespace(parsed.title || doc.title || '');
+  const title = pickTitle(doc, parsed.title);
   // Readability lässt die Hauptüberschrift oft auch im Text stehen.
   const first = blocks[0];
   if (first?.type === 'heading' && first.text === title) blocks.shift();
