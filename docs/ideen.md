@@ -56,3 +56,7 @@ Während der Arbeit an M0–M3 notiert, bewusst nicht gebaut:
 - **Leiser Klick als Tipp-Feedback** (SPEC §8.1, optional) – erst nach Rückmeldung zum visuellen Feedback.
 - **tagesschau in Einfacher Sprache** als eigene Rubrik oder als Stilvorbild für die Kurzfassungen (SPEC §5.1, [R30]) – Zugangsweg klären.
 - **Branding-Ordner** `/branding/<name>/` (SPEC §12a): Der Name „Augenblick“ kommt schon aus der Locale; Logo und Akzentfarbe folgen, wenn ein Partner es braucht.
+
+## 7. Eigene schlichte Browser-App (Android)
+
+Vom Betreuer am 26.10.2026 als mögliche zweite Form neben der Firefox-Erweiterung genannt (ADR 022): eine Android-App mit der System-WebView. Startseite mit großen Kacheln für die Seiten der Nutzerin, immer gleiche Tasten „◂ Zurück“, „Start“, „Lesen“, keine Tabs und keine Adressleiste; „Lesen“ öffnet dieselbe Leseansicht wie die Erweiterung. Erst angehen, wenn die Erweiterung am Gerät erprobt ist.

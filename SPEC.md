@@ -1,16 +1,19 @@
 # SPEC – Augenblick
 
-> Spezifikation für den Coding-Agenten. Version 0.1, Stand 24.10.2026.
+> Spezifikation für den Coding-Agenten. Version 0.2, Stand 26.10.2026.
+> **Neu in 0.2:** §16 Augenblick für Firefox (Browser-Erweiterung). Sie ist ab jetzt die Hauptrichtung (ADR 022); der Pi-Teil (§3–§15) bleibt in Betrieb.
 > Hintergrund und Belege: [`docs/recherche.md`](docs/recherche.md). Regelnummern wie **[R13]** verweisen auf die „Design-Regeln für den Reader" dort.
 
 ## 1. Worum es geht
 
 Ein Zeitungs-Reader im Browser für **eine einzige Nutzerin**: hochaltrig (85+), altersbedingte Makuladegeneration (AMD), wenig Technikerfahrung. Sie soll ihre Tageszeitung wieder **selbst lesen** können. Vorlesen ist Begleitung, kein Ersatz.
 
-Das Produkt besteht aus zwei Teilen:
+Augenblick gibt es in zwei Formen:
 
-- **Server** (läuft auf einem Raspberry Pi im Heimnetz der Nutzerin): holt Artikel ab, bereinigt sie, erzeugt Kurzfassungen per KI, speichert alles und liefert die Web-App aus.
-- **Web-App / PWA** (läuft im Vollbild auf einem Samsung Galaxy Tab S11, 11", AMOLED, Android): Übersicht → Artikel. Sonst fast nichts.
+- **Augenblick für Firefox (§16, Hauptrichtung seit 26.10.2026):** Eine Firefox-Erweiterung. Die Nutzerin liest im Browser, tippt auf „Lesen“, und die Seite erscheint in der Augenblick-Leseansicht.
+- **Augenblick-Zeitung (§3–§15):** Eigene Zeitungsübersicht aus tagesschau und BR24, bestehend aus
+  - **Server** (läuft auf einem Raspberry Pi im Heimnetz der Nutzerin): holt Artikel ab, bereinigt sie, erzeugt Kurzfassungen per KI, speichert alles und liefert die Web-App aus.
+  - **Web-App / PWA** (läuft im Vollbild auf einem Samsung Galaxy Tab S11, 11", AMOLED, Android): Übersicht → Artikel. Sonst fast nichts.
 
 Ein Angehöriger („Betreuer") richtet alles ein und kümmert sich um die Technik. **Ihre Leseeinstellungen ändert die Nutzerin selbst**, wenn sie möchte (§8.7). Kein abgeschlossener Bereich, kein PIN: Schutz vor Versehen durch eine Rückfrage, nicht durch Bevormundung.
 
@@ -28,7 +31,7 @@ Ein Angehöriger („Betreuer") richtet alles ein und kümmert sich um die Techn
 - Keine Mehrbenutzerfähigkeit, keine Konten, kein Login für die Nutzerin.
 - Keine Kommentare, Teilen-Funktionen, Werbung, Push-Benachrichtigungen.
 - Kein Nachbau des ePaper-Seitenlayouts. Text wird immer als einspaltiger Fließtext dargestellt. [R5]
-- Keine native Android-App (Web-App reicht).
+- Keine native Android-App (Web-App bzw. Firefox-Erweiterung reichen). Eine eigene schlichte Browser-App ist als spätere Möglichkeit notiert (`docs/ideen.md`).
 - Kein Kiosk-Modus, kein Offline-Modus, Fernwartung nur optional (Entscheidung des Betreuers).
 - Keine Übersetzung, kein RSVP [R11].
 
@@ -69,6 +72,7 @@ Ein Angehöriger („Betreuer") richtet alles ein und kümmert sich um die Techn
 ```
 /server          api + worker (gemeinsamer Code in /server/src/core)
 /web             PWA
+/extension       Augenblick für Firefox (§16)
 /shared          Typen (Article, Settings, …), Locale-Dateien
 /deploy          systemd-Units, install.sh, update.sh, Tailscale-Anleitung
 /docs            recherche.md, entscheidungen/ (ADRs)
@@ -366,4 +370,85 @@ Nach M1, M2 und M5 testet der Betreuer mit der Nutzerin am Gerät; Rückmeldunge
 1. Rechtliche Klärung Regionalzeitungs-ePaper (Zugang, Nutzungsbedingungen, KI-Kurzfassungen) → Voraussetzung für M7.
 2. Augenbefund (Linsentrübung? Ausfall links/rechts?) – beeinflusst Farbschema und Laufschrift-Marke. Empfehlung: Low-Vision-Beratung.
 3. Hörgeräte der Nutzerin: Unterstützen sie ASHA oder LE Audio (nicht nur „Made for iPhone")? Kopplung mit dem Tab S11 vor M5 testen.
+
+## 16. Augenblick für Firefox (Browser-Erweiterung)
+
+Hauptrichtung seit 26.10.2026 (ADR 022). Wunsch der Nutzerin: „Ich bin auf einer Seite, löse etwas aus, und es geht ein Lesefenster auf, in dem der Inhalt lesefreundlich dargestellt wird.“ Chrome für Android kann keine Erweiterungen, Firefox für Android schon.
+
+### 16.1 Ablauf für die Nutzerin
+
+1. Sie liest wie gewohnt im Browser **Firefox für Android**, z. B. auf nn.de, br24.de oder tagesschau.de, auch mit ihrem Abo angemeldet.
+2. Auf Seiten, die wie ein Artikel aussehen, erscheint unten eine große Taste **„Lesen“** (Buch-Symbol + Wort).
+3. Ein Tipp öffnet die **Leseansicht** über der Seite: Titel, Fließtext, Bilder, in ihrer Schriftgröße und ihren Farben.
+4. Der runde Knopf **„◂ Zur Seite“** oben links oder die Zurück-Geste von Android schließt die Leseansicht. Sie ist wieder auf der Seite, an derselben Stelle.
+
+Ersatzweg, falls die Taste fehlt oder stört: Firefox-Menü (⋮) → Erweiterungen → Augenblick.
+
+### 16.2 Taste „Lesen“
+
+- Erscheint nur, wenn die Seite **lesbar** ist (Readability `isProbablyReaderable`) und **kein Passwortfeld** enthält. Nie auf Seiten der Erweiterung selbst.
+- Fest am unteren Rand, Standard rechts unten; Position (links, rechts) in den Einstellungen. Abstand zum Rand wie §8.1.
+- Größe nach §8.1 (Ziel 20 mm), Symbol + Wort, Kontrast ≥ 7:1, in beiden Farbschemata der Nutzerin.
+- In einem **geschlossenen Shadow DOM**, damit die Seite sie weder verstellt noch verändert; über allem anderen (höchster z-index), auch über Cookie-Bannern.
+- Verdeckt nichts dauerhaft Wichtiges: Erscheint die Taste über einer Leiste der Seite, bleibt sie trotzdem bedienbar; die Seite bleibt darunter scrollbar.
+- Tipp-Logik nach §8.1 (Auslösen beim Loslassen, Kurzberührungen und Doppeltipps ignorieren, Wischen ist kein Tipp).
+
+### 16.3 Textgewinnung
+
+- **In der Seite**, ohne Server und ohne eigene Netzabrufe: Readability auf einer Kopie des Dokuments (`document.cloneNode(true)`). Die Erweiterung liest nur, was die Seite der Nutzerin ohnehin zeigt; das funktioniert deshalb auch hinter ihrem Abo-Login.
+- Danach dieselbe Bereinigung wie im Pi-Teil (§5.2: Bildunterschriften, Linklisten, „Mehr zum Thema“, Teilen-Knöpfe usw. entfallen) und dieselbe Satztrennung. Diese Logik wird **gemeinsam genutzt**, nicht kopiert (Umzug nach `shared`, mit einer DOM-Schnittstelle, die im Browser und mit linkedom auf dem Server funktioniert).
+- **Bilder** wie ADR 021: an ihrer Stelle, so breit wie die Textspalte, höchstens halbe Bildschirmhöhe, ohne Unterschrift, höchstens 6, keine Symbole/Logos. Geladen werden sie von der Seite, wie die Seite sie selbst lädt.
+- Gelingt die Extraktion nicht: ruhiger Hinweis in der Leseansicht („Diese Seite lässt sich leider nicht als Text anzeigen.“) mit „◂ Zur Seite“.
+- Das bildhafte ePaper (Seitenbilder/PDF) ist ausdrücklich **nicht** Ziel; die normalen Artikelseiten schon.
+
+### 16.4 Leseansicht
+
+- **Vollbild über der Seite** im selben Tab (Erweiterungsseite in einem iframe über allem). Die Seite darunter bleibt unverändert.
+- Inhalt und Regeln wie der Artikel im Pi-Teil: §8.1 und §8.3 in der Fassung von ADR 018 (Fließtext zum Wischen, runder Knopf oben links, hier mit „Zur Seite“), Schrift, Zeilen- und Wortabstand, Zeilenlänge, Farbschemata nach §7. **Dieselben Bausteine wie die Web-App**, nicht nachgebaut (gemeinsamer Lese-Baustein; Umbau so, dass die Pi-Web-App unverändert weiterläuft).
+- Zurück-Geste von Android schließt die Leseansicht (History-Eintrag beim Öffnen).
+- Bildschirm bleibt an, solange die Leseansicht offen ist (Wake Lock, wo erlaubt).
+- Oben rechts eine Taste **„Einstellungen“** (§8.7) – sonst keine weiteren Tasten.
+- Kein Blättern zu „Nächster Artikel“: Die Leseansicht zeigt genau die Seite, auf der sie war.
+
+### 16.5 Einstellungen und Einführung
+
+- Wie §8.4, §8.7 und §8.8: Die Nutzerin stellt selbst ein, zweistufiges Speichern mit Rückfrage, „Wie am Anfang“, Einführung beim ersten Tipp auf „Lesen“ (Schrift, Farben, Lesen üben, Zur Seite zurück; Übungstexte selbst geschrieben).
+- Zusätzlich: **Position der Taste „Lesen“** (links/rechts).
+- Gespeichert in `browser.storage.local` auf dem Gerät. Kein Technik-Bereich, kein Server, kein Interessen-Lernen, keine KI (der Artikel liegt ja vor ihr).
+
+### 16.6 Vorlesen
+
+Wie §8.5 (Tipp auf ein Wort startet ab diesem Satz, Satz hervorgehoben, Pause durch erneuten Tipp, Ausgabe über die Systemausgabe bzw. Hörgeräte), **sofern** Firefox für Android eine deutsche Stimme über `speechSynthesis` anbietet. Am Gerät prüfen; ohne Stimme wird die Funktion nicht angezeigt.
+
+### 16.7 Datenschutz, Rechte, Sicherheit
+
+- **Keine Daten verlassen das Gerät.** Keine eigenen Netzabrufe, kein Tracking, keine Telemetrie, keine externen Schriften (Atkinson selbst gehostet).
+- Berechtigungen so knapp wie möglich: Inhaltsskript auf allen Seiten (für die Taste nötig), `storage`. Keine Berechtigung für Verlauf, Tabs-Liste, Downloads o. Ä. Jede zusätzliche Berechtigung braucht eine ADR.
+- Artikeltext wird nur per `textContent`/DOM-Bau dargestellt, nie per `innerHTML` (kein Skript aus der Seite in die Leseansicht).
+- Manifest V3; `action` statt `page_action` (Fehler in Firefox für Android ab Version 142).
+
+### 16.8 Veröffentlichung und Installation
+
+- Firefox verlangt eine Signatur durch Mozilla. Ziel: **öffentlich auf addons.mozilla.org (AMO)**, damit Updates automatisch kommen. Name z. B. „Augenblick – Lesehilfe“ (Verfügbarkeit prüfen). Beschreibung und Datenschutzerklärung als Dateien im Repo (`extension/store/`).
+- Signieren in CI mit `web-ext sign`; die AMO-Schlüssel legt **nur der Betreuer** als GitHub-Secrets an. Veröffentlichen ist eine Freigabe des Betreuers.
+- Bis zur Veröffentlichung: unlisted signieren und am Tablet über Firefox → Einstellungen → Über Firefox → 5× aufs Logo → „Erweiterung aus Datei installieren“. Für die Entwicklung `web-ext run --target=firefox-android` per USB. Beides in `extension/README.md` Schritt für Schritt.
+- Erweiterungs-ID: E-Mail-Form, fest, z. B. `augenblick@thunder-62.github.io`.
+
+### 16.9 Technik
+
+- Workspace `extension/` im bestehenden Monorepo, TypeScript strict, Build mit Vite (oder gleichwertig), `web-ext lint` in CI.
+- Läuft auch in Firefox am Desktop (zum Entwickeln und Testen), Ziel ist aber Android.
+- Tests: Extraktion und Bereinigung mit selbst geschriebenen HTML-Seiten (Unit); Leseansicht und Taste als Playwright-Tests mit Testseiten (Taste erscheint/erscheint nicht, Tipp öffnet, Zurück schließt, §14-Prüfungen bei allen Schriftstufen). Keine fremden Artikeltexte im Repo (§12).
+- i18n wie §11 (gemeinsame Locale-Dateien).
+
+### 16.10 Meilensteine
+
+| # | Ziel | Abnahme |
+|---|---|---|
+| F1 | Gerüst, Taste „Lesen“, Textgewinnung, Leseansicht mit Standardwerten, Zurück | Auf Testseiten und echten Nachrichtenseiten erscheint die Taste; Tipp zeigt sauberen Text in Augenblick-Gestaltung; Zurück-Geste und Knopf führen zur Seite |
+| F2 | Einstellungen, Einführung, Position der Taste | Nutzerin stellt Schrift und Farben selbst ein; bleibt nach Neustart erhalten |
+| F3 | Vorlesen (§16.6) | wie M5, sofern Stimme vorhanden |
+| F4 | Veröffentlichung auf AMO | Installation am Tablet aus AMO, automatisches Update |
+
+Nach F1 und F2 testet der Betreuer mit der Nutzerin am Gerät.
 
