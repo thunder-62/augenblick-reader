@@ -1,0 +1,299 @@
+/*
+ * Gemeinsamer Lese-Baustein (ADR 023): Schrift, Farben, Grundwerte und die Leseansicht.
+ * Genutzt von der Pi-Web-App (styles.css) und von Augenblick für Firefox (SPEC §16.4).
+ */
+
+/* Atkinson Hyperlegible, selbst gehostet (OFL, siehe /fonts/OFL.txt) */
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/atkinson-hyperlegible-latin-400-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/atkinson-hyperlegible-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('/fonts/atkinson-hyperlegible-latin-700-normal.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('/fonts/atkinson-hyperlegible-latin-ext-700-normal.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+/* Werte kommen aus den Einstellungen (settings.ts); hier nur Rückfallwerte. */
+:root {
+  --fs: 30px;
+  --lh: 2;
+  --ws: 0.25em;
+  --ls: 0em;
+  --ff: 'Atkinson Hyperlegible', 'Verdana', sans-serif;
+  --maxch: 45;
+  /*
+   * Bedienelemente, Kopfzeile, Seitenangabe und Anleitungen wachsen mit der Schrift, aber nur
+   * bis zu einem Anteil der Bildschirmhöhe – sonst bleibt bei großer Schrift kein Platz für
+   * Karten und Text (Auftrag 004, A1). Der Lesetext selbst behält immer die gewählte Größe.
+   */
+  --ui: min(var(--fs), 5vh);
+  --hint: min(var(--fs), 6.5vh);
+  /* gemessene mittlere Zeichenbreite (settings.ts) */
+  --chw: 0.55em;
+  --tap: 126px;
+  --gap: 38px;
+  --edge: 95px;
+  /* Innenabstand des Bildschirms; Tippziele halten zusätzlich Abstand bis --edge. */
+  --pad: 32px;
+  --extra: calc(var(--edge) - var(--pad));
+  --bg: #000000;
+  --text: #f2ead3;
+  --muted: #c9c1ac;
+  --border: #9c9585;
+  --border-inactive: #5e5a50;
+  --inactive: #aba492;
+  --stroke: 3px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ff);
+  font-size: var(--fs);
+  line-height: var(--lh);
+  word-spacing: var(--ws);
+  letter-spacing: var(--ls);
+  font-weight: 400;
+  font-synthesis: none;
+  text-align: left;
+  hyphens: none;
+  overflow-wrap: break-word;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+
+.screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  padding: var(--pad);
+  display: grid;
+  gap: var(--gap);
+  background: var(--bg);
+}
+
+/* --- Tasten (Grundwerte) --------------------------------------------------- */
+
+button {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  word-spacing: inherit;
+  background: transparent;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: none;
+}
+
+:focus-visible {
+  outline: var(--stroke) solid var(--text);
+  outline-offset: 4px;
+}
+
+.notice {
+  margin: 0;
+  max-width: calc(var(--maxch) * var(--chw));
+}
+
+/* --- Artikeltext ------------------------------------------------------- */
+
+.prose .meta {
+  margin: 0 0 0.2em;
+  font-size: min(0.8em, var(--ui));
+  line-height: 1.5;
+  color: var(--muted);
+}
+.prose h1 {
+  margin: 0 0 0.5em;
+  font-size: min(1.3em, calc(1em + 10px), var(--h1-fit, 1000px));
+  line-height: 1.25;
+  font-weight: 700;
+}
+.prose h2 {
+  margin: 0.4em 0 0.2em;
+  font-size: min(1.1em, calc(1em + 4px));
+  line-height: 1.35;
+  font-weight: 700;
+}
+.prose p {
+  margin: 0 0 0.5em;
+}
+.prose > :first-child {
+  margin-top: 0;
+}
+.prose > :last-child {
+  margin-bottom: 0;
+}
+
+/* Messbehälter für den Seitenumbruch */
+.measure {
+  position: fixed !important;
+  left: -100000px !important;
+  top: 0 !important;
+  margin: 0 !important;
+  visibility: hidden !important;
+  overflow: hidden !important;
+  pointer-events: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* --- Artikel als Fließtext zum Scrollen (Auftrag 006, ADR 018) --------------------------- */
+
+.screen.reading {
+  display: block;
+  padding: 0;
+}
+.article-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Nur hier darf gewischt werden, und nur senkrecht. */
+  touch-action: pan-y;
+  scrollbar-width: none;
+  /* Links Platz für den runden Knopf, damit nie Text darunter liegt. */
+  padding: var(--pad) var(--pad) var(--edge) calc(var(--edge) + var(--tap) * 1.4 + var(--gap));
+}
+.article-scroll::-webkit-scrollbar {
+  display: none;
+}
+.flowtext {
+  max-width: calc(var(--maxch) * var(--chw));
+  margin: 0 auto;
+}
+.article-end {
+  max-width: calc(var(--maxch) * var(--chw));
+  margin: 1.5em auto 0;
+  padding-right: var(--extra);
+  color: var(--muted);
+}
+.article-end .btn {
+  color: var(--text);
+  width: 100%;
+  white-space: normal;
+}
+.article-end p {
+  margin: 0;
+}
+
+/* Runder Knopf oben links: fest über dem Text, Kreis mit Pfeil, das Wort darunter. */
+.btn-round {
+  position: fixed;
+  top: var(--edge);
+  left: var(--edge);
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  font-size: max(24px, calc(var(--ui) * 0.7));
+  font-weight: 700;
+  line-height: 1.15;
+  cursor: pointer;
+  z-index: 2;
+}
+.btn-round .round {
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: 50%;
+  border: var(--stroke) solid var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-round .round .icon {
+  width: 40%;
+  height: 40%;
+  fill: currentColor;
+}
+.btn-round .round-label {
+  background: var(--bg);
+  padding: 0 0.15em;
+  white-space: nowrap;
+}
+.btn-round.pressed .round,
+.btn-round.tapped .round {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+/* Bilder im Artikel (Auftrag 007, ADR 021): so breit wie der Text, höchstens halbe Bildschirmhöhe,
+   ohne Unterschrift. Keine Tippfläche. */
+.prose .article-image {
+  margin: 0.2em 0 0.8em;
+}
+.prose .article-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 50vh;
+  object-fit: contain;
+  object-position: left center;
+  border-radius: 0.2em;
+  pointer-events: none;
+}

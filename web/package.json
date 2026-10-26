@@ -11,5 +11,9 @@
   "devDependencies": {
     "@augenblick/shared": "0.1.0",
     "vite": "^8.3.5"
+  },
+  "exports": {
+    "./reader": "./src/reader/index.ts",
+    "./reader.css": "./src/reader/reader.css"
   }
 }

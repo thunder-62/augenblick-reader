@@ -12,7 +12,6 @@ import {
 import { fetchArticle, fetchEdition, fetchIntro, fetchSettings } from './api.ts';
 import {
   button,
-  roundButton,
   fitFlowPage,
   fitSides,
   fitPageInfo,
@@ -23,7 +22,8 @@ import {
   setButton,
 } from './dom.ts';
 import { setLocale, t, tOr, tp } from './i18n.ts';
-import { packPages, type PageItem } from './paginate.ts';
+import { packPages } from './paginate.ts';
+import { glue, readingView } from './reader/view.ts';
 import { applySettings, calibrateCharWidth, chooseNav, layoutKey } from './settings.ts';
 import type { FlowHost } from './flow.ts';
 import { IntroFlow } from './intro.ts';
@@ -401,7 +401,7 @@ export class App implements FlowHost {
             // Funkelstern vor KI-Kurzfassungen, ohne Beschriftung (SPEC §6).
             c.summaryAi ? icons.spark() : null,
             c.summaryAi ? h('span', { class: 'sr-only' }, t('card.aiSummary')) : null,
-            App.glue(summary),
+            glue(summary),
           )
         : null,
       detail.time ? h('span', { class: 'time' }, tp('card.readingTime', c.readingMinutes)) : null,
@@ -457,136 +457,52 @@ export class App implements FlowHost {
   }
 
   /**
-   * Artikel als Fließtext zum Scrollen (Auftrag 006, ADR 018): ein Text vom Titel bis zum Ende,
-   * oben links fest der runde Knopf zur Übersicht, am Ende „Nächster Artikel“.
+   * Artikel als Fließtext zum Scrollen (Auftrag 006, ADR 018) mit dem gemeinsamen Lese-Baustein
+   * (ADR 023): oben links der runde Knopf zur Übersicht, am Ende „Nächster Artikel“.
    * Gemerkt wird der erste sichtbare Satz – nach dem Neuladen geht es dort weiter.
    */
   private renderArticle(article: Article, anchor: number): void {
     keepAwake(true);
-    const offsets: number[] = [];
-    const items: PageItem[] = [{ kind: 'head' }];
-    let count = 0;
-    article.blocks.forEach((b, i) => {
-      offsets.push(count);
-      if (b.type === 'paragraph') {
-        items.push({ kind: 'para', block: i, from: 0, to: b.sentences.length });
-        count += b.sentences.length;
-      } else if (b.type === 'image') items.push({ kind: 'image', block: i });
-      else items.push({ kind: 'heading', block: i });
-    });
-    const text = h(
-      'article',
-      { class: 'prose flowtext', lang: article.lang },
-      ...this.renderItems(article, items, offsets),
-    );
+    const meta = `${tOr(`sections.${article.section ?? 'nachrichten'}`, 'sections.nachrichten')} · ${t(
+      'article.source',
+      { source: tOr(`sources.${article.source}`, 'sources.demo') },
+    )}`;
     const nextCard = this.nextInEdition(article.id);
     const next = nextCard
       ? button(t('nav.nextArticle'), 'right', 'btn-next btn-next-article')
       : null;
     if (next && nextCard) setButton(next, t('nav.nextArticle'), 'right', { sub: nextCard.title });
-    const end = h('div', { class: 'article-end' }, next ?? h('p', {}, t('article.end')));
-    const scroller = h('div', { class: 'article-scroll' }, text, end);
-    const back = roundButton(t('nav.overview'), 'btn-overview');
-    this.mount(h('main', { class: 'screen reading' }, scroller, back));
+    const view = readingView(
+      { title: article.title, lang: article.lang, blocks: article.blocks, meta },
+      {
+        backLabel: t('nav.overview'),
+        backClass: 'btn-overview',
+        end: next ?? h('p', {}, t('article.end')),
+        // Nur Bilder vom Pi (ADR 021).
+        imageAllowed: (src) => src.startsWith('/media/'),
+      },
+    );
+    this.mount(view.screen);
     this.view = { kind: 'article', article, id: article.id, anchor };
-
     // An die gemerkte Stelle: der Satz steht oben auf dem Bildschirm.
-    const target = anchor >= 0 ? text.querySelector<HTMLElement>(`[data-s="${anchor}"]`) : null;
-    if (target) scroller.scrollTop = target.offsetTop - text.offsetTop;
+    view.scrollToSentence(anchor);
 
     const remember = (): void => {
-      const top = scroller.getBoundingClientRect().top;
-      let first = -1;
-      if (scroller.scrollTop > 0) {
-        // Erster Satz, dessen Anfang zu sehen ist (die erste Zeile eines Satzes kann mit dem Ende
-        // des vorigen geteilt sein).
-        for (const el of text.querySelectorAll<HTMLElement>('.s')) {
-          const start = el.getClientRects()[0];
-          if (start && start.top >= top - 1) {
-            first = Number(el.dataset.s);
-            break;
-          }
-        }
-      }
-      const atEnd = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
+      const first = view.firstVisibleSentence();
       if (this.view.kind === 'article' && this.view.id === article.id) this.view.anchor = first;
       this.saveState({ view: 'article', articleId: article.id, anchor: first });
       // „Bis zum Ende gelesen“ für das Interessen-Lernen (SPEC §5.3).
-      if (!this.preview) trackPage(article.id, atEnd ? 1 : 0, 2);
+      if (!this.preview) trackPage(article.id, view.atEnd() ? 1 : 0, 2);
     };
     let pending = 0;
-    scroller.addEventListener('scroll', () => {
+    view.scroller.addEventListener('scroll', () => {
       cancelAnimationFrame(pending);
       pending = requestAnimationFrame(remember);
     });
     remember();
 
-    onTap(back, () => this.showOverview(0, article.id));
+    onTap(view.back, () => this.showOverview(0, article.id));
     if (next && nextCard) onTap(next, () => void this.openArticle(nextCard.id, -1));
-  }
-
-  /** Typografie ohne Textänderung: „z. B.“, „u. a.“ nicht über Zeilen trennen. */
-  private static glue(text: string): string {
-    return text.replace(/(?<=(?:^|[\s(„"])\p{L}\.) (?=\p{L}\.)/gu, '\u00A0');
-  }
-
-  private renderItems(article: Article, items: PageItem[], offsets: number[]): HTMLElement[] {
-    const out: HTMLElement[] = [];
-    for (const it of items) {
-      if (it.kind === 'head') {
-        const meta = `${tOr(`sections.${article.section ?? 'nachrichten'}`, 'sections.nachrichten')} · ${t(
-          'article.source',
-          {
-            source: tOr(`sources.${article.source}`, 'sources.demo'),
-          },
-        )}`;
-        out.push(h('p', { class: 'meta' }, meta), h('h1', { class: 'title' }, article.title));
-        continue;
-      }
-      const block = article.blocks[it.block];
-      if (!block) continue;
-      if (it.kind === 'image' && block.type === 'image') {
-        // Nur Bilder vom Pi (/media/…), ohne Unterschrift; Maße reservieren den Platz, damit die
-        // Lesestelle beim Laden nicht springt (ADR 021).
-        if (!block.src.startsWith('/media/')) continue;
-        const img = h('img', {
-          src: block.src,
-          alt: block.alt ?? '',
-          width: block.width,
-          height: block.height,
-          decoding: 'async',
-        });
-        out.push(h('figure', { class: 'article-image' }, img));
-      } else if (it.kind === 'heading' && block.type === 'heading') {
-        out.push(h('h2', {}, block.text));
-      } else if (it.kind === 'para' && block.type === 'paragraph') {
-        const p = h('p', { class: it.from > 0 ? 'cont' : '' });
-        block.sentences.slice(it.from, it.to).forEach((s, i) => {
-          if (i > 0) p.append(' ');
-          p.append(
-            h(
-              'span',
-              { class: 's', 'data-s': (offsets[it.block] ?? 0) + it.from + i },
-              App.glue(s),
-            ),
-          );
-        });
-        out.push(p);
-      } else if (it.kind === 'words' && block.type === 'paragraph') {
-        const words = (block.sentences[it.sentence] ?? '')
-          .split(' ')
-          .slice(it.from, it.to)
-          .join(' ');
-        out.push(
-          h(
-            'p',
-            { class: it.from > 0 ? 'cont' : '' },
-            h('span', { class: 's', 'data-s': (offsets[it.block] ?? 0) + it.sentence }, words),
-          ),
-        );
-      }
-    }
-    return out;
   }
 
   private nextInEdition(id: string): ArticleCard | null {
