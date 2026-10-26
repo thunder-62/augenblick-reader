@@ -31,6 +31,8 @@ const files = [
   'shared/package.json',
   'web/package.json',
   'server/package.json',
+  // Nur für `npm ci`: der Workspace muss existieren; die Erweiterung selbst gehört nicht ins Paket.
+  'extension/package.json',
 ];
 for (const f of files) cpSync(path.join(root, f), path.join(stage, f));
 for (const d of ['server/dist', 'server/prompts', 'web/dist', 'deploy'])

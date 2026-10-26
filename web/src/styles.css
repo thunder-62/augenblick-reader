@@ -1,15 +1,6 @@
 /* Pi-Web-App: Übersicht, Tasten, Einstellungen, Einführung. Grundwerte im Lese-Baustein. */
 @import './reader/reader.css';
 
-.screen.message {
-  place-items: center;
-  padding: var(--edge);
-}
-.screen.message p {
-  max-width: calc(var(--maxch) * var(--chw));
-  margin: 0;
-}
-
 /* --- Tasten ------------------------------------------------------------- */
 
 .btn {

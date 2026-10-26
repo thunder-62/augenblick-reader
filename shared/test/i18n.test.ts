@@ -41,10 +41,12 @@ describe('i18n', () => {
     expect(() => t.t('gibt.es.nicht')).toThrow();
   });
 
-  it('jeder im Web-Code benutzte Schlüssel steht in de.json', () => {
-    const root = path.resolve(import.meta.dirname, '../../web/src');
+  it('jeder in Web-App und Erweiterung benutzte Schlüssel steht in de.json', () => {
+    const roots = ['../../web/src', '../../extension/src'].map((d) =>
+      path.resolve(import.meta.dirname, d),
+    );
     const used = new Set<string>();
-    for (const file of sources(root)) {
+    for (const file of roots.flatMap(sources)) {
       const code = readFileSync(file, 'utf8');
       for (const m of code.matchAll(/\bt[p]?\('([\w.]+)'/g)) if (m[1]) used.add(m[1]);
     }

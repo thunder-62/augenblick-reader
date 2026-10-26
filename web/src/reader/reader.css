@@ -122,6 +122,15 @@ body {
   background: var(--bg);
 }
 
+.screen.message {
+  place-items: center;
+  padding: var(--edge);
+}
+.screen.message p {
+  max-width: calc(var(--maxch) * var(--chw));
+  margin: 0;
+}
+
 /* --- Tasten (Grundwerte) --------------------------------------------------- */
 
 button {

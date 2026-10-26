@@ -344,5 +344,14 @@
       "sparkText": "Ein Computerprogramm hat die Zusammenfassung geschrieben.",
       "calm": "Nichts kann kaputtgehen. Im Zweifel einfach auf „Übersicht“ tippen."
     }
+  },
+  "extension": {
+    "name": "Augenblick – Lesehilfe",
+    "description": "Zeigt Artikel auf Nachrichtenseiten groß, ruhig und gut lesbar an. Ohne Netzabrufe, ohne Tracking.",
+    "action": "Augenblick: Seite lesen",
+    "read": "Lesen",
+    "toPage": "Zur Seite",
+    "failed": "Diese Seite lässt sich leider nicht als Text anzeigen.",
+    "loading": "Die Seite wird vorbereitet …"
   }
 }

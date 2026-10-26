@@ -29,7 +29,7 @@ export default tseslint.config(
     rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
   },
   {
-    files: ['web/src/**/*.ts'],
+    files: ['web/src/**/*.ts', 'extension/src/**/*.ts', 'extension/e2e/pages/**/*.js'],
     languageOptions: { globals: { ...globals.browser } },
   },
   prettier,

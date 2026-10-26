@@ -11,15 +11,16 @@
   "workspaces": [
     "shared",
     "server",
-    "web"
+    "web",
+    "extension"
   ],
   "scripts": {
     "dev": "concurrently -k -n api,worker,web -c blue,magenta,green \"tsx watch --clear-screen=false server/src/api.ts\" \"tsx watch --clear-screen=false server/src/worker.ts\" \"npm run dev -w web\"",
     "demo": "tsx server/src/seed-demo.ts",
-    "build": "npm run build -w web && npm run build -w server",
+    "build": "npm run build -w web && npm run build -w server && npm run build -w extension",
     "start": "node server/dist/api.js",
     "lint": "eslint . && prettier --check . && npm run typecheck",
-    "typecheck": "tsc -p shared --noEmit && tsc -p server --noEmit && tsc -p web --noEmit",
+    "typecheck": "tsc -p shared --noEmit && tsc -p server --noEmit && tsc -p web --noEmit && tsc -p extension --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:e2e": "playwright test",
